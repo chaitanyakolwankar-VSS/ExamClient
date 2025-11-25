@@ -1,37 +1,68 @@
 import React from "react";
-import GridShape from "../../components/common/GridShape";
-import { Link } from "react-router";
 import ThemeTogglerTwo from "../../components/common/ThemeTogglerTwo";
+
+interface AuthLayoutProps {
+  children: React.ReactNode;
+  bannerTitle?: string;
+  bannerSubtitle?: string;
+}
 
 export default function AuthLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+  bannerTitle = "Welcome to GradeSphere",
+  bannerSubtitle = "A comprehensive platform for managing exams and student performance.",
+}: // Default image if none is provided
+AuthLayoutProps) {
   return (
-    <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
-      <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row dark:bg-gray-900 sm:p-0">
-        {children}
-        <div className="items-center hidden w-full h-full lg:w-1/2 bg-brand-950 dark:bg-white/5 lg:grid">
-          <div className="relative flex items-center justify-center z-1">
-            {/* <!-- ===== Common Grid Shape Start ===== --> */}
-            <GridShape />
-            <div className="flex flex-col items-center max-w-xs">
-              <Link to="/" className="block mb-4">
-                <img
-                  width={231}
-                  height={48}
-                  src="/images/logo/auth-logo.svg"
-                  alt="Logo"
-                />
-              </Link>
-              <p className="text-center text-gray-400 dark:text-white/60">
-                Free and Open-Source Tailwind CSS Admin Dashboard Template
-              </p>
-            </div>
+    <div className="flex min-h-screen w-full bg-white dark:bg-gray-900">
+      {/* --- LEFT SIDE: FORM SECTION --- */}
+      <div className="flex w-full flex-col justify-center px-8 lg:w-1/2 xl:w-5/12">
+        <div className="mx-auto w-full max-w-md">
+          {/* Logo Header */}
+          <div className="mb-10 flex items-center gap-3">
+            <img
+              src="/images/logo/logo-icon.svg"
+              alt="Logo"
+              className="h-20 w-20"
+            />
+            <span className="text-2xl font-bold text-gray-800 dark:text-white">
+              GradeSphere
+            </span>
+          </div>
+
+          {children}
+
+          <div className="mt-10 text-center text-sm text-gray-500 dark:text-gray-400">
+            &copy; {new Date().getFullYear()} GradeSphere. All rights reserved.
           </div>
         </div>
-        <div className="fixed z-50 hidden bottom-6 right-6 sm:block">
+      </div>
+
+      {/* --- RIGHT SIDE: BANNER SECTION --- */}
+      {/* Added: 'animate-gradient' class for the flowing effect */}
+      <div className="relative hidden w-full items-center justify-center overflow-hidden lg:flex lg:w-1/2 xl:w-7/12 bg-gradient-to-br from-brand-50 via-brand-800 to-brand-100 bg-[length:200%_200%] animate-gradient">
+        {/* Decorative Blobs (Optional: Adds depth to the gradient) */}
+        <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-light-blue-100/20 blur-3xl" />
+        <div className="absolute -right-20 -bottom-20 h-96 w-96 rounded-full bg-light-purple-100/20 blur-3xl" />
+
+        {/* Content Overlay */}
+        <div className="relative z-10 max-w-lg px-10 text-center">
+          <div className="mb-10 flex items-center gap-3">
+            <img
+              src="/images/logo/logo-icon.svg"
+              alt="Logo"
+              className="h-40 w-40"
+            />
+          </div>
+
+          <h2 className="mb-4 text-3xl font-bold text-white">{bannerTitle}</h2>
+          <p className="text-lg text-brand-100 leading-relaxed">
+            {bannerSubtitle}
+          </p>
+        </div>
+
+        {/* Floating Theme Toggle */}
+        <div className="absolute bottom-10 right-10 z-20">
           <ThemeTogglerTwo />
         </div>
       </div>

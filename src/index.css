@@ -776,3 +776,23 @@ span.flatpickr-weekday,
 .simplebar-scrollbar.simplebar-visible:before {
   @apply opacity-100;
 }
+
+#nprogress .bar {
+  z-index: 100000 !important; /* Must be higher than z-99999 */
+}
+
+/* Optional: Fix for the spinner if you enabled it */
+#nprogress .spinner {
+  z-index: 100000 !important;
+}
+
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  animation: gradient 8s ease infinite;
+}

@@ -1,14 +1,37 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
+import { useAuth } from "../../context/AuthContext";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault(); // Prevents the page from reloading like standard HTML
+
+    // In a real app, you would get these values from the Input fields (using state or refs)
+    // For now, we mock the data to test the flow
+    const mockToken = "abc-123-jwt-token"; 
+    const mockUser = {
+      id: "1",
+      name: "Chaitanya",
+      email: "demo@pimjo.com",
+      role: "Staff"
+    };
+
+    console.log("Logging in..."); 
+    login(mockToken, mockUser); // Updates the Global Context
+    navigate("/staff/dashboard"); // Redirects to the protected page
+  };
+
   return (
     <div className="flex flex-col flex-1">
       <div className="w-full max-w-md pt-10 mx-auto">
@@ -83,7 +106,7 @@ export default function SignInForm() {
                 </span>
               </div>
             </div>
-            <form>
+            <form onSubmit={handleLogin}>
               <div className="space-y-6">
                 <div>
                   <Label>
@@ -150,4 +173,6 @@ export default function SignInForm() {
       </div>
     </div>
   );
+
+  
 }

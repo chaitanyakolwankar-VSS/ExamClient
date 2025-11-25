@@ -3,6 +3,8 @@ import { Outlet } from "react-router";
 import AppHeader from "./Header";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./Sidebar";
+import PageTransition from "../../components/common/PageTransition";
+import { AnimatePresence } from "framer-motion";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
@@ -20,7 +22,11 @@ const LayoutContent: React.FC = () => {
       >
         <AppHeader />
         <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
-          <Outlet />
+          <AnimatePresence mode="wait">
+            <PageTransition key={location.pathname}>
+              <Outlet />
+            </PageTransition>
+          </AnimatePresence>
         </div>
       </div>
     </div>
