@@ -1,4 +1,4 @@
-// Notice we use "../../../" to go up 3 levels: Dashboard -> Staff -> pages -> src
+//  "../../../" to go up 3 levels: Dashboard -> Staff -> pages -> src
 import PageMeta from "../../../components/common/PageMeta"; 
 
 export default function ExamDashboard() {

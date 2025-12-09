@@ -33,21 +33,19 @@ AuthLayoutProps) {
           {children}
 
           <div className="mt-10 text-center text-sm text-gray-500 dark:text-gray-400">
-            &copy; {new Date().getFullYear()} GradeSphere. All rights reserved.
+            &copy; {new Date().getFullYear()} VSS. All rights reserved.
           </div>
         </div>
       </div>
 
       {/* --- RIGHT SIDE: BANNER SECTION --- */}
-      {/* Added: 'animate-gradient' class for the flowing effect */}
-      <div className="relative hidden w-full items-center justify-center overflow-hidden lg:flex lg:w-1/2 xl:w-7/12 bg-gradient-to-br from-brand-50 via-brand-800 to-brand-100 bg-[length:200%_200%] animate-gradient">
-        {/* Decorative Blobs (Optional: Adds depth to the gradient) */}
+      <div className="relative hidden w-full items-center justify-center overflow-hidden lg:flex lg:w-1/2 xl:w-7/12 bg-gradient-to-br from-brand-600 via-brand-800 to-brand-600 bg-[length:200%_200%] animate-gradient">
         <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-light-blue-100/20 blur-3xl" />
         <div className="absolute -right-20 -bottom-20 h-96 w-96 rounded-full bg-light-purple-100/20 blur-3xl" />
 
         {/* Content Overlay */}
         <div className="relative z-10 max-w-lg px-10 text-center">
-          <div className="mb-10 flex items-center gap-3">
+          <div className="mb-10 flex items-center gap-3 align-middle justify-center">
             <img
               src="/images/logo/logo-icon.svg"
               alt="Logo"
