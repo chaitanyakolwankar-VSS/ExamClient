@@ -9,7 +9,7 @@ export default function PageTransition({ children }: PageTransitionProps) {
   return (
     <>
       {/* 1. THE "DIFFUSED" OVERLAY (The Mist) */}
-      <motion.div
+      {/* <motion.div
         className="fixed inset-0 z-[999999] bg-brand-50 dark:bg-gray-950 pointer-events-none"
         
         initial={{ "--r": "0%" } as Record<string, string>}
@@ -22,7 +22,7 @@ export default function PageTransition({ children }: PageTransitionProps) {
             WebkitMaskImage: "radial-gradient(circle, transparent var(--r), black calc(var(--r) + 50%))",
             maskImage: "radial-gradient(circle, transparent var(--r), black calc(var(--r) + 50%))",
         } as React.CSSProperties}
-      />
+      /> */}
 
       {/* 2. THE CONTENT ANIMATION (The Reveal) */}
       <motion.div
@@ -32,7 +32,7 @@ export default function PageTransition({ children }: PageTransitionProps) {
         
         transition={{ 
           duration: 0.4, 
-          delay: 0.1, // Wait 0.2s for the mist to start clearing before showing content
+          delay: 0.2,
           ease: "easeOut" 
         }}
       >

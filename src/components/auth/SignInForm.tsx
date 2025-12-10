@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { EyeCloseIcon, EyeIcon } from "../../icons";
+import { Eye, EyeClosed } from "lucide-react";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { useAuth } from "../../context/AuthContext";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -28,6 +29,26 @@ export default function SignInForm() {
 
     login(mockToken, mockUser); // Updates the Global Context
     navigate("/staff/dashboard"); // Redirects to the protected page
+  };
+
+  const variants: Variants = {
+    initial: (isOpen: boolean) => ({
+      y: isOpen ? 5 : -5,
+      opacity: 0,
+      scale: 0.8,
+    }),
+    animate: {
+      y: 0,
+      opacity: 1,
+      scale: 1,
+      transition: { type: "spring", stiffness: 300, damping: 20 },
+    },
+    exit: (isOpen: boolean) => ({
+      y: isOpen ? -5 : 5,
+      opacity: 0,
+      scale: 0.8,
+      transition: { duration: 0.15 },
+    }),
   };
 
   return (
@@ -61,13 +82,31 @@ export default function SignInForm() {
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
+                      className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2 flex items-center justify-center w-6 h-6"
                     >
-                      {showPassword ? (
-                        <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
-                      ) : (
-                        <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
-                      )}
+                      {/* mode="wait" ensures the exit finishes before the entry starts */}
+                      {/* custom={showPassword} passes the state to our variants */}
+                      <AnimatePresence
+                        mode="wait"
+                        initial={false}
+                        custom={showPassword}
+                      >
+                        <motion.div
+                          key={showPassword ? "open" : "closed"}
+                          custom={showPassword}
+                          variants={variants}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          className="absolute inset-0 flex items-center justify-center"
+                        >
+                          {showPassword ? (
+                            <Eye className="text-gray-500 dark:text-gray-400 size-5" />
+                          ) : (
+                            <EyeClosed className="text-gray-500 dark:text-gray-400 size-5" />
+                          )}
+                        </motion.div>
+                      </AnimatePresence>
                     </span>
                   </div>
                 </div>

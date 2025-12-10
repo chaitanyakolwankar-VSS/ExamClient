@@ -9,26 +9,37 @@ interface AcademicYearContextType {
 const AcademicYearContext = createContext<AcademicYearContextType | undefined>(undefined);
 
 export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // 1. State for the selected year
-  const [currentYear, setCurrentYear] = useState<string>("2024-2025");
+  // 1. Initialize State: Try to get from LocalStorage immediately
+  const [currentYear, setCurrentYear] = useState<string>(() => {
+    return localStorage.getItem("academicYear") || "";
+  });
   
-  // 2. State for the list of years (Mock Database)
   const [availableYears, setAvailableYears] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchYears = async () => {
-      // In real app: const response = await fetch('/api/academic-years');
+      // Mock Data (In real app, this comes from API)
       const mockData = ["2023-2024", "2024-2025", "2025-2026", "2026-2027"];
       setAvailableYears(mockData);
       
-      // Optional: Set default to the latest or active one
-      setCurrentYear(mockData[1]); // Defaulting to "2024-2025"
+      // 2. Smart Default Logic
+      const savedYear = localStorage.getItem("academicYear");
+
+      // If we have NO saved year, OR the saved year is invalid (not in our new list)...
+      if (!savedYear || !mockData.includes(savedYear)) {
+        // ...Select the LATEST year (Last item in array)
+        const latest = mockData[mockData.length - 1];
+        setCurrentYear(latest);
+        localStorage.setItem("academicYear", latest);
+      }
+      // (Otherwise, do nothing. We already loaded the valid savedYear in useState)
     };
 
     fetchYears();
   }, []);
 
   const setAcademicYear = (year: string) => {
+    console.log("Context Updating Year to:", year); // Debug log
     setCurrentYear(year);
     localStorage.setItem("academicYear", year);
   };

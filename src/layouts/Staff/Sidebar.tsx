@@ -2,93 +2,249 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 
 import {
-  BoxCubeIcon,
-  CalenderIcon,
-  ChevronDownIcon,
-  GridIcon,
-  HorizontaLDots,
-  ListIcon,
-  PageIcon,
-  PieChartIcon,
-  PlugInIcon,
-  TableIcon,
-  UserCircleIcon,
-} from "../../icons";
+  LayoutGrid,
+  UserStar,
+  GraduationCap,
+  SquareMousePointer as SubMenuIcon,
+  UserRoundPen,
+  BookOpenCheck,
+  NotebookPen,
+  FileUser,
+  Ellipsis,
+  ChevronDown,
+} from "lucide-react";
 import { useSidebar } from "../../context/SidebarContext";
-// import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
-  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+  subItems?: {
+    icon: React.ReactNode;
+    name: string;
+    path: string;
+    pro?: boolean;
+    new?: boolean;
+  }[];
 };
 
 const navItems: NavItem[] = [
   {
-    icon: <GridIcon />,
+    icon: <LayoutGrid />,
     name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
+    path: "/",
   },
   {
-    icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "/calendar",
-  },
-  {
-    icon: <UserCircleIcon />,
-    name: "User Profile",
-    path: "/profile",
-  },
-  {
-    name: "Forms",
-    icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-  },
-  {
-    name: "Tables",
-    icon: <TableIcon />,
-    subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
-  },
-  {
-    name: "Pages",
-    icon: <PageIcon />,
+    icon: <UserStar />,
+    name: "Admin",
     subItems: [
-      { name: "Blank Page", path: "/blank", pro: false },
-      { name: "404 Error", path: "/error-404", pro: false },
+      {
+        icon: <SubMenuIcon />,
+        name: "College Details",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Create User",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Role Master",
+        path: "/blank",
+        pro: false,
+      },
+    ],
+  },
+  {
+    icon: <GraduationCap />,
+    name: "Academic Master",
+    subItems: [
+      {
+        icon: <SubMenuIcon />,
+        name: "Subject Master",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Exam Master",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Fees Master",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Active Exam",
+        path: "/blank",
+        pro: false,
+      },
+    ],
+  },
+  {
+    name: "Studetns Admin",
+    icon: <UserRoundPen />,
+    subItems: [
+      {
+        icon: <SubMenuIcon />,
+        name: "Declare Result",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Release Hallticket",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Student Master",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Student Password Reset",
+        path: "/blank",
+        pro: false,
+      },
+    ],
+  },
+  {
+    name: "Conduct Exam",
+    icon: <BookOpenCheck />,
+    subItems: [
+      {
+        icon: <SubMenuIcon />,
+        name: "Regular Exam",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "ATKT/Reval Exam",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Assign Seat No",
+        path: "/blank",
+        pro: false,
+      },
+    ],
+  },
+  {
+    name: "Marks Entry",
+    icon: <NotebookPen />,
+    subItems: [
+      {
+        icon: <SubMenuIcon />,
+        name: "Enter Marks",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Overall Marks Grace",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Overall Marks Eligibility",
+        path: "/blank",
+        pro: false,
+      },
+    ],
+  },
+  {
+    name: "Reports",
+    icon: <FileUser />,
+    subItems: [
+      {
+        icon: <SubMenuIcon />,
+        name: "Generate Hallticket",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Generate Gazette",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Generate Result",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Statistic Report",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "ATKT Cummulative Report",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Student Assign Report",
+        path: "/blank",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
+        name: "Fees Report",
+        path: "/blank",
+        pro: false,
+      },
     ],
   },
 ];
 
 const othersItems: NavItem[] = [
-  {
-    icon: <PieChartIcon />,
-    name: "Charts",
-    subItems: [
-      { name: "Line Chart", path: "/line-chart", pro: false },
-      { name: "Bar Chart", path: "/bar-chart", pro: false },
-    ],
-  },
-  {
-    icon: <BoxCubeIcon />,
-    name: "UI Elements",
-    subItems: [
-      { name: "Alerts", path: "/alerts", pro: false },
-      { name: "Avatar", path: "/avatars", pro: false },
-      { name: "Badge", path: "/badge", pro: false },
-      { name: "Buttons", path: "/buttons", pro: false },
-      { name: "Images", path: "/images", pro: false },
-      { name: "Videos", path: "/videos", pro: false },
-    ],
-  },
-  {
-    icon: <PlugInIcon />,
-    name: "Authentication",
-    subItems: [
-      { name: "Sign In", path: "/signin", pro: false },
-      { name: "Sign Up", path: "/signup", pro: false },
-    ],
-  },
+  // {
+  //   icon: <PieChartIcon />,
+  //   name: "Charts",
+  //   subItems: [
+  //     { name: "Line Chart", path: "/line-chart", pro: false },
+  //     { name: "Bar Chart", path: "/bar-chart", pro: false },
+  //   ],
+  // },
+  // {
+  //   icon: <BoxCubeIcon />,
+  //   name: "UI Elements",
+  //   subItems: [
+  //     { name: "Alerts", path: "/alerts", pro: false },
+  //     { name: "Avatar", path: "/avatars", pro: false },
+  //     { name: "Badge", path: "/badge", pro: false },
+  //     { name: "Buttons", path: "/buttons", pro: false },
+  //     { name: "Images", path: "/images", pro: false },
+  //     { name: "Videos", path: "/videos", pro: false },
+  //   ],
+  // },
+  // {
+  //   icon: <PlugInIcon />,
+  //   name: "Authentication",
+  //   subItems: [
+  //     { name: "Sign In", path: "/signin", pro: false },
+  //     { name: "Sign Up", path: "/signup", pro: false },
+  //   ],
+  // },
 ];
 
 const AppSidebar: React.FC = () => {
@@ -104,7 +260,6 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => location.pathname === path;
   const isActive = useCallback(
     (path: string) => location.pathname === path,
     [location.pathname]
@@ -189,7 +344,7 @@ const AppSidebar: React.FC = () => {
                 <span className="menu-item-text">{nav.name}</span>
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
-                <ChevronDownIcon
+                <ChevronDown
                   className={`ml-auto w-5 h-5 transition-transform duration-200 ${
                     openSubmenu?.type === menuType &&
                     openSubmenu?.index === index
@@ -246,6 +401,13 @@ const AppSidebar: React.FC = () => {
                           : "menu-dropdown-item-inactive"
                       }`}
                     >
+                      {subItem.icon && (
+                        <span className="flex items-center [&>svg]:size-3.5">
+                          {" "}
+                          {/* size-4.5 = 18px */}
+                          {subItem.icon}
+                        </span>
+                      )}
                       {subItem.name}
                       <span className="flex items-center gap-1 ml-auto">
                         {subItem.new && (
@@ -349,12 +511,12 @@ const AppSidebar: React.FC = () => {
                 {isExpanded || isHovered || isMobileOpen ? (
                   "Menu"
                 ) : (
-                  <HorizontaLDots className="size-6" />
+                  <Ellipsis className="size-6" />
                 )}
               </h2>
               {renderMenuItems(navItems, "main")}
             </div>
-            <div className="">
+            {/* <div className="">
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
                   !isExpanded && !isHovered
@@ -369,7 +531,7 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               {renderMenuItems(othersItems, "others")}
-            </div>
+            </div> */}
           </div>
         </nav>
       </div>

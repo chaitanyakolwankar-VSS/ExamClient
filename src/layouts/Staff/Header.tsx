@@ -6,7 +6,7 @@ import { ThemeToggleButton } from "../../components/common/ThemeToggleButton";
 import UserDropdown from "../../components/header/UserDropdown";
 import { Dropdown } from "../../components/ui/dropdown/Dropdown";
 import { DropdownItem } from "../../components/ui/dropdown/DropdownItem";
-import { ChevronDownIcon } from "../../icons";
+import { ChevronDown } from "lucide-react";
 import { useAcademicYear } from "../../context/AcademicYearContext";
 
 const AppHeader: React.FC = () => {
@@ -15,20 +15,13 @@ const AppHeader: React.FC = () => {
   const [isSelectOpen, setIsSelectOpen] = useState(false);
   const { currentYear, setAcademicYear, availableYears } = useAcademicYear();
 
-  const handleYearChange = (year: string) => {
+const handleYearChange = (year: string) => {
+    console.log("Header Clicked Year:", year); // Check browser console (F12)
     setAcademicYear(year);
     setIsSelectOpen(false);
   };
   const { isExpanded, isMobileOpen, toggleSidebar, toggleMobileSidebar } =
     useSidebar();
-
-  // const handleToggle = () => {
-  //   if (window.innerWidth >= 1024) {
-  //     toggleSidebar();
-  //   } else {
-  //     toggleMobileSidebar();
-  //   }
-  // };
 
   const toggleApplicationMenu = () => {
     setApplicationMenuOpen(!isApplicationMenuOpen);
@@ -185,10 +178,10 @@ const AppHeader: React.FC = () => {
           <div className="hidden lg:block relative">
             <button
               onClick={() => setIsSelectOpen(!isSelectOpen)}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-800 dark:hover:bg-gray-800"
+              className="dropdown-toggle flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-800 dark:hover:bg-gray-800"
             >
               <span>{currentYear}</span> {/* Display Global State */}
-              <ChevronDownIcon
+              <ChevronDown
                 className={`w-4 h-4 transition-transform duration-200 ${
                   isSelectOpen ? "rotate-180" : ""
                 }`}
@@ -225,10 +218,10 @@ const AppHeader: React.FC = () => {
           <div className="relative lg:hidden">
             <button
               onClick={() => setIsSelectOpen(!isSelectOpen)}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
+              className="dropdown-toggle flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
             >
               <span>{currentYear}</span>
-              <ChevronDownIcon
+              <ChevronDown
                 className={`w-4 h-4 transition-transform duration-200 ${
                   isSelectOpen ? "rotate-180" : ""
                 }`}
