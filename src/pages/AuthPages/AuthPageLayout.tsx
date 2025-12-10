@@ -1,5 +1,6 @@
 import React from "react";
 import ThemeTogglerTwo from "../../components/common/ThemeTogglerTwo";
+import GridShape from "../../components/common/GridShape";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -39,7 +40,8 @@ AuthLayoutProps) {
       </div>
 
       {/* --- RIGHT SIDE: BANNER SECTION --- */}
-      <div className="relative hidden w-full items-center justify-center overflow-hidden lg:flex lg:w-1/2 xl:w-7/12 bg-gradient-to-br from-brand-600 via-brand-800 to-brand-600 bg-[length:200%_200%] animate-gradient">
+      <div className="relative z-0 hidden w-full items-center justify-center overflow-hidden lg:flex lg:w-1/2 xl:w-7/12 bg-gradient-to-br from-brand-500 via-brand-700 to-brand-500 bg-[length:200%_200%] animate-gradient">
+        <GridShape />
         <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-light-blue-100/20 blur-3xl" />
         <div className="absolute -right-20 -bottom-20 h-96 w-96 rounded-full bg-light-purple-100/20 blur-3xl" />
 

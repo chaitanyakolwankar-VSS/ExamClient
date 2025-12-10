@@ -21,7 +21,7 @@ export default function SignInForm() {
     const mockToken = "abc-123-jwt-token";
     const mockUser = {
       id: "1",
-      name: "Chaitanya",
+      name: "TestUser",
       email: "demo@pimjo.com",
       role: "Staff",
     };
