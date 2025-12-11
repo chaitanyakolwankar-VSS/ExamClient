@@ -86,6 +86,12 @@ const navItems: NavItem[] = [
         path: "/blank",
         pro: false,
       },
+      {
+        icon: <SubMenuIcon />,
+        name: "Student Promotion",
+        path: "/blank",
+        pro: false,
+      },
     ],
   },
   {
@@ -154,13 +160,13 @@ const navItems: NavItem[] = [
       },
       {
         icon: <SubMenuIcon />,
-        name: "Overall Marks Grace",
+        name: "Apply Grace Marks",
         path: "/blank",
         pro: false,
       },
       {
         icon: <SubMenuIcon />,
-        name: "Overall Marks Eligibility",
+        name: "Enter Eligibility",
         path: "/blank",
         pro: false,
       },
