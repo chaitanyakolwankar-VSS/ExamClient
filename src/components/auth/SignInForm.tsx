@@ -1,34 +1,65 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Eye, EyeClosed } from "lucide-react";
+import { Eye, EyeClosed, AlertCircle, Loader2 } from "lucide-react";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { useAuth } from "../../context/AuthContext";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
+import { authService } from "../../services/authService";
+import { AxiosError } from "axios";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
 
+  const [email, setEmail] = useState("admin");
+  const [password, setPassword] = useState("admin");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault(); // Prevents the page from reloading like standard HTML
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError("Please enter both username and password.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      // CALL THE  API
+      const data = await authService.login({
+        username: email,
+        password: password,
+      });
 
-    // In a real app, you would get these values from the Input fields (using state or refs)
-    // For now, we mock the data to test the flow
-    const mockToken = "abc-123-jwt-token";
-    const mockUser = {
-      id: "1",
-      name: "TestUser",
-      email: "demo@pimjo.com",
-      role: "Staff",
-    };
+      const userForContext = {
+        id: data.user.userId,
+        name: data.user.username,
+        email: data.user.email,
+        role: data.user.role,
+        avatar: "/images/user/owner.png",
+      };
 
-    login(mockToken, mockUser); // Updates the Global Context
-    navigate("/staff/dashboard"); // Redirects to the protected page
+      // UPDATE GLOBAL STATE
+      login(data.token, userForContext);
+      navigate("/staff/dashboard");
+    } catch (err) {
+      const error = err as AxiosError;
+
+      console.error("Login failed", error);
+
+      if (error.response && error.response.status === 401) {
+        setError("Invalid username or password");
+      } else {
+        setError(`Server error occurred. Please try again later.`);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const variants: Variants = {
@@ -66,11 +97,20 @@ export default function SignInForm() {
           <div>
             <form onSubmit={handleLogin}>
               <div className="space-y-6">
+                {/* SHOW ERROR MESSAGE IF ANY */}
+                {error && (
+                  <div className="flex items-center gap-2 p-3 text-sm text-red-500 bg-red-50 rounded-lg border border-red-100 dark:bg-red-900/10 dark:border-red-900/30">
+                    <AlertCircle className="w-4 h-4" />
+                    {error}
+                  </div>
+                )}
                 <div>
                   <Input
                     label="Email/Username"
-                    placeholder="info@gmail.com"
+                    placeholder="admin"
                     type="text"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
                 <div>
@@ -79,6 +119,8 @@ export default function SignInForm() {
                       label="Password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -125,8 +167,15 @@ export default function SignInForm() {
                   </Link>
                 </div>
                 <div>
-                  <Button className="w-full" size="sm">
-                    Sign in
+                  <Button className="w-full" size="sm" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing In...
+                      </>
+                    ) : (
+                      "Sign in"
+                    )}
                   </Button>
                 </div>
               </div>
