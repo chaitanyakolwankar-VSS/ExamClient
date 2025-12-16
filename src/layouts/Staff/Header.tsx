@@ -13,10 +13,10 @@ const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
 
   const [isSelectOpen, setIsSelectOpen] = useState(false);
-  const { currentYear, setAcademicYear, availableYears } = useAcademicYear();
+  const { currentYear, setAcademicYear, availableYears, isLoading } =
+    useAcademicYear();
 
-const handleYearChange = (year: string) => {
-    console.log("Header Clicked Year:", year); // Check browser console (F12)
+  const handleYearChange = (year: string) => {
     setAcademicYear(year);
     setIsSelectOpen(false);
   };
@@ -178,9 +178,10 @@ const handleYearChange = (year: string) => {
           <div className="hidden lg:block relative">
             <button
               onClick={() => setIsSelectOpen(!isSelectOpen)}
-              className="dropdown-toggle flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-800 dark:hover:bg-gray-800"
+              disabled={isLoading} // Disable while loading
+              className="dropdown-toggle flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-800 dark:hover:bg-gray-800 disabled:opacity-50"
             >
-              <span>{currentYear}</span> {/* Display Global State */}
+              <span>{isLoading ? "Loading..." : currentYear}</span>
               <ChevronDown
                 className={`w-4 h-4 transition-transform duration-200 ${
                   isSelectOpen ? "rotate-180" : ""
@@ -193,17 +194,17 @@ const handleYearChange = (year: string) => {
               onClose={() => setIsSelectOpen(false)}
               className="absolute left-0 mt-2 w-48 rounded-xl border border-gray-200 bg-white p-2 shadow-theme-lg dark:border-gray-800 dark:bg-gray-900 text-gary-300"
             >
-              {availableYears.map((year) => (
+              {availableYears.map((yearObj) => (
                 <DropdownItem
-                  key={year}
-                  onItemClick={() => handleYearChange(year)} // Update Global State
+                  key={yearObj.ayid} // Use the GUID as the key (Important!)
+                  onItemClick={() => handleYearChange(yearObj.shortDuration)}
                   className={`rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-300 ${
-                    currentYear === year
+                    currentYear === yearObj.shortDuration
                       ? "bg-gray-100 dark:bg-white/5 font-bold"
                       : ""
                   }`}
                 >
-                  {year}
+                  {yearObj.shortDuration}
                 </DropdownItem>
               ))}
             </Dropdown>
@@ -218,9 +219,10 @@ const handleYearChange = (year: string) => {
           <div className="relative lg:hidden">
             <button
               onClick={() => setIsSelectOpen(!isSelectOpen)}
+               disabled={isLoading}
               className="dropdown-toggle flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
             >
-              <span>{currentYear}</span>
+              <span>{isLoading ? "Loading..." : currentYear}</span>
               <ChevronDown
                 className={`w-4 h-4 transition-transform duration-200 ${
                   isSelectOpen ? "rotate-180" : ""
@@ -234,17 +236,17 @@ const handleYearChange = (year: string) => {
               onClose={() => setIsSelectOpen(false)}
               className="absolute left-0 z-50 mt-2 w-40 bg-white border border-gray-200 rounded-xl shadow-theme-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
             >
-              {availableYears.map((year) => (
+              {availableYears.map((yearObj) => (
                 <DropdownItem
-                  key={year}
-                  onItemClick={() => handleYearChange(year)}
+                  key={yearObj.ayid} // Use the GUID as the key (Important!)
+                  onItemClick={() => handleYearChange(yearObj.shortDuration)}
                   className={`rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 dark:text-gray-300 ${
-                    currentYear === year
+                    currentYear === yearObj.shortDuration
                       ? "bg-gray-100 dark:bg-white/5 font-bold"
                       : ""
                   }`}
                 >
-                  {year}
+                  {yearObj.shortDuration}
                 </DropdownItem>
               ))}
             </Dropdown>

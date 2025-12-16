@@ -1,51 +1,98 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import {
+  academicYearService,
+  AcademicYearResponse,
+} from "../services/academicYearService";
+import { useAuth } from "./AuthContext";
 
 interface AcademicYearContextType {
-  currentYear: string;
-  setAcademicYear: (year: string) => void;
-  availableYears: string[];
+  currentYear: string; // Display text (e.g. "2024-2025")
+  currentYearId: string | null; // Database ID (GUID)
+  setAcademicYear: (yearString: string) => void;
+  availableYears: AcademicYearResponse[]; // Full objects
+  isLoading: boolean;
 }
 
-const AcademicYearContext = createContext<AcademicYearContextType | undefined>(undefined);
+const AcademicYearContext = createContext<AcademicYearContextType | undefined>(
+  undefined
+);
 
-export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // 1. Initialize State: Try to get from LocalStorage immediately
-  const [currentYear, setCurrentYear] = useState<string>(() => {
-    return localStorage.getItem("academicYear") || "";
-  });
-  
-  const [availableYears, setAvailableYears] = useState<string[]>([]);
+export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  // 1. Initialize State
+  const [currentYear, setCurrentYear] = useState<string>(
+    () => localStorage.getItem("academicYear") || ""
+  );
+  const [currentYearId, setCurrentYearId] = useState<string | null>(null);
+  const [availableYears, setAvailableYears] = useState<AcademicYearResponse[]>(
+    []
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const fetchYears = async () => {
-      // Mock Data (In real app, this comes from API)
-      const mockData = ["2023-2024", "2024-2025", "2025-2026", "2026-2027"];
-      setAvailableYears(mockData);
-      
-      // 2. Smart Default Logic
-      const savedYear = localStorage.getItem("academicYear");
+    if (user) {
+      const fetchYears = async () => {
+        try {
+          const data = await academicYearService.getAllYears();
+          setAvailableYears(data);
 
-      // If we have NO saved year, OR the saved year is invalid (not in our new list)...
-      if (!savedYear || !mockData.includes(savedYear)) {
-        // ...Select the LATEST year (Last item in array)
-        const latest = mockData[mockData.length - 1];
-        setCurrentYear(latest);
-        localStorage.setItem("academicYear", latest);
-      }
-      // (Otherwise, do nothing. We already loaded the valid savedYear in useState)
-    };
+          // 2. Smart Default Logic
+          const savedYearString = localStorage.getItem("academicYear");
 
-    fetchYears();
-  }, []);
+          // Find the saved year object in the fresh API data
+          const foundYear = data.find(
+            (y) => y.shortDuration === savedYearString
+          );
 
-  const setAcademicYear = (year: string) => {
-    console.log("Context Updating Year to:", year); // Debug log
-    setCurrentYear(year);
-    localStorage.setItem("academicYear", year);
+          if (foundYear) {
+            // If saved year is valid, use it
+            setCurrentYear(foundYear.shortDuration);
+            setCurrentYearId(foundYear.ayid);
+          } else {
+            // If not found, look for the "Current" one from DB, or fallback to the last one
+            const defaultYear =
+              data.find((y) => y.isCurrent) || data[data.length - 1];
+
+            if (defaultYear) {
+              setCurrentYear(defaultYear.shortDuration);
+              setCurrentYearId(defaultYear.ayid);
+              localStorage.setItem("academicYear", defaultYear.shortDuration);
+              localStorage.setItem("AYID", defaultYear.ayid);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch academic years:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchYears();
+    }
+  }, [user]);
+
+  const setAcademicYear = (yearString: string) => {
+    // When user selects "2025-2026", we find the ID and set both
+    const selected = availableYears.find((y) => y.shortDuration === yearString);
+    if (selected) {
+      setCurrentYear(selected.shortDuration);
+      setCurrentYearId(selected.ayid);
+      localStorage.setItem("academicYear", selected.shortDuration);
+      localStorage.setItem("AYID", selected.ayid);
+    }
   };
 
   return (
-    <AcademicYearContext.Provider value={{ currentYear, setAcademicYear, availableYears }}>
+    <AcademicYearContext.Provider
+      value={{
+        currentYear,
+        currentYearId,
+        setAcademicYear,
+        availableYears,
+        isLoading,
+      }}
+    >
       {children}
     </AcademicYearContext.Provider>
   );
@@ -53,8 +100,9 @@ export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
 export const useAcademicYear = () => {
   const context = useContext(AcademicYearContext);
-  if (!context) {
-    throw new Error("useAcademicYear must be used within an AcademicYearProvider");
-  }
+  if (!context)
+    throw new Error(
+      "useAcademicYear must be used within an AcademicYearProvider"
+    );
   return context;
 };
