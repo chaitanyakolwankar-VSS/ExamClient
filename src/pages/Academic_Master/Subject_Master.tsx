@@ -1,7 +1,7 @@
 import PageMeta from "../../components/common/PageMeta";
 import { useEffect, useState } from "react";
 import Select from "../../components/form/Select";
-import { Plus, Trash2, X,Pencil ,Save, RefreshCcw ,CheckCircle, Eye,Copy } from "lucide-react";
+import { Plus, Trash2, X, Pencil, Save, RefreshCcw, CheckCircle, Eye, Copy } from "lucide-react";
 import Button from "../../components/ui/button/Button";
 import Checkbox from "../../components/form/input/Checkbox";
 import { Table, TableHeader, TableBody, TableRow, TableCell, } from "../../components/ui/table";
@@ -111,17 +111,7 @@ export default function SubjectMaster() {
 
   const [password, setpassword] = useState("");
 
-
-
-  
-
-  // useEffect(() => {
-  //   setAlert({
-  //     variant: "info",
-  //     title: "Test Alert",
-  //     message: "Alert is working",
-  //   });
-  // }, []);
+  const [creditInput, setCreditInput] = useState<string>("1");
 
   useEffect(() => {
     if (alert) {
@@ -130,65 +120,40 @@ export default function SubjectMaster() {
     }
   }, [alert]);
 
-  //Edit Credit
-  // useEffect(() => {
-  //   if (isEditMode) return;
-  //   if (IsViewMode) return;
-    
-  //   if (credits > 0) {
-  //     setCreditData(
-  //       Array.from({ length: credits }, () => ({
-  //         creditId: undefined,
-  //         examType: { ESE: false, PR: false, OR: false },
-  //         internalType: { IA: false, TW: false },
 
-  //         examOutOf: "",
-  //         examPassing: "",
+  useEffect(() => {
+    // ❌ Edit ya View mode me auto-generate mat karo
+    if (isEditMode || IsViewMode) return;
 
-  //         internalOutOf: "",
-  //         internalPassing: "",
-
-  //         passingPercentage: "",
-  //       }))
-  //     );
-  //   } else {
-  //     setCreditData([]);
-  //   }
-  // }, [credits]);
-
-useEffect(() => {
-  // ❌ Edit ya View mode me auto-generate mat karo
-  if (isEditMode || IsViewMode) return;
-
-  if (credits < 1) {
-    setCreditData([]);
-    return;
-  }
-
-  setCreditData((prev) => {
-    const updated = [...prev];
-
-    // ➕ Add missing credits
-    while (updated.length < credits) {
-      updated.push({
-        creditId: undefined,
-        examType: { ESE: false, PR: false, OR: false },
-        internalType: { IA: false, TW: false },
-
-        examOutOf: "",
-        examPassing: "",
-
-        internalOutOf: "",
-        internalPassing: "",
-
-        passingPercentage: "",
-      });
+    if (credits < 1) {
+      setCreditData([]);
+      return;
     }
 
-    // ➖ Remove extra credits
-    return updated.slice(0, credits);
-  });
-}, [credits, isEditMode, IsViewMode]);
+    setCreditData((prev) => {
+      const updated = [...prev];
+
+      // ➕ Add missing credits
+      while (updated.length < credits) {
+        updated.push({
+          creditId: undefined,
+          examType: { ESE: false, PR: false, OR: false },
+          internalType: { IA: false, TW: false },
+
+          examOutOf: "",
+          examPassing: "",
+
+          internalOutOf: "",
+          internalPassing: "",
+
+          passingPercentage: "",
+        });
+      }
+
+      // ➖ Remove extra credits
+      return updated.slice(0, credits);
+    });
+  }, [credits, isEditMode, IsViewMode]);
 
 
   // 🔹 Load courses on page load
@@ -273,7 +238,11 @@ useEffect(() => {
 
   const handleSave = async () => {
     if (!subjectName || !subjectCode) {
-      Swal.fire("Validation Error ", "Please fill all fields", "warning");
+      setAlert({
+        variant: "warning",
+        title: "Validation Error",
+        message: "Please fill all fields",
+      });
       return;
     }
 
@@ -292,7 +261,14 @@ useEffect(() => {
       const res = await SubjectService.saveSubject(payload);
 
       if (res.success) {
-        await Swal.fire("Saved!", res.message, "success");
+        Swal.fire({
+          title: "Saved!",
+          text: res.message,
+          icon: "success",
+          showConfirmButton: false, // ❌ OK button removed
+          timer: 1000,
+        });
+
         setIsModalOpen(false);
         fetchSubjects(courseId, pattern, semester);
       }
@@ -303,11 +279,19 @@ useEffect(() => {
       setSubjectName("");
       setSubjectCode("");
       setIsModalOpen(false);
-          resetCreditFlow();
-          setCredits(1);
-          setSubject("");
+      resetCreditFlow();
+      setCredits(1);
+      setCreditInput(String(1));
+      setSubject("");
     } catch (error) {
-      Swal.fire("Failed", "Something went wrong !!", "error");
+      Swal.fire({
+        title: "Failed!",
+        text: "Something went wrong !!",
+        icon: "error",
+        showConfirmButton: false, // ❌ OK button removed
+        timer: 1000,
+      });
+
     } finally {
       setLoading(false);
     }
@@ -325,39 +309,9 @@ useEffect(() => {
         });
       }
 
-
-    // // 🔴 VALIDATION BEFORE PAYLOAD
-    // const invalidExam = creditData.find(
-    //   (c, index) =>
-    //     c.examOutOf !== "" && c.examPassing === ""
-    // );
-
-    // if (invalidExam) {
-    //   return setAlert({
-    //     variant: "error",
-    //     title: "Validation Error",
-    //     message: "Exam Passing marks required when Exam Out Of is filled",
-    //   });
-    // }
-
-    // // (OPTIONAL) Internal validation also
-    // const invalidInternal = creditData.find(
-    //   c => c.internalOutOf !== "" && c.internalPassing === ""
-    // );
-
-    // if (invalidInternal) {
-    //   return setAlert({
-    //     variant: "error",
-    //     title: "Validation Error",
-    //     message: "Internal Passing marks required when Internal Out Of is filled",
-    //   });
-    // }
-
-
-
-    // ❌ STOP if validation fails
-    const isValid = creditvalidation();
-    if (!isValid) return;
+      // ❌ STOP if validation fails
+      const isValid = creditvalidation();
+      if (!isValid) return;
 
 
 
@@ -368,8 +322,8 @@ useEffect(() => {
         ayid: ayid,
         credits: creditData.map((item, index) => ({
           creditId: item.creditId,
-         // creditNo: String(index + 1),
-    creditNo: String(item.creditNo),
+          // creditNo: String(index + 1),
+          creditNo: String(item.creditNo),
           // ✔ Checkbox → array
           examType: (Object.keys(item.examType) as ExamTypeKey[])
             .filter((key) => item.examType[key]),
@@ -396,9 +350,16 @@ useEffect(() => {
 
       // 4️⃣ Response handle
       if (res.success) {
-        await Swal.fire("Saved!", res.message, "success");
+        Swal.fire({
+          title: "Saved!",
+          text: res.message,
+          icon: "success",
+          showConfirmButton: false, // ❌ OK button removed
+          timer: 1000,
+        });
+
       } else {
-         return setAlert({
+        return setAlert({
           variant: "error",
           title: "Error",
           message: res.message,
@@ -409,7 +370,13 @@ useEffect(() => {
       setCredits(0);
       setCreditData([]);
     } catch (error) {
-      Swal.fire("Error", "Something went wrong while saving credits", "error");
+      Swal.fire({
+        title: "Failed!",
+        text: "Something went wrong while saving credits",
+        icon: "error",
+        showConfirmButton: false, // ❌ OK button removed
+        timer: 1000,
+      });
     }
   };
 
@@ -424,9 +391,9 @@ useEffect(() => {
           message: "Academic Year is Null",
         });
       }
-    // ❌ STOP if validation fails
-    const isValid = creditvalidation();
-    if (!isValid) return;
+      // ❌ STOP if validation fails
+      const isValid = creditvalidation();
+      if (!isValid) return;
       // 1️⃣ Payload banana
       const payload: SaveCreditsPayload = {
         subjectId: subject,
@@ -461,70 +428,97 @@ useEffect(() => {
 
       // 4️⃣ Response handle
       if (res.success) {
-        await Swal.fire("Updated!", res.message, "success");
+        await Swal.fire({
+          title: "Updated!",
+          text: res.message,
+          icon: "success",
+          showConfirmButton: false, // ❌ OK button removed
+          timer: 1000,
+        });
+
       } else {
-        Swal.fire("Error", res.message, "error");
+        Swal.fire({
+          title: "Failed!",
+          text: res.message,
+          icon: "error",
+          showConfirmButton: false, // ❌ OK button removed
+          timer: 1000,
+        });
       }
       setIsEditMode(false);
       setIsViewMode(false);
       setCredits(0);
       setCreditData([]);
     } catch (error) {
-      return Swal.fire("Error", "Something went wrong while saving credits", "error");
+      return Swal.fire({
+        title: "Error!",
+        text: "Something went wrong while saving credits",
+        icon: "error",
+        showConfirmButton: false, // ❌ OK button removed
+        timer: 1000,
+      });
     }
   };
   const creditvalidation = () => {
-  for (let i = 0; i < creditData.length; i++) {
-    const c = creditData[i];
-
-    const isExamSelected = Object.values(c.examType || {}).some(Boolean);
-    const isInternalSelected = Object.values(c.internalType || {}).some(Boolean);
-
-    if (c.creditNo === "" || c.creditNo == null) {
+    if (creditInput == "") {
       setAlert({
         variant: "error",
         title: "Validation Error",
-        message: `Credits should not be blank for Credit ${i + 1}`,
+        message: `Enter Number Of Credits`,
       });
       return false;
     }
+    for (let i = 0; i < creditData.length; i++) {
+      const c = creditData[i];
 
-    if (
-      isExamSelected &&
-      (c.examOutOf === "" || c.examPassing === "")
-    ) {
-      setAlert({
-        variant: "error",
-        title: "Validation Error",
-        message: `Exam Out Of & Passing marks required for Credit ${i + 1}`,
-      });
-      return false;
+      const isExamSelected = Object.values(c.examType || {}).some(Boolean);
+      const isInternalSelected = Object.values(c.internalType || {}).some(Boolean);
+
+      if (c.creditNo === "" || c.creditNo == null) {
+        setAlert({
+          variant: "error",
+          title: "Validation Error",
+          message: `Credits should not be blank for Credit ${i + 1}`,
+        });
+        return false;
+      }
+
+      if (
+        isExamSelected &&
+        (c.examOutOf === "" || c.examPassing === "")
+      ) {
+        setAlert({
+          variant: "error",
+          title: "Validation Error",
+          message: `Exam Out Of & Passing marks required for Credit ${i + 1}`,
+        });
+        return false;
+      }
+
+      if (
+        isInternalSelected &&
+        (c.internalOutOf === "" || c.internalPassing === "")
+      ) {
+        setAlert({
+          variant: "error",
+          title: "Validation Error",
+          message: `Internal Out Of & Passing marks required for Credit ${i + 1}`,
+        });
+        return false;
+      }
+
+      if (c.passingPercentage === "" || c.passingPercentage == null) {
+        setAlert({
+          variant: "error",
+          title: "Validation Error",
+          message: `Passing Percentage should not be blank for Credit ${i + 1}`,
+        });
+        return false;
+      }
     }
 
-    if (
-      isInternalSelected &&
-      (c.internalOutOf === "" || c.internalPassing === "")
-    ) {
-      setAlert({
-        variant: "error",
-        title: "Validation Error",
-        message: `Internal Out Of & Passing marks required for Credit ${i + 1}`,
-      });
-      return false;
-    }
-
-    if (c.passingPercentage === "" || c.passingPercentage == null) {
-      setAlert({
-        variant: "error",
-        title: "Validation Error",
-        message: `Passing Percentage should not be blank for Credit ${i + 1}`,
-      });
-      return false;
-    }
-  }
-
-  return true; // ✅ ALL GOOD
-};
+    return true; // ✅ ALL GOOD
+  };
 
   const DeleteCredits = async () => {
     try {
@@ -563,15 +557,35 @@ useEffect(() => {
 
       // 4️⃣ Response handle
       if (res.success) {
-        await Swal.fire("Deleted!", res.message, "success");
+        await Swal.fire({
+          title: "Deleted!",
+          text: res.message,
+          icon: "success",
+          showConfirmButton: false, // ❌ OK button removed
+          timer: 1000,
+        });
+
       } else {
-        Swal.fire("Failed", res.message, "error");
+        Swal.fire({
+          title: "Failed!",
+          text: res.message,
+          icon: "error",
+          showConfirmButton: false, // ❌ OK button removed
+          timer: 1000,
+        });
       }
       resetCreditFlow();
       setCredits(1);
+      setCreditInput(String(1));
     }
     catch (error) {
-      Swal.fire("Error", "Something went wrong", "error");
+      Swal.fire({
+        title: "Error!",
+        text: "Something went wrong !!",
+        icon: "error",
+        showConfirmButton: false, // ❌ OK button removed
+        timer: 1000,
+      });
     }
   }
 
@@ -605,19 +619,35 @@ useEffect(() => {
       const res = await SubjectService.DeleteSubject(payload);
 
       if (res.success) {
-        await Swal.fire("Deleted!", res.message, "success");
+        await Swal.fire({
+          title: "Deleted!",
+          text: res.message,
+          icon: "success",
+          showConfirmButton: false, // ❌ OK button removed
+          timer: 1000,              // ⏱️ 2 sec me auto close
+          timerProgressBar: true,
+        });
+
         fetchSubjects(courseId, pattern, semester);
         setSubject("");
-        // optional UI refresh
-        // fetchCredits();
-        // setCreditData([]);
       } else {
-        Swal.fire("Failed", "Credits delete failed", "error");
+        Swal.fire({
+          title: "Failed!",
+          text: "Credits delete failed",
+          icon: "error",
+          showConfirmButton: false, // ❌ OK button removed
+          timer: 1000,
+        });
       }
       resetCreditFlow();
     } catch (error) {
-      console.error("DELETE CREDITS ERROR ❌", error);
-      Swal.fire("Error", "Something went wrong", "error");
+      Swal.fire({
+        title: "Error!",
+        text: "Something went wrong !!",
+        icon: "error",
+        showConfirmButton: false, // ❌ OK button removed
+        timer: 1000,
+      });
     }
   };
 
@@ -645,20 +675,20 @@ useEffect(() => {
     const currentYear = years.find(y => y.ayid === currentAyid);
 
 
-const previousYearsFiltered = years
-  .filter(y => {
-    if (!currentYear) return false;
+    const previousYearsFiltered = years
+      .filter(y => {
+        if (!currentYear) return false;
 
-    const currentStartYear = Number(currentYear.shortDuration.split("-")[0]);
-    const yearStart = Number(y.shortDuration.split("-")[0]);
+        const currentStartYear = Number(currentYear.shortDuration.split("-")[0]);
+        const yearStart = Number(y.shortDuration.split("-")[0]);
 
-    return yearStart < currentStartYear;
-  })
-  .sort((a, b) => {
-    const aYear = Number(a.shortDuration.split("-")[0]);
-    const bYear = Number(b.shortDuration.split("-")[0]);
-    return bYear - aYear; // 🔽 DESC
-  });
+        return yearStart < currentStartYear;
+      })
+      .sort((a, b) => {
+        const aYear = Number(a.shortDuration.split("-")[0]);
+        const bYear = Number(b.shortDuration.split("-")[0]);
+        return bYear - aYear; // 🔽 DESC
+      });
 
     const options: Option[] = previousYearsFiltered.map(y => ({
       value: y.ayid,
@@ -700,13 +730,33 @@ const previousYearsFiltered = years
     if (res.success) {
       if (res.success) {
         setPreviousCreditExist(false);
-        await Swal.fire("Copied !", res.message, "success");
+        await Swal.fire({
+          title: "Copied!",
+          text: res.message,
+          icon: "success",
+          showConfirmButton: false, // ❌ OK button removed
+          timer: 1000,
+        });
+
       } else {
-        Swal.fire("Failed", res.message, "error");
+        Swal.fire({
+          title: "Failed!",
+          text: res.message,
+          icon: "error",
+          showConfirmButton: false, // ❌ OK button removed
+          timer: 1000,
+        });
       }
       // reload credits if needed
     } else {
-      Swal.fire("Warning", res.message, "warning");
+
+      Swal.fire({
+        title: "Warning!",
+        text: res.message,
+        icon: "warning",
+        showConfirmButton: false, // ❌ OK button removed
+        timer: 1000,
+      });
     }
   };
   const CheckCredits = async (subjectId: string) => {
@@ -722,55 +772,15 @@ const previousYearsFiltered = years
 
     if (res.success) {
       setIsCreditDefined(true);
+      setCreditInput(String(creditData.length || 1));
     }
     else {
       setIsCreditDefined(false);
-           setCredits(1);
+      setCredits(1);
+      setCreditInput(String(1));
     }
   };
-  // const loadCredits = async (subjectId: string) => {
-  //   const ayid = localStorage.getItem("AYID");
-  //   if (!ayid) return;
-
-  //   const payload: GetCredits = {
-  //     subjectId,
-  //     ayid,
-  //   };
-
-  //   const res = await SubjectService.getCreditsBySubject(payload);
-
-  //   if (res && res.length > 0) {
-  //     // ✅ Edit mode
-  //     setIsCreditDefined(true);
-  //     if(IsViewMode){
-  // setIsEditMode(false);
-  //     }
-  //     else{
-  // setIsEditMode(true);
-  //     }
-  //     setCredits(res.length);
-  //     setCreditData(
-  //       res.map((c: any) => ({
-  //         creditId: c.creditId,
-  //         creditNo: c.creditNo,
-  //         examType: {
-  //           ESE: c.examType.includes("ESE"),
-  //           PR: c.examType.includes("PR"),
-  //           OR: c.examType.includes("OR"),
-  //         },
-  //         internalType: {
-  //           IA: c.internalType.includes("IA"),
-  //           TW: c.internalType.includes("TW"),
-  //         },
-  //         examOutOf: c.examOutOf,
-  //         examPassing: c.examPassing,
-  //         internalOutOf: c.internalOutOf,
-  //         internalPassing: c.internalPassing,
-  //         passingPercentage: c.passingPercentage,
-  //       }))
-  //     );
-  //   }
-  // };
+  
   const loadCredits = async (subjectId: string, mode: "view" | "edit") => {
     const ayid = localStorage.getItem("AYID");
     if (!ayid) return;
@@ -793,6 +803,7 @@ const previousYearsFiltered = years
         setIsEditMode(true);
       }
       setCredits(res.length);
+      setCreditInput(String(res.length));
       setCreditData(
         res.map((c: any) => ({
           creditId: c.creditId,
@@ -815,10 +826,6 @@ const previousYearsFiltered = years
       );
     }
   };
-  // const  ViewCredits=async(subjecid:string)=>{
-  //   setIsViewMode(true);
-  //   await loadCredits(subjecid);
-  // }
   const loadPreviousCredits = async (subjectId: string) => {
     const ayid = localStorage.getItem("AYID");
     if (!ayid) return;
@@ -852,14 +859,26 @@ const previousYearsFiltered = years
         setIsEditCreditModalOpen(false);
         await loadCredits(subject, "edit");
       } else {
-        Swal.fire("Failed", res.message, "error");
+        Swal.fire({
+          title: "Failed!",
+          text: res.message,
+          icon: "error",
+          showConfirmButton: false, // ❌ OK button removed
+          timer: 1000,
+        });
       }
     } catch (error) {
-      Swal.fire("Failed", "Something went wrong", "error");
+      Swal.fire({
+        title: "Failed!",
+        text: "Something went wrong",
+        icon: "error",
+        showConfirmButton: false, // ❌ OK button removed
+        timer: 1000,
+      });
     }
   };
   const resetCreditFlow = () => {
-    setPreviousCreditExist(false) ;
+    setPreviousCreditExist(false);
     setIsCreditDefined(false);
     setIsEditMode(false);
     setIsViewMode(false);
@@ -886,9 +905,6 @@ const previousYearsFiltered = years
             <h2 className="text-lg font-bold text-gray-800 dark:text-white">
               Subject Master
             </h2>
-
-
-
           </div>
 
 
@@ -898,7 +914,7 @@ const previousYearsFiltered = years
               color="blue"
               onChange={PreviousYearToggle}
             />
- {isPreviousYear && (
+            {isPreviousYear && (
               <Select
                 options={PreviousYearOptions}
                 placeholder="Select Previous Year"
@@ -919,7 +935,7 @@ const previousYearsFiltered = years
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-5">
 
 
-           
+
 
             {(!isPreviousYear || PreviousYear !== "") && (
               <Select
@@ -959,18 +975,9 @@ const previousYearsFiltered = years
                 options={semesterOptions}
                 placeholder="Select Semester"
                 value={semester}
-                onChange={(value) => { setSemester(value); setSubject(""); setCredits(0); setCreditData([]); resetCreditFlow();}}
+                onChange={(value) => { setSemester(value); setSubject(""); setCredits(0); setCreditData([]); resetCreditFlow(); }}
               />
             )}
-
-            {/* Subject */}
-            {/* {semester && (
-              <Select
-                options={subjectOptions}
-                placeholder="Select Subject"
-                onChange={(value) => { setSubject(value); setCredits(0); }}
-              />
-            )} */}
             {semester && (
               <Select
                 options={subjectOptions}
@@ -979,7 +986,6 @@ const previousYearsFiltered = years
                 onChange={async (value) => {
                   setSubject(value);
                   resetCreditFlow();
-             
                   if (isPreviousYear) {
                     await loadPreviousCredits(value); // 👈 previous
                   } else {
@@ -1016,117 +1022,103 @@ const previousYearsFiltered = years
 
 
 
-            {(PreviousCreditExist && subject)&& (
-              // <button
-              //   className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg"
-              //   onClick={handleCopyPreviousCredits}
-              // >
-              //   Copy Credit
-              // </button>
+            {(PreviousCreditExist && subject) && (
               <button
-  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2"
-  onClick={handleCopyPreviousCredits}
->
-  <Copy size={18} />
-  Copy Credit
-</button>
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+                onClick={handleCopyPreviousCredits}
+              >
+                <Copy size={18} />
+                Copy Credit
+              </button>
             )}
-{/* 
-            {(IsCreditDefined && !isEditMode && !isPreviousYear) && (
-              
-              <button
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg"
-                onClick={() => setIsEditCreditModalOpen(true)}
-              > Edit Credit
-              </button>)} */}
-              
           </div>
           {(IsCreditDefined && !isEditMode && !isPreviousYear && subject) && (
-  <div className="flex justify-center pt-4">
-    {/* <button
-      className="min-w-64 bg-blue-600 text-white px-6 py-2 rounded-lg"
-      onClick={() => setIsEditCreditModalOpen(true)}
-    >
-      <Pencil size={20} />   <span>Edit Credit</span>
-    </button> */}
-    <button
-  className="min-w-64 bg-blue-600 text-white px-6 py-2 rounded-lg
+            <div className="flex justify-center pt-4">
+           
+              <button
+                className="min-w-64 bg-blue-600 text-white px-6 py-2 rounded-lg
              flex items-center justify-center gap-2"
-  onClick={() => setIsEditCreditModalOpen(true)}
->
-  <Pencil size={20} />
-  <span>Edit Credit</span>
-</button>
+                onClick={() => setIsEditCreditModalOpen(true)}
+              >
+                <Pencil size={20} />
+                <span>Edit Credit</span>
+              </button>
 
-  </div>
-)}
+            </div>
+          )}
 
           <div className="">
-         {(subject && !isPreviousYear && (!IsCreditDefined || (IsCreditDefined && isEditMode))) && (
+            {(subject && !isPreviousYear && (!IsCreditDefined || (IsCreditDefined && isEditMode))) && (
 
-  <div className="pt-5">
+              <div className="pt-5">
 
-    {/* 🔹 Buttons – CENTER */}
-    <div className="flex justify-center gap-4">
-      {/* <button
-        className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg"
-        onClick={isEditMode ? handleUpdateCredits : handleSaveCredits}
-      >
-        {isEditMode ? "Update Credits" : "Save Credits"}
-      </button> */}
-      <button
-  className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg
+                {/* 🔹 Buttons – CENTER */}
+                <div className="flex justify-center gap-4">
+                  <button
+                    className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg
              flex items-center justify-center gap-2"
-  onClick={isEditMode ? handleUpdateCredits : handleSaveCredits}
->
-  {isEditMode ? (
-    <>
-      <Save size={18} />
-      <span>Update Credits</span>
-    </>
-  ) : (
-    <>
-      <Save size={18} />
-      <span>Save Credits</span>
-    </>
-  )}
-</button>
+                    onClick={isEditMode ? handleUpdateCredits : handleSaveCredits}
+                  >
+                    {isEditMode ? (
+                      <>
+                        <Save size={18} />
+                        <span>Update Credits</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save size={18} />
+                        <span>Save Credits</span>
+                      </>
+                    )}
+                  </button>
 
-      {isEditMode && (
-       <button
-  className="min-w-64 bg-red-600 text-white px-4 py-2 rounded-lg
+                  {isEditMode && (
+                    <button
+                      className="min-w-64 bg-red-600 text-white px-4 py-2 rounded-lg
              flex items-center justify-center gap-2"
-  onClick={DeleteCredits}
->
-  <Trash2 size={18} />
-  <span>Delete Credit</span>
-</button>
-      )}
-    </div>
+                      onClick={DeleteCredits}
+                    >
+                      <Trash2 size={18} />
+                      <span>Delete Credit</span>
+                    </button>
+                  )}
+                </div>
 
-    {/* 🔹 Number of Credit – NEXT LINE & CENTERED */}
-    <div className="flex justify-left mt-4">
-      <div className="w-full md:w-1/2 xl:w-1/4">
-        <input
-          type="number"
-          min={1}
-            maxLength={2}
-          value={creditData.length  }
-          placeholder="Number Of Credits"
-          className="w-full border p-2 rounded"
-          onChange={(e) => 
-          {
-                  const value = e.target.value;
-      if (value === "" || Number(value) < 1 || value.length>2) return;
-  setCredits(Number(e.target.value))
-          }
-          }
-        />
-      </div>
-    </div>
+                {/* 🔹 Number of Credit – NEXT LINE & CENTERED */}
+                <div className="flex justify-left mt-4">
+                  <div className="w-full md:w-1/2 xl:w-1/4">
+                    <Input
+                      type="number"
+                      maxLength={2}
+                      value={creditInput}
+                      disabled={isEditMode}
+                      label="Number Of Credits"
+                      className="w-full border p-2 rounded"
+                      onChange={(e) => {
+                        const value = e.target.value;
 
-  </div>
-)}
+                        // ✅ Backspace allow, blank dikhe
+                        if (value === "") {
+                          setCreditInput("");
+                          return; // ❌ credits change nahi hoga
+                        }
+
+                        // ❌ invalid values
+                        if (Number(value) < 1 || value.length > 2) return;
+
+                        // ✅ UI update
+                        setCreditInput(value);
+
+                        // ✅ actual credit change ONLY here
+                        setCredits(Number(value));
+                      }}
+                    />
+
+                  </div>
+                </div>
+
+              </div>
+            )}
 
           </div>
           {(creditData.length > 0 && subject) && (
@@ -1151,15 +1143,14 @@ const previousYearsFiltered = years
                           <Input
                             type="number"
                             disabled={IsViewMode}
-                            placeholder={`H${index + 1} Credits`}
+                            label={`H${index + 1} Credits`}
                             value={creditData[index]?.creditNo ?? ""}
                             maxLength={2}
-                            onChange={(e) =>
-                            {
-                                        const value = e.target.value;
-      if ( Number(value) < 0) return;
-                                 if (e.target.value.length > 15) return;
-                                  setCreditData(prev =>
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (Number(value) < 0) return;
+                              if (e.target.value.length > 15) return;
+                              setCreditData(prev =>
                                 prev.map((item, i) =>
                                   i === index ? { ...item, creditNo: e.target.value } : item
                                 )
@@ -1188,7 +1179,7 @@ const previousYearsFiltered = years
                                       };
 
                                       const isAnyExamChecked = Object.values(updatedExamType).some(Boolean);
-                                          const isAnyInternalChecked = Object.values(item.internalType || {}).some(Boolean);
+                                      const isAnyInternalChecked = Object.values(item.internalType || {}).some(Boolean);
 
                                       return {
                                         ...item,
@@ -1211,16 +1202,15 @@ const previousYearsFiltered = years
                         <TableCell className="p-3">
                           <Input
                             type="number"
-                            placeholder="Out of Marks"
+                            label="Out of Marks"
                             disabled={(!isExamSelected || IsViewMode)}
                             value={creditData[index]?.examOutOf ?? ""}
                             maxLength={15}
-                            onChange={(e) =>
-                            {
+                            onChange={(e) => {
                               const value = e.target.value;
-      if ( Number(value) < 0) return;
-                                 if ( e.target.value.length > 15) return;
-                                        setCreditData(prev =>
+                              if (Number(value) < 0) return;
+                              if (e.target.value.length > 15) return;
+                              setCreditData(prev =>
                                 prev.map((item, i) =>
                                   i === index
                                     ? { ...item, examOutOf: e.target.value }
@@ -1228,7 +1218,7 @@ const previousYearsFiltered = years
                                 )
                               )
                             }
-                       
+
                             }
                             className="border p-2 rounded"
                           />
@@ -1237,15 +1227,15 @@ const previousYearsFiltered = years
                         <TableCell className="p-3">
                           <Input
                             type="number"
-                            placeholder="Passing Marks"
+                            label="Passing Marks"
                             disabled={(!isExamSelected || IsViewMode)}
                             value={creditData[index]?.examPassing ?? ""}
-                                      maxLength={15}
+                            maxLength={15}
                             onChange={(e) => {
                               const passing = Number(e.target.value);
-      if ( passing< 0) return;
+                              if (passing < 0) return;
                               const outOf = Number(creditData[index]?.examOutOf ?? 0);
-   if (e.target.value.length > 15) return;
+                              if (e.target.value.length > 15) return;
                               // ❌ Validation
                               if (passing > outOf && outOf > 0) {
                                 setAlert({
@@ -1273,7 +1263,7 @@ const previousYearsFiltered = years
                         <TableCell className="p-3" rowSpan={2}>
                           <Input
                             type="number"
-                            placeholder="Passing Marks in %"
+                            label="Passing Marks in %"
                             disabled={
                               !(
                                 Object.values(creditData[index]?.examType ?? {}).some(Boolean) ||
@@ -1283,11 +1273,11 @@ const previousYearsFiltered = years
                               IsViewMode
                             }
                             value={creditData[index]?.passingPercentage ?? ""}
-                                      maxLength={15}
+                            maxLength={15}
                             onChange={(e) => {
-                                 if (e.target.value.length > 15) return;
+                              if (e.target.value.length > 15) return;
                               const value = e.target.value;
-      if ( Number(value) < 0) return;
+                              if (Number(value) < 0) return;
                               setCreditData(prev =>
                                 prev.map((item, i) =>
                                   i === index ? { ...item, passingPercentage: value } : item
@@ -1319,7 +1309,7 @@ const previousYearsFiltered = years
                                         [label]: !item.internalType[label],
                                       };
                                       const isAnyInternalChecked = Object.values(updatedInternalType).some(Boolean);
-                                          const isAnyExamChecked = Object.values(item.examType || {}).some(Boolean);
+                                      const isAnyExamChecked = Object.values(item.examType || {}).some(Boolean);
 
                                       return {
                                         ...item,
@@ -1327,7 +1317,7 @@ const previousYearsFiltered = years
                                         // ❗ internal unchecked → clear internal marks
                                         internalOutOf: isAnyInternalChecked ? item.internalOutOf : "",
                                         internalPassing: isAnyInternalChecked ? item.internalPassing : "",
-                                          passingPercentage: isAnyExamChecked || isAnyInternalChecked ? item.passingPercentage : "",
+                                        passingPercentage: isAnyExamChecked || isAnyInternalChecked ? item.passingPercentage : "",
                                       };
                                     })
                                   )
@@ -1341,16 +1331,15 @@ const previousYearsFiltered = years
                         <TableCell className="p-3">
                           <Input
                             type="number"
-                            placeholder="Out of Marks"
+                            label="Out of Marks"
                             disabled={(!isInternalSelected || IsViewMode)}
                             value={creditData[index]?.internalOutOf ?? ""}
-                                      maxLength={15}
-                            onChange={(e) =>
-                            {
-                               const value = e.target.value;
-      if ( Number(value) < 0) return;
-                                   if (value.length > 15) return;
-                                    setCreditData(prev =>
+                            maxLength={15}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (Number(value) < 0) return;
+                              if (value.length > 15) return;
+                              setCreditData(prev =>
                                 prev.map((item, i) =>
                                   i === index
                                     ? { ...item, internalOutOf: e.target.value }
@@ -1358,7 +1347,7 @@ const previousYearsFiltered = years
                                 )
                               )
                             }
-                             
+
                             }
                             className="border p-2 rounded"
                           />
@@ -1367,16 +1356,16 @@ const previousYearsFiltered = years
                         <TableCell className="p-3">
                           <Input
                             type="number"
-                            placeholder="Passing Marks"
+                            label="Passing Marks"
                             disabled={(!isInternalSelected || IsViewMode)}
                             value={creditData[index]?.internalPassing ?? ""}
-                                      maxLength={15}
+                            maxLength={15}
                             onChange={(e) => {
 
                               const passing = Number(e.target.value);
                               const outOf = Number(creditData[index]?.internalOutOf ?? 0);
-  if ( passing< 0) return;
-                                  if (e.target.value.length > 15) return;
+                              if (passing < 0) return;
+                              if (e.target.value.length > 15) return;
                               // ❌ Validation
                               if (passing > outOf && outOf > 0) {
                                 setAlert({
@@ -1418,12 +1407,12 @@ const previousYearsFiltered = years
         className="max-w-lg p-6"
       >
         <h2 className="text-xl font-semibold mb-4">Add Subject</h2>
-
+    <br/>
         {/* Modal Body */}
         <div className="space-y-3">
           <Input
             type="text"
-            placeholder="Subject Name"
+            label="Subject Name"
             value={subjectName}
             maxLength={80}
             onChange={(e) => {
@@ -1437,7 +1426,7 @@ const previousYearsFiltered = years
 
           <Input
             type="text"
-            placeholder="Subject Code"
+            label="Subject Code"
             value={subjectCode}
             maxLength={15}
             onChange={(e) => {
@@ -1448,13 +1437,22 @@ const previousYearsFiltered = years
             }}
             className="w-full border p-2 rounded"
           />
+          {alert && (
+            <div className="w-full mb-4">
+              <Alert
+                variant={alert.variant}
+                title={alert.title}
+                message={alert.message}
+              />
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="mt-6 flex justify-end gap-2">
           <Button
             variant="outline"
-            onClick={() => setIsModalOpen(false)}
+            onClick={() => { setIsModalOpen(false); setSubjectCode(""); setSubjectName(""); }}
           >
             Cancel
           </Button>
@@ -1466,36 +1464,38 @@ const previousYearsFiltered = years
       </Modal>
       <Modal
         isOpen={isEditCreditModalOpen}
-        onClose={() => {setIsEditCreditModalOpen(false) ;setpassword("");}}
+        onClose={() => { setIsEditCreditModalOpen(false); setpassword(""); }}
         className="max-w-lg p-6"
       >
-        <Input className="mt-12" type="text" placeholder="Enter Password" onChange={(e) => setpassword(e.target.value)} />
+        <br/>
+            <br/>
+        <Input  type="text" label="Enter Password" onChange={(e) => setpassword(e.target.value)} />
 
         {/* Footer */}
         <div className="mt-6 flex justify-end gap-3">
           <Button
-    className="px-8 py-2 text-base flex items-center gap-2"
-    onClick={async () => {
-      verifyCreditAccess();
-      setIsEditCreditModalOpen(false);
-      setpassword("");
-    }}
-  >
-    <CheckCircle size={18} />
-    Confirm
-  </Button>
+            className="px-8 py-2 text-base flex items-center gap-2"
+            onClick={async () => {
+              verifyCreditAccess();
+              setIsEditCreditModalOpen(false);
+              setpassword("");
+            }}
+          >
+            <CheckCircle size={18} />
+            Confirm
+          </Button>
 
-           <Button
-    className="px-8 py-2 text-base flex items-center gap-2"
-    onClick={async () => {
-      await loadCredits(subject, "view");
-      setIsEditCreditModalOpen(false);
-      setpassword("");
-    }}
-  >
-    <Eye size={18} />
-    View
-  </Button>
+          <Button
+            className="px-8 py-2 text-base flex items-center gap-2"
+            onClick={async () => {
+              await loadCredits(subject, "view");
+              setIsEditCreditModalOpen(false);
+              setpassword("");
+            }}
+          >
+            <Eye size={18} />
+            View
+          </Button>
         </div>
       </Modal>
 
