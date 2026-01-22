@@ -11,7 +11,6 @@ import TopLoader from "./components/common/TopLoader";
 import RoleMaster from "./pages/Staff/Admin/Role_master";
 
 
-
 export default function App() {
   return (
     <>
@@ -24,7 +23,6 @@ export default function App() {
             <Route path="/Staff" element={<StaffLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<ExamDashboard />} />
-                <Route path="SubjectMaster" element={<SubjectMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
