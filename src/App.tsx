@@ -8,6 +8,8 @@ import SubjectMaster from "./pages/Academic_Master/Subject_Master.tsx"; // Impor
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
+import RoleMaster from "./pages/Staff/Admin/Role_master";
+
 
 
 export default function App() {
@@ -23,6 +25,7 @@ export default function App() {
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<ExamDashboard />} />
                 <Route path="SubjectMaster" element={<SubjectMaster />} />
+              <Route path="Role_master" element={<RoleMaster />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
           </Route>
