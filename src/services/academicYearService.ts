@@ -13,9 +13,4 @@ export const academicYearService = {
     const response = await apiClient.get<AcademicYearResponse[]>('/AcademicYear');
     return response.data;
   },
-  async loadPreviousAcademicYears (): Promise<AcademicYearResponse[]> {
-    // Calls GET http://localhost:5059/api/AcademicYears
-    const response = await apiClient.get<AcademicYearResponse[]>('/AcademicYear');
-    return response.data;
-  }
 };
