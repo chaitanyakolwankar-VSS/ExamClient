@@ -4,6 +4,7 @@ import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import StaffLayout from "./layouts/Staff/Layout"; // Import the specific Staff Layout
 import ExamDashboard from "./pages/Staff/Dashboard/Home"; // Import the moved dashboard
+import SubjectMaster from "./pages/Staff/Academic_Master/Subject_Master.tsx"; // Import the moved Subject Master
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
