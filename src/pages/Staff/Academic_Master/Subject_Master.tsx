@@ -1,21 +1,20 @@
-import PageMeta from "../../components/common/PageMeta";
+import PageMeta from "../../../components/common/PageMeta";
 import { useEffect, useState } from "react";
-import Select from "../../components/form/Select";
-import { Plus, Trash2, X, Pencil, Save, RefreshCcw, CheckCircle, Eye, Copy } from "lucide-react";
-import Button from "../../components/ui/button/Button";
-import Checkbox from "../../components/form/input/Checkbox";
-import { Table, TableHeader, TableBody, TableRow, TableCell, } from "../../components/ui/table";
+import Select from "../../../components/form/Select";
+import { Plus, Trash2, Pencil, Save, CheckCircle, Eye, Copy } from "lucide-react";
+import Button from "../../../components/ui/button/Button";
+import Checkbox from "../../../components/form/input/Checkbox";
+import { Table, TableBody, TableRow, TableCell, } from "../../../components/ui/table";
 import Swal from "sweetalert2";
-import { Modal } from "../../components/ui/modal";
-import { CourseService, CourseApiResponse } from "../../services/Course";
-import { PatternService, PatternApiResponse } from "../../services/Pattern";
-import { GetSubject, SubjectApiResponse } from "../../services/GetSubject";
-import Switch from "../../components/form/switch/Switch";
-import { Subject, SubjectService, SaveCreditsPayload, GetCredits, PreviousCredits, DeleteItem, DeleteCredits, DeleteSubject } from "../../services/SubjectService";
-import { academicYearService } from "../../services/academicYearService";
-import Alert from "../../components/ui/alert/Alert";
-import Input from "../../components/form/input/InputField";
-import { number } from "framer-motion";
+import { Modal } from "../../../components/ui/modal";
+import { CourseService, CourseApiResponse } from "../../../services/Course";
+import { PatternService, PatternApiResponse } from "../../../services/Pattern";
+import { GetSubject, SubjectApiResponse } from "../../../services/GetSubject";
+import Switch from "../../../components/form/switch/Switch";
+import { Subject, SubjectService, SaveCreditsPayload, GetCredits, PreviousCredits, DeleteCredits, DeleteSubject } from "../../../services/SubjectService";
+import { academicYearService } from "../../../services/academicYearService";
+import Alert from "../../../components/ui/alert/Alert";
+import Input from "../../../components/form/input/InputField";
 
 
 type AlertVariant = "success" | "warning" | "error" | "info";
