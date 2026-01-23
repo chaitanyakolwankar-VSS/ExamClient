@@ -8,6 +8,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import Protect
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
 import RoleMaster from "./pages/Staff/Admin/Role_master";
+import StudentMaster from "./pages/Staff/Students Admin/Student_master";
 
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<ExamDashboard />} />
               <Route path="Role_master" element={<RoleMaster />} />
+              <Route path="Student_master" element={<StudentMaster />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
           </Route>
