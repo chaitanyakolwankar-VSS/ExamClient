@@ -4,11 +4,13 @@ import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import StaffLayout from "./layouts/Staff/Layout"; // Import the specific Staff Layout
 import ExamDashboard from "./pages/Staff/Dashboard/Home"; // Import the moved dashboard
+import SubjectMaster from "./pages/Staff/Academic_Master/Subject_Master.tsx"; // Import the moved Subject Master
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
 import RoleMaster from "./pages/Staff/Admin/Role_master";
 import StudentMaster from "./pages/Staff/Students Admin/Student_master";
+
 
 
 export default function App() {
@@ -23,6 +25,7 @@ export default function App() {
             <Route path="/Staff" element={<StaffLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<ExamDashboard />} />
+                <Route path="SubjectMaster" element={<SubjectMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
               <Route path="Student_master" element={<StudentMaster />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}

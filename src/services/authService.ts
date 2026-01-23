@@ -10,7 +10,7 @@ export interface LoginResponse {
   user: {
     userId: string;
     username: string;
-    email: string;
+    email: string; 
     role: string;
   };
 }
