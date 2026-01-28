@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import Protect
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
 import RoleMaster from "./pages/Staff/Admin/Role_master";
+import Ordinance from "./pages/Staff/Academic_Master/Ordinance.tsx";
 
 
 
@@ -26,6 +27,7 @@ export default function App() {
               <Route path="dashboard" element={<ExamDashboard />} />
                 <Route path="SubjectMaster" element={<SubjectMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
+              <Route path="Ordinance" element={<Ordinance />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
           </Route>
