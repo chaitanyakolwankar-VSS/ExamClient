@@ -10,8 +10,11 @@ import Swal from "sweetalert2";
 import {
   OrdinanceService,
   PatternData,
+  RuleSetData,
 } from "../../../services/OrdinanceService";
 import Alert from "../../../components/ui/alert/Alert";
+// import Checkbox from "../../../components/form/input/Checkbox";
+import Switch from "../../../components/form/switch/Switch"; // Import Switch
 
 interface Option {
   value: string;
@@ -31,21 +34,37 @@ export default function Ordinance() {
   const [patterns, setPatterns] = useState<PatternData[]>([]);
   const [patternOptions, setPatternOptions] = useState<Option[]>([]);
   const [pattern, setPattern] = useState("");
+  const [ruleSets, setRuleSets] = useState<RuleSetData[]>([]);
+  const [ruleSetOptions, setRuleSetOptions] = useState<Option[]>([]);
+  const [ruleSet, setRuleSet] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [pageAlert, setPageAlert] = useState<AlertInfo | null>(null);
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  // Pattern Modal State
+  const [isPatternModalOpen, setIsPatternModalOpen] = useState(false);
+  const [isEditingPattern, setIsEditingPattern] = useState(false);
   const [editingPatternId, setEditingPatternId] = useState<string | null>(null);
   const [patternName, setPatternName] = useState("");
   const [patternDescription, setPatternDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [modalAlert, setModalAlert] = useState<AlertInfo | null>(null);
+  const [patternModalAlert, setPatternModalAlert] = useState<AlertInfo | null>(
+    null,
+  );
+
+  // RuleSet Modal State
+  const [isRuleSetModalOpen, setIsRuleSetModalOpen] = useState(false);
+  const [isEditingRuleSet, setIsEditingRuleSet] = useState(false);
+  const [editingRuleSetId, setEditingRuleSetId] = useState<string | null>(null);
+  const [ruleSetName, setRuleSetName] = useState("");
+  const [isRuleSetActive, setIsRuleSetActive] = useState(false);
+  const [ruleSetModalAlert, setRuleSetModalAlert] = useState<AlertInfo | null>(
+    null,
+  );
 
   const filters = useMemo(() => ({}), []);
 
-  // Effect to clear alerts
+  // --- Effects ---
   useEffect(() => {
     if (pageAlert) {
       const timer = setTimeout(() => setPageAlert(null), 1500);
@@ -53,18 +72,35 @@ export default function Ordinance() {
     }
   }, [pageAlert]);
   useEffect(() => {
-    if (modalAlert) {
-      const timer = setTimeout(() => setModalAlert(null), 1500);
+    if (patternModalAlert) {
+      const timer = setTimeout(() => setPatternModalAlert(null), 1500);
       return () => clearTimeout(timer);
     }
-  }, [modalAlert]);
+  }, [patternModalAlert]);
+  useEffect(() => {
+    if (ruleSetModalAlert) {
+      const timer = setTimeout(() => setRuleSetModalAlert(null), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [ruleSetModalAlert]);
 
   useEffect(() => {
     fetchPatterns();
   }, []);
 
-  const resetForm = () => {
-    setIsEditing(false);
+  useEffect(() => {
+    if (pattern) {
+      fetchRuleSets(pattern);
+    } else {
+      setRuleSets([]);
+      setRuleSetOptions([]);
+      setRuleSet("");
+    }
+  }, [pattern]);
+
+  // --- Pattern Functions ---
+  const resetPatternForm = () => {
+    setIsEditingPattern(false);
     setPatternName("");
     setPatternDescription("");
     setEditingPatternId(null);
@@ -84,31 +120,16 @@ export default function Ordinance() {
         title: "Error",
         message: "Failed to fetch patterns.",
       };
-      if (showAlertInModal) setModalAlert(alertPayload);
+      if (showAlertInModal) setPatternModalAlert(alertPayload);
       else setPageAlert(alertPayload);
     } finally {
       setLoading(false);
     }
   };
 
-  const openModalForNew = () => {
-    resetForm();
-    setModalAlert(null);
-    setIsModalOpen(true);
-  };
-
-  const openModalForEdit = (patternToEdit: PatternData) => {
-    setIsEditing(true);
-    setEditingPatternId(patternToEdit.patternId || null);
-    setPatternName(patternToEdit.patternName);
-    setPatternDescription(patternToEdit.description);
-    setModalAlert(null);
-    setIsModalOpen(true);
-  };
-
   const handleSaveOrUpdatePattern = async () => {
     if (!patternName.trim()) {
-      setModalAlert({
+      setPatternModalAlert({
         variant: "warning",
         title: "Validation Error",
         message: "Pattern Name cannot be empty.",
@@ -118,31 +139,31 @@ export default function Ordinance() {
     setIsSubmitting(true);
     try {
       const payload: PatternData = {
-        patternId: isEditing ? editingPatternId! : undefined,
+        patternId: isEditingPattern ? editingPatternId! : undefined,
         patternName: patternName,
         description: patternDescription,
       };
-      const response = isEditing
+      const response = isEditingPattern
         ? await OrdinanceService.updatePattern(payload)
         : await OrdinanceService.savePattern(payload);
 
       if (response.success) {
-        setModalAlert({
+        setPatternModalAlert({
           variant: "success",
           title: "Success!",
           message: response.message,
         });
-        resetForm();
-        await fetchPatterns(true); // Re-fetch data and show alert inside modal
+        resetPatternForm();
+        await fetchPatterns(true);
       } else {
-        setModalAlert({
+        setPatternModalAlert({
           variant: "error",
           title: "Error!",
           message: response.message || "Operation failed.",
         });
       }
     } catch (error) {
-      setModalAlert({
+      setPatternModalAlert({
         variant: "error",
         title: "Error!",
         message: "An unexpected error occurred.",
@@ -154,7 +175,7 @@ export default function Ordinance() {
 
   const handleDeletePattern = async (patternId: string) => {
     Swal.fire({
-      title: "Are you sure?",
+      title: "Confirm Delete of Pattern?",
       text: "You won't be able to revert this!",
       icon: "warning",
       showCancelButton: true,
@@ -166,21 +187,175 @@ export default function Ordinance() {
         try {
           const response = await OrdinanceService.deletePattern(patternId);
           if (response.success) {
-            setModalAlert({
+            setPatternModalAlert({
               variant: "success",
               title: "Deleted!",
               message: response.message,
             });
-            fetchPatterns(true); // Re-fetch data
+            fetchPatterns(true);
           } else {
-            setModalAlert({
+            setPatternModalAlert({
               variant: "error",
               title: "Error!",
               message: response.message || "Failed to delete pattern.",
             });
           }
         } catch (error) {
-          setModalAlert({
+          setPatternModalAlert({
+            variant: "error",
+            title: "Error!",
+            message: "An unexpected error occurred.",
+          });
+        }
+      }
+    });
+  };
+
+  const openPatternModalForNew = () => {
+    resetPatternForm();
+    setPatternModalAlert(null);
+    setIsPatternModalOpen(true);
+  };
+
+  const openPatternModalForEdit = (patternToEdit: PatternData) => {
+    setIsEditingPattern(true);
+    setEditingPatternId(patternToEdit.patternId || null);
+    setPatternName(patternToEdit.patternName);
+    setPatternDescription(patternToEdit.description);
+    setPatternModalAlert(null);
+    setIsPatternModalOpen(true);
+  };
+
+  // --- RuleSet Functions ---
+  const resetRuleSetForm = () => {
+    setIsEditingRuleSet(false);
+    setRuleSetName("");
+    setIsRuleSetActive(false);
+    setEditingRuleSetId(null);
+  };
+
+  const fetchRuleSets = async (patternId: string, showAlertInModal = false) => {
+    try {
+      const data = await OrdinanceService.getRuleSets(patternId);
+      setRuleSets(data);
+      setRuleSetOptions(
+        data
+          .filter((rs) => rs.isActive)
+          .map((rs) => ({ value: rs.ruleSetId || "", label: rs.name })),
+      );
+    } catch (error) {
+      const alertPayload = {
+        variant: "error" as const,
+        title: "Error",
+        message: "Failed to fetch RuleSets.",
+      };
+      if (showAlertInModal) setRuleSetModalAlert(alertPayload);
+      else setPageAlert(alertPayload);
+    }
+  };
+
+  const openRuleSetModalForNew = () => {
+    resetRuleSetForm();
+    setRuleSetModalAlert(null);
+    setIsRuleSetModalOpen(true);
+    setIsRuleSetActive(false);
+  };
+
+  const openRuleSetModalForEdit = (ruleSetToEdit: RuleSetData) => {
+    setIsEditingRuleSet(true);
+    setEditingRuleSetId(ruleSetToEdit.ruleSetId!);
+    setRuleSetName(ruleSetToEdit.name);
+    setIsRuleSetActive(ruleSetToEdit.isActive);
+    setRuleSetModalAlert(null);
+    setIsRuleSetModalOpen(true);
+  };
+
+  const handleSaveOrUpdateRuleSet = async () => {
+    if (!ruleSetName.trim()) {
+      setRuleSetModalAlert({
+        variant: "warning",
+        title: "Validation Error",
+        message: "RuleSet Name cannot be empty.",
+      });
+      return;
+    }
+    if (!pattern) {
+      setRuleSetModalAlert({
+        variant: "error",
+        title: "Error",
+        message: "A pattern must be selected.",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload: RuleSetData = {
+        ruleSetId: isEditingRuleSet ? editingRuleSetId! : undefined,
+        name: ruleSetName,
+        isActive: isRuleSetActive,
+        patternId: pattern,
+      };
+
+      const response = isEditingRuleSet
+        ? await OrdinanceService.updateRuleSet(payload)
+        : await OrdinanceService.saveRuleSet(payload);
+
+      if (response.success) {
+        setRuleSetModalAlert({
+          variant: "success",
+          title: "Success!",
+          message: response.message,
+        });
+        resetRuleSetForm();
+        await fetchRuleSets(pattern, true);
+      } else {
+        setRuleSetModalAlert({
+          variant: "error",
+          title: "Error!",
+          message: response.message || "Operation failed.",
+        });
+      }
+    } catch (error) {
+      setRuleSetModalAlert({
+        variant: "error",
+        title: "Error!",
+        message: "An unexpected error occurred.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteRuleSet = async (ruleSetId: string) => {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "This will delete the ruleset and all associated rules!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await OrdinanceService.deleteRuleSet(ruleSetId);
+          if (response.success) {
+            setRuleSetModalAlert({
+              variant: "success",
+              title: "Deleted!",
+              message: response.message,
+            });
+            fetchRuleSets(pattern, true);
+          } else {
+            setRuleSetModalAlert({
+              variant: "error",
+              title: "Error!",
+              message: response.message || "Failed to delete ruleset.",
+            });
+          }
+        } catch (error) {
+          setRuleSetModalAlert({
             variant: "error",
             title: "Error!",
             message: "An unexpected error occurred.",
@@ -202,7 +377,42 @@ export default function Ordinance() {
             className="border-green-800 text-green-800 hover:bg-green-100"
             variant="outline"
             size="sm"
-            onClick={() => openModalForEdit(row)}
+            onClick={() => openPatternModalForEdit(row)}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          {row.patternId && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-800 text-red-800 hover:bg-red-100"
+              onClick={() => handleDeletePattern(row.patternId!)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  const ruleSetColumns = [
+    { key: "name", label: "RuleSet Name", sortable: true },
+    {
+      key: "isActive",
+      label: "Status",
+      render: (row: RuleSetData) => (row.isActive ? "Active" : "Inactive"),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (row: RuleSetData) => (
+        <div className="flex gap-2 justify-end">
+          <Button
+            variant="outline"
+            className="border-green-800 text-green-800 hover:bg-green-100"
+            size="sm"
+            onClick={() => openRuleSetModalForEdit(row)}
           >
             <Pencil className="h-4 w-4" />
           </Button>
@@ -210,7 +420,7 @@ export default function Ordinance() {
             variant="outline"
             size="sm"
             className="border-red-800 text-red-800 hover:bg-red-100"
-            onClick={() => handleDeletePattern(row.patternId || "")}
+            onClick={() => handleDeleteRuleSet(row.ruleSetId!)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -230,39 +440,69 @@ export default function Ordinance() {
               message={pageAlert.message}
             />
           )}
-          <div className="flex items-center gap-2">
-            <div className="w-72">
-              <Select
-                options={patternOptions}
-                placeholder="Select Pattern"
-                value={pattern}
-                onChange={(value) => setPattern(value)}
-                disabled={loading}
-              />
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="flex items-center gap-2">
+              <div className="flex-grow lg:max-w-xs">
+                <Select
+                  options={patternOptions}
+                  placeholder="Select Pattern"
+                  value={pattern}
+                  onChange={(value) => {
+                    setPattern(value);
+                    setRuleSet(""); // Reset RuleSet when Pattern changes
+                  }}
+                  disabled={loading}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openPatternModalForNew}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={openModalForNew}>
-              <Plus className="h-4 w-4" />
-            </Button>
+            {pattern && (
+              <div className="flex items-center gap-2">
+                <div className="flex-grow">
+                  <Select
+                    options={ruleSetOptions}
+                    placeholder="Select RuleSet"
+                    value={ruleSet}
+                    onChange={(value) => setRuleSet(value)}
+                    disabled={!pattern || loading}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openRuleSetModalForNew}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </ComponentCard>
       </div>
 
+      {/* Pattern Management Modal */}
       <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isPatternModalOpen}
+        onClose={() => setIsPatternModalOpen(false)}
         className="max-w-2xl p-6"
       >
         <h2 className="text-xl font-semibold my-4">
-          {isEditing ? "Edit Pattern" : "Manage Patterns"}
+          {isEditingPattern ? "Edit Pattern" : "Manage Patterns"}
         </h2>
         <div className="space-y-4 pb-4 mb-4">
           <Input
             label="Pattern Name"
             value={patternName}
             onChange={(e) => {
-                if (allowedCharsRegex.test(e.target.value)) {
-                    setPatternName(e.target.value);
-                }
+              if (allowedCharsRegex.test(e.target.value)) {
+                setPatternName(e.target.value);
+              }
             }}
             placeholder="Enter new or edit existing pattern name"
             maxLength={50}
@@ -271,20 +511,20 @@ export default function Ordinance() {
             label="Description"
             value={patternDescription}
             onChange={(e) => {
-                if (allowedCharsRegex.test(e.target.value)) {
-                    setPatternDescription(e.target.value)
-                }
+              if (allowedCharsRegex.test(e.target.value)) {
+                setPatternDescription(e.target.value);
+              }
             }}
             maxLength={200}
           />
         </div>
         <div className="mt-4 flex justify-end items-center gap-3">
           <div className="flex-grow min-h-10">
-            {modalAlert && (
+            {patternModalAlert && (
               <Alert
-                variant={modalAlert.variant}
-                title={modalAlert.title}
-                message={modalAlert.message}
+                variant={patternModalAlert.variant}
+                title={patternModalAlert.title}
+                message={patternModalAlert.message}
               />
             )}
           </div>
@@ -296,19 +536,18 @@ export default function Ordinance() {
           >
             {isSubmitting
               ? "Saving..."
-              : isEditing
+              : isEditingPattern
                 ? "Update Pattern"
                 : "Save Pattern"}
           </Button>
           <Button
             className=" text-red-800 border-red-800 hover:bg-red-100"
             variant="outline"
-            onClick={resetForm}
+            onClick={resetPatternForm}
           >
             Clear
           </Button>
         </div>
-
         <h3 className="text-lg font-semibold mt-6 mb-2">Existing Patterns</h3>
         <div>
           <DataTable
@@ -320,7 +559,92 @@ export default function Ordinance() {
           />
         </div>
         <div className="border-t mt-6 pt-4 flex justify-end">
-          <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+          <Button
+            variant="outline"
+            onClick={() => setIsPatternModalOpen(false)}
+          >
+            Close
+          </Button>
+        </div>
+      </Modal>
+
+      {/* RuleSet Management Modal */}
+      <Modal
+        isOpen={isRuleSetModalOpen}
+        onClose={() => setIsRuleSetModalOpen(false)}
+        className="max-w-2xl p-6"
+      >
+        <h2 className="text-xl font-semibold my-4">
+          {isEditingRuleSet ? "Edit RuleSet" : "Manage RuleSets"}
+        </h2>
+
+        <div className="space-y-4 border-b pb-4 mb-4">
+          <Input
+            label="RuleSet Name"
+            value={ruleSetName}
+            onChange={(e) => {
+              if (allowedCharsRegex.test(e.target.value)) {
+                setRuleSetName(e.target.value);
+              }
+            }}
+            maxLength={100}
+          />
+          <Switch
+            label="Is Active"
+            key={editingRuleSetId || "new"}
+            defaultChecked={isRuleSetActive}
+            onChange={setIsRuleSetActive}
+          />
+        </div>
+
+        <div className="mt-4 flex justify-end items-center gap-3">
+          <div className="flex-grow min-h-10">
+            {ruleSetModalAlert && (
+              <Alert
+                variant={ruleSetModalAlert.variant}
+                title={ruleSetModalAlert.title}
+                message={ruleSetModalAlert.message}
+              />
+            )}
+          </div>
+
+          <Button
+            className=" text-green-800 border-green-800 hover:bg-green-100"
+            variant="outline"
+            onClick={handleSaveOrUpdateRuleSet}
+            disabled={isSubmitting}
+          >
+            {isSubmitting
+              ? "Saving..."
+              : isEditingRuleSet
+                ? "Update RuleSet"
+                : "Save RuleSet"}
+          </Button>
+
+          <Button
+            variant="outline"
+            className=" text-red-800 border-red-800 hover:bg-red-100"
+            onClick={resetRuleSetForm}
+          >
+            Clear
+          </Button>
+        </div>
+
+        <h3 className="text-lg font-semibold mt-6 mb-2">Existing RuleSets</h3>
+        <div>
+          <DataTable
+            data={ruleSets}
+            columns={ruleSetColumns}
+            searchKeys={["name"]}
+            filters={filters}
+            pageSizeOptions={[5, 10, 20]}
+          />
+        </div>
+        <div className="border-t mt-6 pt-4 flex justify-end">
+          <Button
+            variant="outline"
+            onClick={() => setIsRuleSetModalOpen(false)}
+          >
             Close
           </Button>
         </div>
