@@ -9,6 +9,8 @@ import ExamMaster from "./pages/Staff/Academic_Master/ExamMaster.tsx"; // Import
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
+import RoleMaster from "./pages/Staff/Admin/Role_master";
+
 
 
 export default function App() {
@@ -25,6 +27,7 @@ export default function App() {
               <Route path="dashboard" element={<ExamDashboard />} />
                 <Route path="SubjectMaster" element={<SubjectMaster />} />
                     <Route path="ExamMaster" element={<ExamMaster />} />
+              <Route path="Role_master" element={<RoleMaster />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
           </Route>
