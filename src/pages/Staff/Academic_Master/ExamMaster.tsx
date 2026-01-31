@@ -78,54 +78,6 @@ export default function ExamDashboard() {
             setSelectedIds([]);
         }
     };
-
-
-    // const columns: Column<Exams>[] = [
-    //     {
-    //         key: "name",
-    //         label: "Exam Name",
-    //         sortable: true,
-    //     },
-    //     {
-    //         key: "examType",
-    //         label: "Exam Type",
-    //         sortable: true,
-    //     },
-    //     {
-    //         key: "isActive",
-    //         label: "Active Status",
-    //         render: (row) => ({
-    //             content: (
-    //                 <Switch
-    //                     label=""
-    //                     color="blue"
-    //                     defaultChecked={!!row.isActive}
-    //                     onChange={(checked) => UpdateExam(row.examId, checked)}
-    //                 />
-
-    //             ),
-    //         }),
-    //     },
-    //     {
-    //         key: "delete",
-    //         label: "Delete",
-    //         render: (row) => ({
-    //             content: (
-    //                 <button
-    //                     onClick={() =>
-    //                         DeleteExam(row.examId)
-    //                     }
-    //                     className="text-red-600 hover:text-red-800"
-    //                 >
-    //                     <Trash2 size={25} />
-    //                 </button>
-
-    //             ),
-    //         }),
-    //     },
-    // ];
-
-
     // 🔹 Load courses on page load
 
     const filters = useMemo(() => ({}), []);
