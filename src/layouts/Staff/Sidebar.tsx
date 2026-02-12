@@ -131,7 +131,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Regular Exam",
-        path: "/blank",
+        path: "/Staff/RegularExam",
         pro: false,
       },
       {
