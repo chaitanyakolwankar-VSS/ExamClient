@@ -10,6 +10,9 @@ import RegularExam from "./pages/Staff/ConductExam/RegularExam.tsx";  // Import 
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
+import AddPermission from "./pages/Staff/Dashboard/AddPermission";
+import CreateUser from "./pages/Staff/CreateUser";
+import CollegeDetail from "./pages/Staff/Dashboard/CollegeDetail";
 import RoleMaster from "./pages/Staff/Admin/Role_master";
 
 
@@ -26,6 +29,9 @@ export default function App() {
             <Route path="/Staff" element={<StaffLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<ExamDashboard />} />
+              <Route path="AddPermission" element={<AddPermission />} />
+              <Route path="CreateUser" element={<CreateUser />} />
+              <Route path="CollegeDetail" element={<CollegeDetail />} />
                 <Route path="SubjectMaster" element={<SubjectMaster />} />
                     <Route path="ExamMaster" element={<ExamMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
