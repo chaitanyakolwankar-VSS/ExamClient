@@ -40,14 +40,20 @@ const navItems: NavItem[] = [
     subItems: [
       {
         icon: <SubMenuIcon />,
+        name: "Add Permission",
+        path: "/Staff/AddPermission",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
         name: "College Details",
-        path: "/blank",
+        path: "/Staff/CollegeDetail",
         pro: false,
       },
       {
         icon: <SubMenuIcon />,
         name: "Create User",
-        path: "/blank",
+        path: "/Staff/CreateUser",
         pro: false,
       },
       {

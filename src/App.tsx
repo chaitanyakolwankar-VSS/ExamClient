@@ -7,6 +7,10 @@ import ExamDashboard from "./pages/Staff/Dashboard/Home"; // Import the moved da
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
+import AddPermission from "./pages/Staff/Dashboard/AddPermission";
+import CreateUser from "./pages/Staff/CreateUser";
+import CollegeDetail from "./pages/Staff/Dashboard/CollegeDetail";
+
 
 export default function App() {
   return (
@@ -20,6 +24,9 @@ export default function App() {
             <Route path="/Staff" element={<StaffLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<ExamDashboard />} />
+              <Route path="AddPermission" element={<AddPermission />} />
+              <Route path="CreateUser" element={<CreateUser />} />
+              <Route path="CollegeDetail" element={<CollegeDetail />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
           </Route>
