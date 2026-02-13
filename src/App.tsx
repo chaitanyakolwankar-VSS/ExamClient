@@ -4,12 +4,17 @@ import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import StaffLayout from "./layouts/Staff/Layout"; // Import the specific Staff Layout
 import ExamDashboard from "./pages/Staff/Dashboard/Home"; // Import the moved dashboard
+import SubjectMaster  from "./pages/Staff/Academic_Master/Subject_Master.tsx"; // Import the moved Subject Master
+import ExamMaster from "./pages/Staff/Academic_Master/ExamMaster.tsx"; // Import the moved Exam Master
+import RegularExam from "./pages/Staff/ConductExam/RegularExam.tsx";  // Import the moved Regular Exam 
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
 import AddPermission from "./pages/Staff/Dashboard/AddPermission";
 import CreateUser from "./pages/Staff/CreateUser";
 import CollegeDetail from "./pages/Staff/Dashboard/CollegeDetail";
+import RoleMaster from "./pages/Staff/Admin/Role_master";
+
 
 
 export default function App() {
@@ -27,6 +32,10 @@ export default function App() {
               <Route path="AddPermission" element={<AddPermission />} />
               <Route path="CreateUser" element={<CreateUser />} />
               <Route path="CollegeDetail" element={<CollegeDetail />} />
+                <Route path="SubjectMaster" element={<SubjectMaster />} />
+                    <Route path="ExamMaster" element={<ExamMaster />} />
+              <Route path="Role_master" element={<RoleMaster />} />
+                <Route path="RegularExam" element={<RegularExam />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
           </Route>

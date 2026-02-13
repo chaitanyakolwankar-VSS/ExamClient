@@ -59,7 +59,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Role Master",
-        path: "/blank",
+        path: "/Staff/Role_master",
         pro: false,
       },
     ],
@@ -71,13 +71,13 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Subject Master",
-        path: "/blank",
+        path: "/Staff/SubjectMaster",
         pro: false,
       },
       {
         icon: <SubMenuIcon />,
         name: "Exam Master",
-        path: "/blank",
+        path: "/Staff/ExamMaster",
         pro: false,
       },
       {
@@ -137,7 +137,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Regular Exam",
-        path: "/blank",
+        path: "/Staff/RegularExam",
         pro: false,
       },
       {
