@@ -47,13 +47,13 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Create User",
-        path: "/blank",
+        path: "/Staff/Test",
         pro: false,
       },
       {
         icon: <SubMenuIcon />,
         name: "Role Master",
-        path: "/blank",
+        path: "/Staff/Role_master",
         pro: false,
       },
     ],

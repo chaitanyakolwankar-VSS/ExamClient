@@ -63,7 +63,7 @@ export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({
             }
           }
         } catch (error) {
-          console.error("Failed to fetch academic years:", error);
+          // console.error("Failed to fetch academic years:", error);
         } finally {
           setIsLoading(false);
         }
