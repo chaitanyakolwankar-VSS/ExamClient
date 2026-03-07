@@ -29,8 +29,8 @@ export const RoleMasterService = {
   async GetPermissions(): Promise<PermissionResponse[]> {
     const response = await apiClient.get<PermissionResponse[]>("/RoleMaster/Selectmodule");
     return response.data;
-  }, 
-GetRoleById: async (roleId: string) => {
+  },
+  GetRoleById: async (roleId: string) => {
     const res = await apiClient.get(`/RoleMaster/GetRoleById?roleId=${roleId}`);
     return res.data;
   },
@@ -43,11 +43,10 @@ GetRoleById: async (roleId: string) => {
     return apiClient.post("/RoleMaster/UpdateRole", payload);
   },
 
-DeleteRole: async (roleId: string) => {
-  return apiClient.delete(`/RoleMaster/DeleteRole?roleId=${roleId}`);
-},
+  DeleteRole: async (roleId: string) => {
+    return apiClient.delete(`/RoleMaster/DeleteRole?roleId=${roleId}`);
+  },
 
-  
+
 };
 
- 
