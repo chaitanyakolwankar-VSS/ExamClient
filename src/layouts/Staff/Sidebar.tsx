@@ -40,14 +40,20 @@ const navItems: NavItem[] = [
     subItems: [
       {
         icon: <SubMenuIcon />,
+        name: "Add Permission",
+        path: "/Staff/AddPermission",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
         name: "College Details",
-        path: "/blank",
+        path: "/Staff/CollegeDetail",
         pro: false,
       },
       {
         icon: <SubMenuIcon />,
         name: "Create User",
-        path: "/Staff/Test",
+        path: "/Staff/CreateUser",
         pro: false,
       },
       {
@@ -71,7 +77,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Exam Master",
-        path: "/blank",
+        path: "/Staff/ExamMaster",
         pro: false,
       },
       {
@@ -131,7 +137,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Regular Exam",
-        path: "/blank",
+        path: "/Staff/RegularExam",
         pro: false,
       },
       {
