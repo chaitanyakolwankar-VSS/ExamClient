@@ -10,7 +10,7 @@ import { ScrollToTop } from "./components/common/ScrollToTop";
 import TopLoader from "./components/common/TopLoader"; 
 import RoleMaster from "./pages/Staff/Admin/Role_master";
 import StudentMaster from "./pages/Staff/Students Admin/Student_master";
-
+import MarksEntry from "./pages/Staff/Marks_entry/Marks_entry.tsx";
 
 
 export default function App() {
@@ -28,6 +28,7 @@ export default function App() {
                 <Route path="SubjectMaster" element={<SubjectMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
               <Route path="Student_master" element={<StudentMaster />} />
+               <Route path="Marks_Entry" element={<MarksEntry />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
           </Route>
