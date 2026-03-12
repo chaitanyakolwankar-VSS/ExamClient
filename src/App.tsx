@@ -11,7 +11,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import Protect
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
 import AddPermission from "./pages/Staff/Dashboard/AddPermission";
-import CreateUser from "./pages/Staff/CreateUser";
+import CreateUser from "./pages/Staff/Dashboard/CreateUser.tsx";
 import CollegeDetail from "./pages/Staff/Dashboard/CollegeDetail";
 import RoleMaster from "./pages/Staff/Admin/Role_master";
 
