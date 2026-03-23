@@ -18,6 +18,57 @@ export interface RuleSetData {
     name: string;
     isActive: boolean;
     patternId: string;
+    gradeMasterId?: string;
+}
+
+export interface GradeThreshold {
+    thresholdId?: string;
+    grade: string;
+    gradePoint: number;
+    minPercentage: number;
+    maxPercentage: number;
+    performanceRemark: string;
+}
+
+export interface GradeMaster {
+    gradeMasterId?: string;
+    name: string;
+    description: string;
+    thresholds: GradeThreshold[];
+}
+
+export interface RuleCondition {
+    conditionId?: string;
+    ruleId?: string;
+    factName: string;
+    operator: string;
+    value: string;
+}
+
+export interface RuleAction {
+    actionId?: string;
+    ruleId?: string;
+    actionType: string;
+    calculationMode: string;
+    param1Type: string;
+    param1Value: number;
+    param2Type: string;
+    param2Value: number;
+    maxLimit: number;
+    maxTargetCount: number;
+    target: string;
+}
+
+export interface Rule {
+    ruleId?: string;
+    ruleSetId: string;
+    name: string;
+    priority: number;
+    isEnabled: boolean;
+    stopOnSuccess: boolean;
+    ordinanceSymbol?: string;
+    conditions: RuleCondition[];
+    actions: RuleAction[];
 }
 
 export const OrdinanceService = {
@@ -99,6 +150,88 @@ export const OrdinanceService = {
             return response.data;
         } catch (error) {
             console.error("Error deleting rule set:", error);
+            throw error;
+        }
+    },
+
+    // === Grade Master Methods ===
+    getGradeMasters: async (): Promise<GradeMaster[]> => {
+        try {
+            const response = await Client.get<ApiResponse<GradeMaster[]>>("/Ordinance/GradeMasters");
+            if (response.data.success && response.data.data) {
+                return response.data.data;
+            }
+            throw new Error(response.data.message || "Failed to fetch grade masters.");
+        } catch (error) {
+            console.error("Error fetching grade masters:", error);
+            throw error;
+        }
+    },
+    saveGradeMaster: async (grade: GradeMaster): Promise<ApiResponse<GradeMaster>> => {
+        try {
+            const response = await Client.post<ApiResponse<GradeMaster>>("/Ordinance/GradeMasters", grade);
+            return response.data;
+        } catch (error) {
+            console.error("Error saving grade master:", error);
+            throw error;
+        }
+    },
+    updateGradeMaster: async (grade: GradeMaster): Promise<ApiResponse<object>> => {
+        try {
+            const response = await Client.put<ApiResponse<object>>(`/Ordinance/GradeMasters/${grade.gradeMasterId}`, grade);
+            return response.data;
+        } catch (error) {
+            console.error("Error updating grade master:", error);
+            throw error;
+        }
+    },
+    deleteGradeMaster: async (gradeMasterId: string): Promise<ApiResponse<object>> => {
+        try {
+            const response = await Client.delete<ApiResponse<object>>(`/Ordinance/GradeMasters/${gradeMasterId}`);
+            return response.data;
+        } catch (error) {
+            console.error("Error deleting grade master:", error);
+            throw error;
+        }
+    },
+
+    // === Rule Methods ===
+    getRules: async (ruleSetId: string): Promise<Rule[]> => {
+        try {
+            const response = await Client.get<ApiResponse<Rule[]>>(`/Ordinance/Rules/ByRuleSet/${ruleSetId}`);
+            if (response.data.success && response.data.data) {
+                return response.data.data;
+            }
+            throw new Error(response.data.message || "Failed to fetch rules.");
+        } catch (error) {
+            console.error("Error fetching rules:", error);
+            throw error;
+        }
+    },
+    saveRule: async (rule: Rule): Promise<ApiResponse<Rule>> => {
+        try {
+            const response = await Client.post<ApiResponse<Rule>>("/Ordinance/Rules", rule);
+            return response.data;
+        } catch (error) {
+            console.error("Error saving rule:", error);
+            throw error;
+        }
+    },
+    updateRule: async (rule: Rule): Promise<ApiResponse<object>> => {
+        try {
+            const response = await Client.put<ApiResponse<object>>(`/Ordinance/Rules/${rule.ruleId}`, rule);
+            return response.data;
+        } catch (error) {
+            console.error("Error updating rule:", error);
+            throw error;
+        }
+    },
+    deleteRule: async (ruleId: string): Promise<ApiResponse<object>> => {
+        try {
+            const response = await Client.delete<ApiResponse<object>>(`/Ordinance/Rules/${ruleId}`);
+            return response.data;
+        } catch (error) {
+            console.error("Error deleting rule:", error);
             throw error;
         }
     }

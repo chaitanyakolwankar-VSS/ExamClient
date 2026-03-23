@@ -167,7 +167,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Apply Grace Marks",
-        path: "/blank",
+        path: "/Staff/OverallMarksEntry",
         pro: false,
       },
       {
