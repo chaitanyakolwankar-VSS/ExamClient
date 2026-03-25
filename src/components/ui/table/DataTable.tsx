@@ -154,72 +154,73 @@ const DataTable: React.FC<DataTableProps> = ({
       </div>
 
       {/* TABLE */}
-      <table className="w-full border border-gray-200 rounded-lg text-sm">
-        <thead className="bg-gray-100">
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className={`border px-4 py-2 font-semibold text-left select-none ${
-                  col.sortable === false ? "" : "cursor-pointer"
-                } ${col.className || ""}`}
-                onClick={() =>
-                  col.sortable === false || col.group
-                    ? null
-                    : handleSort(col.key)
-                }
-              >
-                {col.label}
-                {sortKey === col.key && (sortOrder === "asc" ? " ▲" : " ▼")}
-              </th>
-            ))}
-          </tr>
-        </thead>
-
-        <tbody>
-          {(hasSpans ? filteredData : currentData).length === 0 ? (
+      <div className=" overflow-y-auto border rounded-lg">
+        <table className="w-full border border-gray-200 rounded-lg text-sm">
+          <thead className="bg-gray-100">
             <tr>
-              <td
-                colSpan={columns.length}
-                className="border px-4 py-3 text-center text-gray-500"
-              >
-                No data found
-              </td>
-            </tr>
-          ) : (
-            (hasSpans ? filteredData : currentData).map((row, index) => (
-              <tr key={index} className="hover:bg-gray-50 transition">
-                {columns.map((col) => {
-                  const result = col.render ? col.render(row) : row[col.key];
-                  let cell: RenderResult;
-
-                  if (
-                    React.isValidElement(result) ||
-                    typeof result !== "object"
-                  ) {
-                    cell = { content: result };
-                  } else {
-                    cell = result as RenderResult;
+              {columns.map((col) => (
+                <th
+                  key={col.key}
+                  className={`border px-4 py-2 font-semibold text-left select-none ${col.sortable === false ? "" : "cursor-pointer"
+                    } ${col.className || ""}`}
+                  onClick={() =>
+                    col.sortable === false || col.group
+                      ? null
+                      : handleSort(col.key)
                   }
+                >
+                  {col.label}
+                  {sortKey === col.key && (sortOrder === "asc" ? " ▲" : " ▼")}
+                </th>
+              ))}
+            </tr>
+          </thead>
 
-                  if (cell.skip) return null;
-
-                  return (
-                    <td
-                      key={col.key}
-                      rowSpan={cell.rowSpan || 1}
-                      colSpan={cell.colSpan || 1}
-                      className={`border px-4 py-2 align-middle ${col.className || ""}`}
-                    >
-                      {cell.content}
-                    </td>
-                  );
-                })}
+          <tbody>
+            {(hasSpans ? filteredData : currentData).length === 0 ? (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  className="border px-4 py-3 text-center text-gray-500"
+                >
+                  No data found
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              (hasSpans ? filteredData : currentData).map((row, index) => (
+                <tr key={index} className="hover:bg-gray-50 transition">
+                  {columns.map((col) => {
+                    const result = col.render ? col.render(row) : row[col.key];
+                    let cell: RenderResult;
+
+                    if (
+                      React.isValidElement(result) ||
+                      typeof result !== "object"
+                    ) {
+                      cell = { content: result };
+                    } else {
+                      cell = result as RenderResult;
+                    }
+
+                    if (cell.skip) return null;
+
+                    return (
+                      <td
+                        key={col.key}
+                        rowSpan={cell.rowSpan || 1}
+                        colSpan={cell.colSpan || 1}
+                        className={`border px-4 py-2 align-middle ${col.className || ""}`}
+                      >
+                        {cell.content}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* PAGINATION */}
       {!hasSpans && totalPages > 1 && (

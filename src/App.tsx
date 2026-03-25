@@ -8,6 +8,7 @@ import SubjectMaster  from "./pages/Staff/Academic_Master/Subject_Master.tsx"; /
 import ExamMaster from "./pages/Staff/Academic_Master/ExamMaster.tsx"; // Import the moved Exam Master
 import RegularExam from "./pages/Staff/ConductExam/RegularExam.tsx";  // Import the moved Regular Exam 
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
+import EnterEligibility from "./pages/Staff/MarksEntry/EnterEligibility.tsx";
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
 import RoleMaster from "./pages/Staff/Admin/Role_master";
@@ -30,6 +31,7 @@ export default function App() {
                     <Route path="ExamMaster" element={<ExamMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
                 <Route path="RegularExam" element={<RegularExam />} />
+                  <Route path="EnterEligibility" element={<EnterEligibility />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
           </Route>

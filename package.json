@@ -23,6 +23,7 @@
     "apexcharts": "^4.1.0",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
+    "file-saver": "^2.0.5",
     "flatpickr": "^4.6.13",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.556.0",
@@ -37,7 +38,8 @@
     "react-router": "^7.1.5",
     "sweetalert2": "^11.26.17",
     "swiper": "^11.2.3",
-    "tailwind-merge": "^3.0.1"
+    "tailwind-merge": "^3.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
