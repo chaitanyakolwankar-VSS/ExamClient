@@ -15,7 +15,7 @@ import { Subject, SubjectService, SaveCreditsPayload, GetCredits, PreviousCredit
 import { academicYearService } from "../../../services/academicYearService";
 import Alert from "../../../components/ui/alert/Alert";
 import Input from "../../../components/form/input/InputField";
-
+import ComponentCard from "../../../components/common/ComponentCard";
 
 type AlertVariant = "success" | "warning" | "error" | "info";
 
@@ -897,16 +897,8 @@ export default function SubjectMaster() {
       )}
 
       <PageMeta title="Subject Master" description="Welcome to Subject Master" />
-      <div className="w-full pt-1">
-        <div className=" min-h-[550px] rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white">
-              Subject Master
-            </h2>
-          </div>
-
-
+ 
+<ComponentCard title="Subject Master">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-5">
             <Switch
               label="Previous Year"
@@ -1397,8 +1389,9 @@ export default function SubjectMaster() {
             </div>
 
           )}
-        </div>
-      </div>
+ 
+</ComponentCard>
+
       {/* Modal */}
       <Modal
         isOpen={isModalOpen}
