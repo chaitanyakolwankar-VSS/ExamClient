@@ -12,7 +12,7 @@ import Input from "../../../components/form/input/InputField";
 import {  Save } from "lucide-react";
 import Switch from "../../../components/form/switch/Switch";
 import HallTicketPage from "../../../components/HallTicket/Hallticket";
-import { useNavigate } from "react-router-dom";
+//import { useNavigate } from "react-router-dom";
 import Alert from "../../../components/ui/alert/Alert";
 
 interface Option {
@@ -66,7 +66,6 @@ export default function GenerateHallTicket() {
   //Alert
     const [alert, setAlert] = useState<AlertState | null>(null);
 
-  const navigate = useNavigate(); 
   // 🔹 Course
   const [courseOptions, setCourseOptions] = useState<Option[]>([]);
   const [courseId, setCourseId] = useState("");
