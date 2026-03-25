@@ -46,6 +46,7 @@ export interface StudentHallTicketData {
     name: string;
     centre: string;
     seat:string;
+    studentid:string;
     subjects:StudentsHallTicketSubjects[];
 }
 export interface HallTicketCollege{

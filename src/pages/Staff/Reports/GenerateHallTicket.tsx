@@ -122,22 +122,71 @@ const [studentId, setStudentId] = useState("");
   label: "Exam Time",
   sortable: true,
   render: (row) => (
-    <Input
-      type="text"
-      value={row.examTime || ""}
-      placeholder="HH:MM AM - HH:MM PM"
-      maxLength={20}
-      onChange={(e) =>
-      {
-        const value = e.target.value;
+   <Input
+  type="text"
+  value={row.examTime || ""}
+  placeholder="HH:MM AM - HH:MM PM"
+  maxLength={20}
+  onChange={(e) => {
+    let value = e.target.value;
 
-    // Allow only valid characters while typing
-    const allowed = value.replace(/[^0-9APMapm:\-\s]/g, "");
+    // ✅ sirf numbers + a/p allow
+    value = value.replace(/[^0-9apAP]/g, "");
 
-    handleTimeChange(row.subjectId, allowed);
+    let formatted = "";
+
+    // 👉 HH
+    if (value.length >= 1) formatted += value[0];
+    if (value.length >= 2) formatted += value[1];
+
+    // 👉 add :
+    if (value.length >= 2) formatted += ":";
+
+    // 👉 MM
+    if (value.length >= 3) formatted += value[2];
+    if (value.length >= 4) formatted += value[3];
+
+    // 👉 add space
+    if (value.length >= 4) formatted += " ";
+
+    // 👉 AM / PM
+    if (value.length >= 5) {
+      if (value[4].toLowerCase() === "a") {
+        formatted += "AM";
+      } else if (value[4].toLowerCase() === "p") {
+        formatted += "PM";
       }
+    }
+
+    // 👉 add " - "
+    if (value.length >= 5) formatted += " - ";
+
+    // 👉 second HH
+    if (value.length >= 6) formatted += value[5];
+    if (value.length >= 7) formatted += value[6];
+
+    // 👉 add :
+    if (value.length >= 7) formatted += ":";
+
+    // 👉 second MM
+    if (value.length >= 8) formatted += value[7];
+    if (value.length >= 9) formatted += value[8];
+
+    // 👉 add space
+    if (value.length >= 9) formatted += " ";
+
+    // 👉 second AM/PM
+    if (value.length >= 10) {
+      if (value[9].toLowerCase() === "a") {
+        formatted += "AM";
+      } else if (value[9].toLowerCase() === "p") {
+        formatted += "PM";
       }
-    />
+    }
+
+    handleTimeChange(row.subjectId, formatted);
+  }}
+/>
   ),
 },
      {
@@ -151,12 +200,24 @@ const [studentId, setStudentId] = useState("");
   placeholder="DD-MM-YYYY"
   maxLength={10}
   onChange={(e) => {
-    const value = e.target.value;
+    let value = e.target.value;
 
-    // Allow only numbers and dash
-    const cleaned = value.replace(/[^0-9-]/g, "");
+    // ✅ remove invalid chars
+    value = value.replace(/[^0-9]/g, "");
 
-    handleDateChange(row.subjectId, cleaned);
+    // ✅ auto format DD-MM-YYYY
+    if (value.length > 2 && value.length <= 4) {
+      value = value.slice(0, 2) + "-" + value.slice(2);
+    } else if (value.length > 4) {
+      value =
+        value.slice(0, 2) +
+        "-" +
+        value.slice(2, 4) +
+        "-" +
+        value.slice(4, 8);
+    }
+
+    handleDateChange(row.subjectId, value);
   }}
 />
   ),
@@ -387,14 +448,6 @@ hallticketmode="Single";
     
          const collegedata = await GenerateHallTicketService.getcollegeDataExam();
       
-//        const hallTicketData: HallTicketData = {
-//   college: {
-//     logo: "https://res.cloudinary.com/dhgbsprh4/image/upload/v1769075102/college_banners/xqdfwnxbdx0xqp3uqcky.png",
-//     center: "VIVA COLLEGE",
-//     CourseNmae: "MECHANICAL ENGINEERING ("+pattern+")"
-//   },
-//   students: data
-// };
   const hallTicketData: HallTicketData = {
   college: {
     logo: collegedata.logo,
@@ -411,7 +464,6 @@ return setAlert({
             message: "Data Not Found!!.",
           });
 }
-// navigate("/hallticket", { state: hallTicketData });
 localStorage.setItem("hallTicketData", JSON.stringify(hallTicketData));
   window.open("/hallticket", "_blank");
     }
@@ -538,6 +590,7 @@ localStorage.setItem("hallTicketData", JSON.stringify(hallTicketData));
             columns={columns}
             searchKeys={["name", "examType"]}
             filters={filters}
+            pageSizeOptions={[10]}
           />
 )}
      
