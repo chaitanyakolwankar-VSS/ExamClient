@@ -797,3 +797,18 @@ span.flatpickr-weekday,
   animation: gradient 8s ease infinite;
 }
 
+.perspective {
+  perspective: 1000px;
+}
+
+.transform-style {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
