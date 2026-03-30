@@ -12,21 +12,16 @@ export interface SemesterOption {
 }
 
 export interface ExamOption {
+    examId: string;
     examCode: string;
     examName: string;
-}
-
-export interface GroupOption {
-    groupId: string;
-    groupName: string;
 }
 
 export interface ProcessResultRequest {
     branchId: string;
     semId: string;
     pattern: string;
-    examCode: string;
-    groupId?: string;
+    examId: string;
     studentId?: string;
     isSingleStudent: boolean;
 }
@@ -47,7 +42,6 @@ export interface ResultData {
 
 export const OverallMarksService = {
     getSemesters: async (): Promise<SemesterOption[]> => {
-        // Mocking for now, adjust based on actual API
         return [
             { value: "Sem-1", label: "Semester I" },
             { value: "Sem-2", label: "Semester II" },
@@ -71,21 +65,6 @@ export const OverallMarksService = {
             return [];
         } catch (error) {
             console.error("Error fetching exams:", error);
-            return [];
-        }
-    },
-
-    getGroups: async (branchId: string, semId: string, pattern: string): Promise<GroupOption[]> => {
-        try {
-            const response = await Client.get<ApiResponse<GroupOption[]>>(`/OverallMarks/Groups`, {
-                params: { branchId, semId, pattern }
-            });
-            if (response.data.success && response.data.data) {
-                return response.data.data;
-            }
-            return [];
-        } catch (error) {
-            console.error("Error fetching groups:", error);
             return [];
         }
     },

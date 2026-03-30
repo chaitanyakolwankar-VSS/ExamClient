@@ -12,11 +12,9 @@ import {
   OverallMarksService,
   SemesterOption,
   ExamOption,
-  GroupOption,
   ResultData,
 } from "../../../services/OverallMarksService";
 import { CourseService, CourseApiResponse } from "../../../services/Course";
-import { academicYearService, AcademicYearResponse } from "../../../services/academicYearService";
 import { OrdinanceService, PatternData } from "../../../services/OrdinanceService";
 
 interface Option {
@@ -32,25 +30,17 @@ type AlertInfo = {
 
 export default function OverallMarksEntry() {
   // Filter States
-  const [courses, setCourses] = useState<CourseApiResponse[]>([]);
   const [courseOptions, setCourseOptions] = useState<Option[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
 
-  const [semesters, setSemesters] = useState<SemesterOption[]>([]);
   const [semesterOptions, setSemesterOptions] = useState<Option[]>([]);
   const [selectedSemester, setSelectedSemester] = useState("");
 
-  const [patterns, setPatterns] = useState<PatternData[]>([]);
   const [patternOptions, setPatternOptions] = useState<Option[]>([]);
   const [selectedPattern, setSelectedPattern] = useState("");
 
-  const [exams, setExams] = useState<ExamOption[]>([]);
   const [examOptions, setExamOptions] = useState<Option[]>([]);
   const [selectedExam, setSelectedExam] = useState("");
-
-  const [groups, setGroups] = useState<GroupOption[]>([]);
-  const [groupOptions, setGroupOptions] = useState<Option[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState("");
 
   const [isSingleStudent, setIsSingleStudent] = useState(false);
   const [studentId, setStudentId] = useState("");
@@ -70,11 +60,8 @@ export default function OverallMarksEntry() {
           OrdinanceService.getPatterns(),
           OverallMarksService.getSemesters(),
         ]);
-        setCourses(courseData);
         setCourseOptions(courseData.map(c => ({ value: c.courseid, label: c.coursename })));
-        setPatterns(patternData);
         setPatternOptions(patternData.map(p => ({ value: p.patternName, label: p.patternName })));
-        setSemesters(semData);
         setSemesterOptions(semData.map(s => ({ value: s.value, label: s.label })));
       } catch (error) {
         console.error("Error fetching initial data:", error);
@@ -87,26 +74,17 @@ export default function OverallMarksEntry() {
   // Cascading Filters
   useEffect(() => {
     if (selectedCourse && selectedSemester && selectedPattern) {
-      const fetchExamsAndGroups = async () => {
+      const fetchExams = async () => {
         try {
-          const [examData, groupData] = await Promise.all([
-            OverallMarksService.getExams(selectedCourse, selectedSemester, selectedPattern),
-            OverallMarksService.getGroups(selectedCourse, selectedSemester, selectedPattern),
-          ]);
-          setExams(examData);
-          setExamOptions(examData.map(e => ({ value: e.examCode, label: e.examName })));
-          setGroups(groupData);
-          setGroupOptions(groupData.map(g => ({ value: g.groupId, label: g.groupName })));
+          const examData = await OverallMarksService.getExams(selectedCourse, selectedSemester, selectedPattern);
+          setExamOptions(examData.map(e => ({ value: e.examId, label: e.examName })));
         } catch (error) {
-          console.error("Error fetching exams/groups:", error);
+          console.error("Error fetching exams:", error);
         }
       };
-      fetchExamsAndGroups();
+      fetchExams();
     } else {
-      setExams([]);
       setExamOptions([]);
-      setGroups([]);
-      setGroupOptions([]);
     }
   }, [selectedCourse, selectedSemester, selectedPattern]);
 
@@ -128,8 +106,7 @@ export default function OverallMarksEntry() {
         branchId: selectedCourse,
         semId: selectedSemester,
         pattern: selectedPattern,
-        examCode: selectedExam,
-        groupId: selectedGroup || undefined,
+        examId: selectedExam,
         studentId: isSingleStudent ? studentId : undefined,
         isSingleStudent,
       });
@@ -159,8 +136,7 @@ export default function OverallMarksEntry() {
         branchId: selectedCourse,
         semId: selectedSemester,
         pattern: selectedPattern,
-        examCode: selectedExam,
-        groupId: selectedGroup || undefined,
+        examId: selectedExam,
         studentId: isSingleStudent ? studentId : undefined,
         isSingleStudent,
       });
@@ -189,7 +165,6 @@ export default function OverallMarksEntry() {
       { key: "studentName", label: "Student Name", sortable: true, className: "text-left" },
     ];
 
-    // Collect all unique subject IDs from results
     const subjectIds = new Set<string>();
     results.forEach(r => {
       Object.keys(r.subjectMarks).forEach(id => subjectIds.add(id));
@@ -238,7 +213,6 @@ export default function OverallMarksEntry() {
 
   return (
     <div className="space-y-6">
-      {/* Alert Section */}
       {pageAlert && (
         <Alert
           variant={pageAlert.variant}
@@ -247,7 +221,6 @@ export default function OverallMarksEntry() {
         />
       )}
 
-      {/* Filter Section */}
       <ComponentCard title="Overall Marks Entry - Filters">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Select
@@ -282,16 +255,6 @@ export default function OverallMarksEntry() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 items-end">
-          {groupOptions.length > 0 && (
-            <Select
-              label="Group"
-              options={groupOptions}
-              value={selectedGroup}
-              onChange={setSelectedGroup}
-              placeholder="Select Group"
-            />
-          )}
-
           <div className="flex items-center gap-4 h-11">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Single Student</span>
             <Switch checked={isSingleStudent} onChange={setIsSingleStudent} />
@@ -336,7 +299,6 @@ export default function OverallMarksEntry() {
         </div>
       </ComponentCard>
 
-      {/* Legend Section */}
       <div className="flex flex-wrap gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 text-xs font-medium">
         <div className="flex items-center gap-2">
           <span className="size-3 bg-green-500 rounded-sm"></span>
@@ -360,7 +322,6 @@ export default function OverallMarksEntry() {
         </div>
       </div>
 
-      {/* Results Section */}
       <ComponentCard title="Processed Results">
         <DataTable
           data={results}
@@ -370,7 +331,6 @@ export default function OverallMarksEntry() {
         />
       </ComponentCard>
 
-      {/* Report Modal */}
       <Modal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
