@@ -23,6 +23,7 @@
     "apexcharts": "^4.1.0",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
+    "exceljs": "^4.3.0",
     "file-saver": "^2.0.5",
     "flatpickr": "^4.6.13",
     "framer-motion": "^12.23.24",
@@ -39,11 +40,13 @@
     "sweetalert2": "^11.26.17",
     "swiper": "^11.2.3",
     "tailwind-merge": "^3.0.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "xlsx-style": "^0.8.13"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
     "@tailwindcss/postcss": "^4.0.8",
+    "@types/file-saver": "^2.0.7",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",

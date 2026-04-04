@@ -9,8 +9,11 @@ import Checkbox from "../../../components/form/input/Checkbox";
 import DataTable from "../../../components/ui/table/DataTable";
 import { SemesterData, EligibilityStudents, EligibilityService, GetEligibilityStudents } from "../../../services/EligibilityService";
 import Swal from "sweetalert2";
-import * as XLSX from "xlsx";
+//import * as XLSX from "xlsx";
 import Alert from "../../../components/ui/alert/Alert";
+import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 interface Option {
   value: string;
@@ -45,6 +48,7 @@ export default function EnterEligibility() {
   // 🔹 Course
   const [courseOptions, setCourseOptions] = useState<Option[]>([]);
   const [courseId, setCourseId] = useState("");
+  const [courseName, setCourseName] = useState("");
 
   //Eligibility Students
   const [EligibilityStudents, setEligibilityStudents] = useState<EligibilityStudents[]>([]);
@@ -61,6 +65,7 @@ export default function EnterEligibility() {
     { value: "Sem-8", label: "Semester VIII" },
   ];
   const [semester, setSemester] = useState("");
+  const [semesterName,setsemesterName]=useState("");
 
   const [FirstYear_checked, setFirstYear_checked] = useState(false);
 
@@ -104,9 +109,29 @@ export default function EnterEligibility() {
         render: (row: EligibilityStudents) => (
           <input
             type="text"
+              maxLength={5}
             value={row.semesters[sem]?.cg || ""}
             onChange={(e) =>
-              handleChange(row.studentId, sem, "cg", e.target.value)
+            {
+               let value = e.target.value;
+
+  // ✅ allow only numbers + dot
+  value = value.replace(/[^0-9.]/g, "");
+
+  // ✅ only ONE dot allowed
+  const parts = value.split(".");
+  if (parts.length > 2) {
+    value = parts[0] + "." + parts[1];
+  }
+
+  // ✅ limit to 2 decimal places
+  if (value.includes(".")) {
+    const [intPart, decPart] = value.split(".");
+    value = intPart + "." + decPart.slice(0, 2);
+  }
+
+  handleChange(row.studentId, sem, "cg", value);
+            }
             }
             className="border px-2 py-1 w-20"
           />
@@ -118,9 +143,29 @@ export default function EnterEligibility() {
         render: (row: EligibilityStudents) => (
           <input
             type="text"
+              maxLength={5}
             value={row.semesters[sem]?.credit || ""}
             onChange={(e) =>
-              handleChange(row.studentId, sem, "credit", e.target.value)
+             {
+               let value = e.target.value;
+
+  // ✅ allow only numbers + dot
+  value = value.replace(/[^0-9.]/g, "");
+
+  // ✅ only ONE dot allowed
+  const parts = value.split(".");
+  if (parts.length > 2) {
+    value = parts[0] + "." + parts[1];
+  }
+
+  // ✅ limit to 2 decimal places
+  if (value.includes(".")) {
+    const [intPart, decPart] = value.split(".");
+    value = intPart + "." + decPart.slice(0, 2);
+  }
+
+  handleChange(row.studentId, sem, "credit", value);
+             }
             }
             className="border px-2 py-1 w-20"
           />
@@ -132,9 +177,29 @@ export default function EnterEligibility() {
         render: (row: EligibilityStudents) => (
           <input
             type="text"
+              maxLength={5}
             value={row.semesters[sem]?.kT_Theory || ""}
             onChange={(e) =>
-              handleChange(row.studentId, sem, "kT_Theory", e.target.value)
+             {
+               let value = e.target.value;
+
+  // ✅ allow only numbers + dot
+  value = value.replace(/[^0-9.]/g, "");
+
+  // ✅ only ONE dot allowed
+  const parts = value.split(".");
+  if (parts.length > 2) {
+    value = parts[0] + "." + parts[1];
+  }
+
+  // ✅ limit to 2 decimal places
+  if (value.includes(".")) {
+    const [intPart, decPart] = value.split(".");
+    value = intPart + "." + decPart.slice(0, 2);
+  }
+
+  handleChange(row.studentId, sem, "kT_Theory", value);
+             }
             }
             className="border px-2 py-1 w-20"
           />
@@ -146,10 +211,28 @@ export default function EnterEligibility() {
         render: (row: EligibilityStudents) => (
           <input
             type="text"
+            maxLength={5}
             value={row.semesters[sem]?.kT_Others || ""}
-            onChange={(e) =>
-              handleChange(row.studentId, sem, "kT_Others", e.target.value)
-            }
+            onChange={(e) => {
+  let value = e.target.value;
+
+  // ✅ allow only numbers + dot
+  value = value.replace(/[^0-9.]/g, "");
+
+  // ✅ only ONE dot allowed
+  const parts = value.split(".");
+  if (parts.length > 2) {
+    value = parts[0] + "." + parts[1];
+  }
+
+  // ✅ limit to 2 decimal places
+  if (value.includes(".")) {
+    const [intPart, decPart] = value.split(".");
+    value = intPart + "." + decPart.slice(0, 2);
+  }
+
+  handleChange(row.studentId, sem, "kT_Others", value);
+}}
             className="border px-2 py-1 w-20"
           />
         )
@@ -210,67 +293,113 @@ export default function EnterEligibility() {
   }, [semester]);
 
 
-  const exportToCSV = () => {
-    const data = EligibilityStudents.map((student) => {
-      const row: any = {
-        StudentId: student.studentId,
-        StudentName: student.studentName
-      };
+const exportToCSV = async () => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Students");
 
-      // 🔥 FIX: use selectedSems
-      selectedSems.forEach((sem) => {
-        const s = student.semesters[sem];
+  // 🔥 Prepare Headers
+  const headers: string[] = ["StudentId", "StudentName"];
 
-        row[`Sem${sem}_CG`] = s?.cg ?? "";
-        row[`Sem${sem}_Credit`] = s?.credit ?? "";
-        row[`Sem${sem}_KT_Theory`] = s?.kT_Theory ?? "";
-        row[`Sem${sem}_KT_Others`] = s?.kT_Others ?? "";
-      });
+  selectedSems.forEach((sem) => {
+    headers.push(
+      `Sem${sem}_CG`,
+      `Sem${sem}_Credit`,
+      `Sem${sem}_KT_Theory`,
+      `Sem${sem}_KT_Others`
+    );
+  });
 
-      return row;
+  worksheet.addRow(headers);
+
+  // 🔥 Add Data
+  EligibilityStudents.forEach((student) => {
+    const row: any[] = [student.studentId, student.studentName];
+
+    selectedSems.forEach((sem) => {
+      const s = student.semesters[sem];
+      row.push(
+        s?.cg ?? "",
+        s?.credit ?? "",
+        s?.kT_Theory ?? "",
+        s?.kT_Others ?? ""
+      );
     });
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Students");
+    worksheet.addRow(row);
+  });
 
-    XLSX.writeFile(wb, "students.xlsx");
-  };
+  // 🔥 Column Width
+  worksheet.columns.forEach((col, index) => {
+    if (index === 1) col.width = 15;
+    else if (index === 2) col.width = 25;
+    else col.width = 15;
+  });
 
-  //   const rows: any[] = [];
+  // 🔥 Apply Border + Header Bold
+ worksheet.eachRow((row, rowNumber) => {
+  row.eachCell((cell, colNumber) => {  // ✅ colNumber yaha define hota hai
 
-  //   EligibilityStudents.forEach((student) => {
-  //     const row: any = {
-  //       StudentId: student.studentId,
-  //       StudentName: student.studentName
-  //     };
+    // Border
+    cell.border = {
+      top: { style: "thin" },
+      left: { style: "thin" },
+      bottom: { style: "thin" },
+      right: { style: "thin" },
+    };
 
-  //     Object.keys(student.semesters || {}).forEach((sem) => {
-  //       const semNo = Number(sem); // ✅ convert
+    // Align
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+    
 
-  //   const s = student.semesters[semNo];
+    // Header bold
+    if (rowNumber === 1) {
+      cell.font = { bold: true };
+      return;
+    }
 
-  //       row[`Sem${sem}_CG`] = s?.cg || "";
-  //       row[`Sem${sem}_Credit`] = s?.credit || "";
-  //       row[`Sem${sem}_KT_Theory`] = s?.kT_Theory || "";
-  //       row[`Sem${sem}_KT_Others`] = s?.kT_Others || "";
-  //     });
+    // 🔥 Apply validation only after first 2 columns
+    if (colNumber > 2) {
+      cell.dataValidation = {
+        type: "decimal",
+        operator: "between",
+        formulae: [0, 999999],
+        allowBlank: true,
+        showErrorMessage: true,
+        showInputMessage: true,
+        promptTitle: "Number Only",
+        prompt: "Enter only numeric value",
+        errorTitle: "Invalid Input",
+        error: "Only numbers allowed",
+      };
+    }
 
-  //     rows.push(row);
-  //   });
+    
+  });
+});
 
-  //   const header = Object.keys(rows[0]).join(",");
-  //   const csv = rows.map(r => Object.values(r).join(",")).join("\n");
-
-  //   const blob = new Blob([header + "\n" + csv], { type: "text/csv" });
-
-  //   const link = document.createElement("a");
-  //   link.href = URL.createObjectURL(blob);
-  //   link.download = "students.csv";
-  //   link.click();
-  // };
+  // 🔥 Download
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(
+    new Blob([buffer]),
+    `${courseName} ${semesterName}.xlsx`
+  );
+};
   const handleFileUpload = (e: any) => {
     const file = e.target.files[0];
+    if (!file) return;
+
+  // ✅ expected file name
+  const expectedName = `${courseName} ${semesterName}.xlsx`;
+
+  // 🔥 check file name
+  if (file.name !== expectedName) {
+    Swal.fire(
+      "Error ❌",
+      `Invalid file !\nExpected: ${expectedName}`,
+      "error"
+    );
+    return;
+  }
     const reader = new FileReader();
 
     reader.onload = (evt: any) => {
@@ -354,6 +483,9 @@ export default function EnterEligibility() {
     console.log("Converted 👉", result);
 
     setEligibilityStudents(result);
+   if (fileInputRef.current) {
+  fileInputRef.current.value = "";
+}
   };
   // ================= API CALLS =================
 
@@ -448,6 +580,8 @@ export default function EnterEligibility() {
             value={courseId}
             onChange={(value) => {
               setCourseId(value);
+                const selected = courseOptions.find(c => c.value === value);
+    setCourseName(selected?.label || "");
             }}
           />
 
@@ -457,7 +591,10 @@ export default function EnterEligibility() {
               options={semesterOptions}
               placeholder="Select Semester"
               value={semester}
-              onChange={(value) => { setSemester(value); }}
+              onChange={(value) => { setSemester(value); 
+                const selected = semesterOptions.find(c => c.value === value);
+    setsemesterName(selected?.label || "");
+              }}
             />
           )}
           {semester && (
@@ -513,13 +650,24 @@ export default function EnterEligibility() {
           />
         </div>
         {EligibilityStudents.length > 0 && (
+
+      <DataTable
+        data={EligibilityStudents}
+        columns={columns}
+        searchKeys={["studentName", "studentId"]}
+        filters={filters}
+      />
+  
+)}
+{/*         
+        {EligibilityStudents.length > 0 && (
           <DataTable
             data={EligibilityStudents}
             columns={columns}
             searchKeys={["studentName", "studentId"]}
             filters={filters}
           />
-        )}
+        )} */}
 
       </ComponentCard>
     </>
