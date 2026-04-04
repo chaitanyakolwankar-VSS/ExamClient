@@ -94,7 +94,7 @@ export default function EnterEligibility() {
     if (FourthYear_checked) {
       sems.push(7, 8)
     }
-
+setEligibilityStudents([]);
     return sems;
   }, [FirstYear_checked, SecondYear_checked, ThirdYear_checked, FourthYear_checked]);
 
@@ -649,7 +649,7 @@ const exportToCSV = async () => {
             onChange={handleFileUpload}
           />
         </div>
-        {EligibilityStudents.length > 0 && (
+        {(EligibilityStudents.length > 0 )&& (
 
       <DataTable
         data={EligibilityStudents}
@@ -659,15 +659,6 @@ const exportToCSV = async () => {
       />
   
 )}
-{/*         
-        {EligibilityStudents.length > 0 && (
-          <DataTable
-            data={EligibilityStudents}
-            columns={columns}
-            searchKeys={["studentName", "studentId"]}
-            filters={filters}
-          />
-        )} */}
 
       </ComponentCard>
     </>
