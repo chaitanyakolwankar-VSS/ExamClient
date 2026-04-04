@@ -125,7 +125,7 @@ const DataTable: React.FC<DataTableProps> = ({
 
   return (
     <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm space-y-3" style={{
-    overflowWrap: "break-word"
+    overflowWrap: "break-word",display:"grid"
   }}>
       {/* SEARCH + ROW LIMIT */}
       <div className="flex flex-wrap justify-between items-center gap-3">
