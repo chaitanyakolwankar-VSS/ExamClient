@@ -82,9 +82,10 @@ const HallTicketCard = ({
         padding: "15px",
         margin: "10px auto",
         width: "210mm",
-        minHeight: "280mm",
+        minHeight: "270mm",
         fontFamily: "Arial, sans-serif",
         backgroundColor: "#fff",
+         position: "relative" 
       }}
     >
       {/* HEADER */}
@@ -224,17 +225,31 @@ const HallTicketCard = ({
       </div>
 
       {/* SIGNATURE */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginTop: "135px",
-        }}
-      >
-        <div style={sign}>Signature of Candidate</div>
-        <div style={sign}>Principal</div>
+   {/* ✅ Signature Fixed Bottom */}
+  <div
+    style={{
+      position: "absolute",
+      bottom: "20px",
+      left: "15px",
+      right: "15px",
+      display: "flex",
+      justifyContent: "space-between"
+    }}
+  >
+    <div style={{ width: "200px", textAlign: "center" }}>
+      <div style={{ borderTop: "1px solid black", paddingTop: "5px" }}>
+        Signature of Candidate
       </div>
     </div>
+
+    <div style={{ width: "200px", textAlign: "center" }}>
+      <div style={{ borderTop: "1px solid black", paddingTop: "5px" }}>
+        Principal
+      </div>
+    </div>
+  </div>
+
+</div>
   );
 };
 

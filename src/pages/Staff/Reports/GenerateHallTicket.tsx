@@ -98,8 +98,6 @@ export default function GenerateHallTicket() {
       //Single Student HallTicket
       const [SingleStudent,setSingleStudent]=useState(false);
 
-      //All Student HallTicket
-      const [AllStudents,setAllStudents]=useState(false);
     
 const [studentId, setStudentId] = useState("");
 
@@ -255,7 +253,6 @@ const [studentId, setStudentId] = useState("");
     setSubjects([]);
     setStudentId("");
     setSingleStudent(false);
-    setAllStudents(false);
     if (Exam) {
       fetchsubjects();
     } 
@@ -284,13 +281,9 @@ const handleTimeChange = (id: string, value: string) => {
   );
 
 };
-  const AllStudentHallTicket = async (checked: boolean) => {
-      setSingleStudent(false);
-    setAllStudents(checked);
-  };
+ 
     const SingleStudentHallTicket = async (checked: boolean) => {
       setSingleStudent(checked);
-    setAllStudents(false);
 
   };
   // ================= API CALLS =================
@@ -418,23 +411,16 @@ const handleTimeChange = (id: string, value: string) => {
       }
     };
     const HallTicket=async()=>{
-      if(!SingleStudent && !AllStudents){
-                return setAlert({
-            variant: "error",
-            title: "Error",
-            message: "Please Check Single or All Students!!",
-          });
-      }
        const ayid = localStorage.getItem("AYID");
         if (!ayid) {
           return Swal.fire("Error", "Academic Year missing", "error");
         }
         let hallticketmode: string = "";
-        if(AllStudents){
-          hallticketmode="All";
-        }
-        else if(SingleStudent){
+          if(SingleStudent){
 hallticketmode="Single";
+        }
+        else{
+          hallticketmode="All";
         }
         const payload:StudentHallTicketDataRequest={
           Ayid:ayid,
@@ -454,7 +440,7 @@ hallticketmode="Single";
     center: collegedata.center,
     CourseNmae: "MECHANICAL ENGINEERING ("+pattern+")"
   },
-  students: data
+  students: data 
 };
 
 if(data.length==0){
@@ -483,7 +469,7 @@ localStorage.setItem("hallTicketData", JSON.stringify(hallTicketData));
         description="Welcome to the Staff Portal"
       />
       <ComponentCard  title="Generate HallTicket">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 pt-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-5">
  {/* Course */}
           <Select
             options={courseOptions}
@@ -533,9 +519,17 @@ localStorage.setItem("hallTicketData", JSON.stringify(hallTicketData));
               }}
             />
           )}
+          {Subjects.length>0 &&(
+             <button className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2" onClick={handleSave}>
+    <Save size={18} />
+    <span>Save</span>
+  </button>
+          )
+        }
+          
 </div>
 {Subjects.length>0 &&(
-  <div className="flex justify-center gap-4 pt-6 items-center">
+  <div className="flex justify-left gap-4 pt-6 items-center">
 
   <Switch
     label="Single Student"
@@ -564,18 +558,7 @@ localStorage.setItem("hallTicketData", JSON.stringify(hallTicketData));
 
  
   
-
-  <Switch
-    label="All Student"
-    color="blue"
-    checked={AllStudents}
-    onChange={(checked) => { AllStudentHallTicket(checked) }}
-  />
-
-  <button className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2" onClick={handleSave}>
-    <Save size={18} />
-    <span>Save</span>
-  </button>
+ 
 
   <button className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2" onClick={() => { HallTicket() }}>
     <Save size={18} />
