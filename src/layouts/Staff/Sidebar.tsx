@@ -161,7 +161,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Enter Marks", 
-        path: "/Staff/Marks_Entry",
+        path: "/Staff/MarksEntry",
         pro: false,
       },
       {

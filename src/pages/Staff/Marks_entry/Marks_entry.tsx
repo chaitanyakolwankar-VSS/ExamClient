@@ -1,21 +1,53 @@
-//  "../../../" to go up 3 levels: Dashboard -> Staff -> pages -> src
-import PageMeta from "../../../components/common/PageMeta"; 
+import { useState } from "react";
+import ComponentCard from "../../../components/common/ComponentCard";
+import Select from "../../../components/form/Select";
 
-export default function ExamDashboard() {
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+export default function MarksEntry() {
+
+  // ===== STATE =====
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedSemester, setSelectedSemester] = useState("");
+
+  // ===== OPTIONS =====
+  const CourseOption: SelectOption[] = [ 
+  ];
+
+   const Semesteroption: SelectOption[] = [
+    { value: "SemesterI", label: "SemesterI" },
+    { value: "SemesterII", label: "SemesterII" },
+    { value: "SemesterIII", label: "SemesterIII" },
+    { value: "SemesterIV", label: "SemesterIV" },
+    { value: "SemesterV", label: "SemesterV" },
+    { value: "SemesterVI", label: "SemesterVI" },
+  ];
+
   return (
-    <>
-      <PageMeta
-        title="Staff Dashboard"
-        description="Welcome to the Staff Portal"
-      />
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4 2xl:gap-7.5">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-             <h2 className="text-lg font-bold text-gray-800 dark:text-white">Staff Portal</h2>
-             <p className="mt-2 text-gray-500">
-               Welcome to the Exam Management System. 
-             </p>
-        </div>
+    <ComponentCard title="Marks Entry">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+ 
+        <Select
+          options={CourseOption}
+          placeholder="Select Course"
+          value={selectedCourse}
+          onChange={Selectcourse}
+        />
+
+        {/* Status Dropdown */}
+        <Select
+          options={Semesteroption}
+          placeholder="Select Semester"
+          value={selectedSemester}
+          onChange={Selectsemester}
+        />
+
       </div>
-    </>
+
+    </ComponentCard>
   );
 }
