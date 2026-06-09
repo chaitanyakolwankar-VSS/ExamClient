@@ -15,6 +15,7 @@ import AddPermission from "./pages/Staff/Dashboard/AddPermission";
 import CreateUser from "./pages/Staff/CreateUser";
 import CollegeDetail from "./pages/Staff/Dashboard/CollegeDetail";
 import RoleMaster from "./pages/Staff/Admin/Role_master";
+import MarksEntry from "./pages/Staff/Marks_entry/Marks_entry.tsx";
 
 
 
@@ -37,7 +38,11 @@ export default function App() {
                     <Route path="ExamMaster" element={<ExamMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
                 <Route path="RegularExam" element={<RegularExam />} />
+<<<<<<< HEAD
+                <Route path="MarksEntry" element={<MarksEntry />} />
+=======
                  <Route path="AssignSeatNo" element={<AssignSeatNo />} />
+>>>>>>> origin/main
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
           </Route>
