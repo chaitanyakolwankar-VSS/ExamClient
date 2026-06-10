@@ -42,6 +42,10 @@ const GRADE_PRESETS = [
 
 export default function Ordinance() {
   // Page-level state
+  const [metadataFacts, setMetadataFacts] = useState<Option[]>([]);
+  const [metadataActions, setMetadataActions] = useState<Option[]>([]);
+  const [metadataOperators, setMetadataOperators] = useState<Option[]>([]);
+
   const [patterns, setPatterns] = useState<PatternData[]>([]);
   const [patternOptions, setPatternOptions] = useState<Option[]>([]);
   const [pattern, setPattern] = useState("");
@@ -50,7 +54,6 @@ export default function Ordinance() {
   const [ruleSet, setRuleSet] = useState("");
 
   // Grade System State
-  const [gradeMasters, setGradeMasters] = useState<GradeMaster[]>([]);
   const [gradeMasterOptions, setGradeMasterOptions] = useState<Option[]>([]);
   const [selectedGradeMaster, setSelectedGradeMaster] = useState<string>("");
   const [isLinkingGrade, setIsLinkingGrade] = useState(false);
@@ -99,10 +102,17 @@ export default function Ordinance() {
   const [isEditingRuleSet, setIsEditingRuleSet] = useState(false);
   const [editingRuleSetId, setEditingRuleSetId] = useState<string | null>(null);
   const [ruleSetName, setRuleSetName] = useState("");
+  const [ruleSetExamType, setRuleSetExamType] = useState("");
   const [isRuleSetActive, setIsRuleSetActive] = useState(false);
   const [ruleSetModalAlert, setRuleSetModalAlert] = useState<AlertInfo | null>(
     null,
   );
+
+  const EXAM_TYPES = [
+    { value: "Regular", label: "Regular" },
+    { value: "KT", label: "KT / ATKT" },
+    { value: "REEXAM", label: "Re-Exam" },
+  ];
 
   const filters = useMemo(() => ({}), []);
 
@@ -126,9 +136,21 @@ export default function Ordinance() {
     }
   }, [ruleSetModalAlert]);
 
+  const fetchMetadata = async () => {
+    try {
+      const data = await OrdinanceService.getEngineMetadata();
+      setMetadataFacts(data.facts.map((f: string) => ({ value: f, label: f })));
+      setMetadataActions(data.actions.map((a: string) => ({ value: a, label: a })));
+      setMetadataOperators(data.operators.map((o: string) => ({ value: o, label: o })));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
     fetchPatterns();
     fetchGradeMasters();
+    fetchMetadata();
   }, []);
 
   useEffect(() => {
@@ -158,7 +180,6 @@ export default function Ordinance() {
   const fetchGradeMasters = async () => {
     try {
       const data = await OrdinanceService.getGradeMasters();
-      setGradeMasters(data);
       setGradeMasterOptions(
         data.map((g) => ({ value: g.gradeMasterId || "", label: g.name }))
       );
@@ -506,6 +527,7 @@ export default function Ordinance() {
     setIsEditingRuleSet(true);
     setEditingRuleSetId(ruleSetToEdit.ruleSetId!);
     setRuleSetName(ruleSetToEdit.name);
+    setRuleSetExamType(ruleSetToEdit.examType || "");
     setIsRuleSetActive(ruleSetToEdit.isActive);
     setRuleSetModalAlert(null);
     setIsRuleSetModalOpen(true);
@@ -516,7 +538,15 @@ export default function Ordinance() {
       setRuleSetModalAlert({
         variant: "warning",
         title: "Validation Error",
-        message: "RuleSet Name cannot be empty.",
+        message: "Exam Type RuleSet Name cannot be empty.",
+      });
+      return;
+    }
+    if (!ruleSetExamType) {
+      setRuleSetModalAlert({
+        variant: "warning",
+        title: "Validation Error",
+        message: "Please select an Exam Type for this RuleSet.",
       });
       return;
     }
@@ -534,6 +564,7 @@ export default function Ordinance() {
       const payload: RuleSetData = {
         ruleSetId: isEditingRuleSet ? editingRuleSetId! : undefined,
         name: ruleSetName,
+        examType: ruleSetExamType,
         isActive: isRuleSetActive,
         patternId: pattern,
       };
@@ -922,7 +953,7 @@ export default function Ordinance() {
   ];
 
   const ruleSetColumns = [
-    { key: "name", label: "RuleSet Name", sortable: true },
+    { key: "name", label: "Exam Type RuleSet", sortable: true },
     {
       key: "isActive",
       label: "Status",
@@ -1098,8 +1129,10 @@ export default function Ordinance() {
             }
           />
           <div className="flex flex-col gap-4">
+            <label className="text-sm font-medium text-gray-700">
+              Ordinance Symbol
+            </label>
             <Select
-              label="Ordinance Symbol"
               options={[
                 { value: "", label: "None" },
                 { value: "*", label: "Condonation (*)" },
@@ -1172,12 +1205,7 @@ export default function Ordinance() {
                   <tr key={idx} className="bg-white">
                     <td className="px-2 py-2">
                       <Select
-                        options={[
-                          { value: "FailedSubjectCount", label: "Failed Subject Count" },
-                          { value: "TotalMarks", label: "Total Marks" },
-                          { value: "Percentage", label: "Percentage" },
-                          { value: "IsAbsent", label: "Is Absent" },
-                        ]}
+                        options={metadataFacts}
                         value={cond.factName}
                         onChange={(val) => updateCondition(idx, "factName", val)}
                         placeholder="Select Fact"
@@ -1185,17 +1213,9 @@ export default function Ordinance() {
                     </td>
                     <td className="px-2 py-2">
                       <Select
-                        options={[
-                          { value: "Equals", label: "Equals (==)" },
-                          { value: "NotEquals", label: "Not Equals (!=)" },
-                          { value: "GreaterThan", label: "Greater Than (>)" },
-                          { value: "LessThan", label: "Less Than (<)" },
-                          { value: "GreaterThanOrEqual", label: "Greater/Equal (>=)" },
-                          { value: "LessThanOrEqual", label: "Less/Equal (<=)" },
-                        ]}
+                        options={metadataOperators}
                         value={cond.operator}
                         onChange={(val) => updateCondition(idx, "operator", val)}
-                        placeholder="Operator"
                       />
                     </td>
                     <td className="px-2 py-2">
@@ -1246,6 +1266,7 @@ export default function Ordinance() {
                   <th className="px-4 py-2 min-w-[200px]">Param 1 (Type/Val)</th>
                   <th className="px-4 py-2 min-w-[200px]">Param 2 (Type/Val)</th>
                   <th className="px-4 py-2 min-w-[100px]">Max Limit</th>
+                  <th className="px-4 py-2 min-w-[150px]">Expression (Math)</th>
                   <th className="px-4 py-2 min-w-[120px]">Target</th>
                   <th className="px-4 py-2 w-16"></th>
                 </tr>
@@ -1262,12 +1283,7 @@ export default function Ordinance() {
                   <tr key={idx} className="bg-white align-top">
                     <td className="px-2 py-2">
                       <Select
-                        options={[
-                          { value: "AddGrace", label: "Add Grace Marks" },
-                          { value: "SetResult", label: "Set Result Status" },
-                          { value: "ApplyLookup", label: "Apply Grace Lookup" },
-                          { value: "DowngradeGP", label: "Downgrade GradePoint" },
-                        ]}
+                        options={metadataActions}
                         value={act.actionType}
                         onChange={(val) => updateAction(idx, "actionType", val)}
                       />
@@ -1332,13 +1348,24 @@ export default function Ordinance() {
                       />
                     </td>
                     <td className="px-2 py-2">
+                      <Input
+                        value={act.expression || ""}
+                        onChange={(e) => updateAction(idx, "expression", e.target.value)}
+                        placeholder="[SubjectOutOf] * 0.01"
+                      />
+                    </td>
+                    <td className="px-2 py-2">
                       <Select
                         options={[
+                          { value: "Subject", label: "Subject" },
                           { value: "TOTAL", label: "Head Total" },
                           { value: "ESE", label: "End Sem (ESE)" },
                           { value: "IA", label: "Internal (IA)" },
                           { value: "TW", label: "Term Work (TW)" },
                           { value: "RESULT", label: "Overall Result" },
+                          { value: "RLE", label: "RLE" },
+                          { value: "Pass", label: "Pass" },
+                          { value: "Fail", label: "Fail" },
                         ]}
                         value={act.target}
                         onChange={(val) => updateAction(idx, "target", val)}
@@ -1400,7 +1427,7 @@ export default function Ordinance() {
                 <div className="flex-grow">
                   <Select
                     options={ruleSetOptions}
-                    placeholder="Select RuleSet"
+                    placeholder="Select Exam Type RuleSet"
                     value={ruleSet}
                     onChange={(value) => setRuleSet(value)}
                     disabled={!pattern || loading}
@@ -1434,7 +1461,7 @@ export default function Ordinance() {
                 </Button>
               </div>
               <p className="text-xs text-gray-500 mb-3">
-                Select the grading scale (e.g., 10-Point, 7-Point) that applies when this RuleSet is executed.
+                Select the grading scale (e.g., 10-Point, 7-Point) that applies when this exam type RuleSet is executed.
               </p>
               <div className="flex items-center gap-3 max-w-lg">
                 <div className="flex-grow">
@@ -1555,12 +1582,12 @@ export default function Ordinance() {
         className="max-w-2xl p-6"
       >
         <h2 className="text-xl font-semibold my-4">
-          {isEditingRuleSet ? "Edit RuleSet" : "Manage RuleSets"}
+          {isEditingRuleSet ? "Edit Exam Type RuleSet" : "Manage Exam Type RuleSets"}
         </h2>
 
         <div className="space-y-4 border-b pb-4 mb-4">
           <Input
-            label="RuleSet Name"
+            label="Exam Type RuleSet Name"
             value={ruleSetName}
             onChange={(e) => {
               if (allowedCharsRegex.test(e.target.value)) {
@@ -1568,7 +1595,20 @@ export default function Ordinance() {
               }
             }}
             maxLength={100}
+            placeholder="e.g. Regular Ordinance Rules"
           />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Exam Type</label>
+            <Select
+              options={EXAM_TYPES}
+              value={ruleSetExamType}
+              onChange={setRuleSetExamType}
+              placeholder="Select Exam Type (Required)"
+            />
+            <p className="text-xs text-gray-500">
+              This links the RuleSet to exams of this type (e.g. Regular, KT).
+            </p>
+          </div>
           <Switch
             label="Is Active"
             key={editingRuleSetId || "new"}
@@ -1597,8 +1637,8 @@ export default function Ordinance() {
             {isSubmitting
               ? "Saving..."
               : isEditingRuleSet
-                ? "Update RuleSet"
-                : "Save RuleSet"}
+                ? "Update Exam Type RuleSet"
+                : "Save Exam Type RuleSet"}
           </Button>
 
           <Button
@@ -1610,7 +1650,7 @@ export default function Ordinance() {
           </Button>
         </div>
 
-        <h3 className="text-lg font-semibold mt-6 mb-2">Existing RuleSets</h3>
+        <h3 className="text-lg font-semibold mt-6 mb-2">Existing Exam Type RuleSets</h3>
         <div>
           <DataTable
             data={ruleSets}
@@ -1664,8 +1704,10 @@ export default function Ordinance() {
             maxLength={200}
           />
           <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Populate from Preset (Optional)
+            </label>
             <Select
-              label="Populate from Preset (Optional)"
               options={[{ value: "", label: "--- Choose a Preset ---" }, ...GRADE_PRESETS]}
               value=""
               onChange={(val) => applyPreset(val)}

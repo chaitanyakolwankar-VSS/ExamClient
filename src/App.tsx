@@ -16,7 +16,10 @@ import CreateUser from "./pages/Staff/CreateUser";
 import CollegeDetail from "./pages/Staff/Dashboard/CollegeDetail";
 import RoleMaster from "./pages/Staff/Admin/Role_master";
 import Ordinance from "./pages/Staff/Academic_Master/Ordinance.tsx";
-import OverallMarksEntry from "./pages/Staff/Academic_Master/OverallMarksEntry.tsx";
+import OverallMarksEntry from "./pages/Staff/MarksEntry/OverallMarksEntry.tsx";
+import MarksEntry from "./pages/Staff/MarksEntry/MarksEntry.tsx";
+import Gazette from "./pages/Staff/Reports/Gazette.tsx";
+import Marksheet from "./pages/Staff/Reports/Marksheet.tsx";
 
 
 
@@ -42,6 +45,9 @@ export default function App() {
               <Route path="OverallMarksEntry" element={<OverallMarksEntry />} />
                 <Route path="RegularExam" element={<RegularExam />} />
                  <Route path="AssignSeatNo" element={<AssignSeatNo />} />
+                 <Route path="MarksEntry" element={<MarksEntry />} />
+                 <Route path="Gazette" element={<Gazette />} />
+                 <Route path="Marksheet" element={<Marksheet />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
           </Route>

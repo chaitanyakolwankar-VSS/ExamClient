@@ -167,7 +167,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Enter Marks",
-        path: "/blank",
+        path: "/Staff/MarksEntry",
         pro: false,
       },
       {
@@ -197,13 +197,13 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Generate Gazette",
-        path: "/blank",
+        path: "/Staff/Gazette",
         pro: false,
       },
       {
         icon: <SubMenuIcon />,
         name: "Generate Result",
-        path: "/blank",
+        path: "/Staff/Marksheet",
         pro: false,
       },
       {

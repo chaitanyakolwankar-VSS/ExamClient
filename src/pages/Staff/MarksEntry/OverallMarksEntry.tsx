@@ -157,6 +157,24 @@ export default function OverallMarksEntry() {
     }
   };
 
+  const handleExportExcel = async () => {
+    if (!selectedCourse || !selectedSemester || !selectedPattern || !selectedExam) return;
+    
+    try {
+        await OverallMarksService.exportExcel({
+            branchId: selectedCourse,
+            semId: selectedSemester,
+            pattern: selectedPattern,
+            examId: selectedExam,
+            studentId: isSingleStudent ? studentId : undefined,
+            isSingleStudent,
+        });
+        setIsReportModalOpen(false);
+    } catch (error: any) {
+        setPageAlert({ variant: "error", title: "Export Error", message: "Failed to export Excel report." });
+    }
+  };
+
   // Dynamic Table Columns
   const columns = useMemo(() => {
     const baseColumns = [
@@ -323,12 +341,14 @@ export default function OverallMarksEntry() {
       </div>
 
       <ComponentCard title="Processed Results">
-        <DataTable
-          data={results}
-          columns={columns}
-          searchKeys={["studentId", "studentName", "seatNo"]}
-          pageSizeOptions={[10, 20, 50, 100]}
-        />
+        <div className="overflow-x-auto">
+            <DataTable
+            data={results}
+            columns={columns}
+            searchKeys={["studentId", "studentName", "seatNo"]}
+            pageSizeOptions={[10, 20, 50, 100]}
+            />
+        </div>
       </ComponentCard>
 
       <Modal
@@ -337,10 +357,10 @@ export default function OverallMarksEntry() {
         title="Generate Reports"
       >
         <div className="p-4 grid grid-cols-1 gap-4">
-           <Button variant="primary" className="w-full justify-start">
+           <Button variant="primary" className="w-full justify-start" onClick={handleExportExcel}>
              <FileText className="size-4 mr-2" /> Grid Report (Excel)
            </Button>
-           <Button variant="primary" className="w-full justify-start">
+           <Button variant="primary" className="w-full justify-start" disabled>
              <FileText className="size-4 mr-2" /> Overall Result Report (PDF)
            </Button>
         </div>

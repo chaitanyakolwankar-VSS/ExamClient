@@ -16,6 +16,7 @@ export interface PatternData {
 export interface RuleSetData {
     ruleSetId?: string;
     name: string;
+    examType?: string;
     isActive: boolean;
     patternId: string;
     gradeMasterId?: string;
@@ -55,6 +56,7 @@ export interface RuleAction {
     param2Type: string;
     param2Value: number;
     maxLimit: number;
+    expression?: string;
     maxTargetCount: number;
     target: string;
 }
@@ -234,5 +236,25 @@ export const OrdinanceService = {
             console.error("Error deleting rule:", error);
             throw error;
         }
+    },
+
+    // === Metadata Methods ===
+    getEngineMetadata: async (): Promise<EngineMetadata> => {
+        try {
+            const response = await Client.get<ApiResponse<EngineMetadata>>("/Ordinance/Metadata");
+            if (response.data.success && response.data.data) {
+                return response.data.data;
+            }
+            throw new Error(response.data.message || "Failed to fetch metadata.");
+        } catch (error) {
+            console.error("Error fetching metadata:", error);
+            throw error;
+        }
     }
 };
+
+export interface EngineMetadata {
+    facts: string[];
+    actions: string[];
+    operators: string[];
+}
