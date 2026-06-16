@@ -42,6 +42,7 @@ export default function SignInForm() {
         email: data.user.email,
         role: data.user.role,
         avatar: "/images/user/owner.png",
+        CollegeId: data.college.collegeId,
       };
 
       // UPDATE GLOBAL STATE

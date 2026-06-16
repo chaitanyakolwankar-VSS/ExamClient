@@ -20,8 +20,8 @@ import {
 import { Pencil, Trash2 } from "lucide-react";
 import DataTable from "../../../components/ui/table/DataTable";
 import Alert from "../../../components/ui/alert/Alert";
-import { Modal } from "../../../components/ui/modal";
-
+import { ResetPasswordModal } from "../../../components/ui/modal/ResetPasswordModal";
+const dummyFilters = {};
 const CreateUser = () => {
   const [alertData, setAlertData] = useState<{
     variant: "success" | "error" | "warning" | "info";
@@ -58,10 +58,6 @@ const CreateUser = () => {
 
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-
   const [users, setUsers] = useState<UserListResponse[]>([]);
   const fetchUsers = async () => {
     try {
@@ -97,51 +93,45 @@ const CreateUser = () => {
     }),
   };
 
-  const handleResetPassword = async () => {
-    if (!currentPassword || !newPassword || !confirmNewPassword) {
-      showAlert("warning", "Required", "All fields are required");
-      return;
-    }
+  // const handleResetPassword = async () => {
+  //   if (!currentPassword || !newPassword || !confirmNewPassword) {
+  //     showAlert("warning", "Required", "All fields are required");
+  //     return;
+  //   }
 
-    if (newPassword.length < 8) {
-      showAlert(
-        "warning",
-        "Weak Password",
-        "New password must be at least 8 characters",
-      );
-      return;
-    }
+  //   if (newPassword.length < 8) {
+  //     showAlert(
+  //       "warning",
+  //       "Weak Password",
+  //       "New password must be at least 8 characters",
+  //     );
+  //     return;
+  //   }
 
-    if (newPassword !== confirmNewPassword) {
-      showAlert(
-        "error",
-        "Mismatch",
-        "New password and confirm password must match",
-      );
-      return;
-    }
+  //   if (newPassword !== confirmNewPassword) {
+  //     showAlert(
+  //       "error",
+  //       "Mismatch",
+  //       "New password and confirm password must match",
+  //     );
+  //     return;
+  //   }
 
-    try {
-      // await resetPasswordAPI({
-      //   userId: editingUserID,
-      //   currentPassword,
-      //   newPassword,
-      // });
+  //   try {
+  //     showAlert("success", "Success", "Password updated successfully");
 
-      showAlert("success", "Success", "Password updated successfully");
-
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
-      setIsResetModalOpen(false);
-    } catch (error: any) {
-      showAlert(
-        "error",
-        "Failed",
-        error.response?.data?.message || "Password reset failed",
-      );
-    }
-  };
+  //     setCurrentPassword("");
+  //     setNewPassword("");
+  //     setConfirmNewPassword("");
+  //     setIsResetModalOpen(false);
+  //   } catch (error: any) {
+  //     showAlert(
+  //       "error",
+  //       "Failed",
+  //       error.response?.data?.message || "Password reset failed",
+  //     );
+  //   }
+  // };
 
   const handleRefresh = () => {
     setEditingUserID(null);
@@ -235,6 +225,14 @@ const CreateUser = () => {
     }
 
     try {
+      const authUserString = localStorage.getItem("authUser");
+      let extractedCollegeId: string | null = null;
+
+      if (authUserString) {
+        const authUser = JSON.parse(authUserString);
+        extractedCollegeId = authUser.CollegeId || authUser.collegeId || null;
+      }
+
       await createUser({
         username,
         password,
@@ -242,7 +240,7 @@ const CreateUser = () => {
         firstname,
         lastname,
         roleId: selectedRole || null,
-        collegeId: null,
+        collegeId: extractedCollegeId,
       });
       fetchUsers();
       showAlert("success", "Success", "User Created Successfully");
@@ -269,6 +267,7 @@ const CreateUser = () => {
       console.error(error);
       showAlert("error", "Fail", "Failed to delete user");
     }
+    handleRefresh();
   };
 
   const handleEdit = async (id: string) => {
@@ -529,17 +528,31 @@ const CreateUser = () => {
           <DataTable
             data={users}
             columns={columns}
-            searchKeys={["username", "firstname", "lastname"]}
+            searchKeys={["username", "firstName", "lastName"]}
+            filters={dummyFilters}
             pageSizeOptions={[5, 10, 20, 50]}
           />
         </div>
-        <Modal
+        {/* <Modal
           isOpen={isResetModalOpen}
           onClose={() => setIsResetModalOpen(false)}
           className="max-w-md p-6"
         >
           <h2 className="text-xl font-semibold mb-4">Reset Password</h2>
-
+          <div className="mb-4">
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              onClick={() => setIsResetModalOpen(true)}
+            >
+              Remember Password
+            </button>
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              onClick={() => setIsResetModalOpen(true)}
+            >
+              Forgot Password
+            </button>
+          </div>
           <div className="flex flex-col gap-4">
             <Input
               label="Current Password"
@@ -573,7 +586,12 @@ const CreateUser = () => {
               <Button onClick={handleResetPassword}>Update Password</Button>
             </div>
           </div>
-        </Modal>
+        </Modal> */}
+        <ResetPasswordModal
+          isOpen={isResetModalOpen}
+          onClose={() => setIsResetModalOpen(false)}
+          userId={editingUserID ?? ""}
+        />
       </ComponentCard>
     </div>
   );

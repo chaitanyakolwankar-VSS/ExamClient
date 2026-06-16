@@ -1,4 +1,3 @@
-import { EclipseIcon } from "lucide-react";
 import apiClient from "../api/Client";
 
 export interface CreateUserPayload {
@@ -8,7 +7,7 @@ export interface CreateUserPayload {
   email: string;
   password: string;
   roleId?: string | null;
-  collegeId?: string | null;
+  collegeId: string | null;
 }
 
 export interface UserListResponse {
@@ -53,7 +52,7 @@ export async function deleteUser(id: string) {
 }
 
 export async function updateUser(payload: {
-  userId: string;
+  userId: string | null;
   username: string;
   firstname: string;
   lastname: string;
