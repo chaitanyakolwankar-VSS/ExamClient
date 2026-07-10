@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, ChangeEvent } from "react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
 import Button from "../../../components/ui/button/Button";
@@ -29,6 +29,8 @@ export default function MarksEntry() {
   const [loading, setLoading] = useState(false);
   const [marksData, setMarksData] = useState<MarksEntryData[]>([]);
   const [pageAlert, setPageAlert] = useState<{ variant: "success" | "error"; title: string; message: string } | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const semesterOptions = [
     { value: "Sem-1", label: "Semester I" },
@@ -151,6 +153,48 @@ export default function MarksEntry() {
     }
   };
 
+  const handleDownloadTemplate = async () => {
+    try {
+      const blob = await MarksEntryService.exportTemplate({
+        branchId: selectedCourse,
+        semId: selectedSemester,
+        pattern: selectedPattern,
+        examId: selectedExam,
+        subjectId: selectedSubject,
+        studentId: studentId
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "MarksTemplate.xlsx";
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      Swal.fire("Error", "Failed to download template.", "error");
+    }
+  };
+
+  const handleImportExcel = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+
+    setLoading(true);
+    try {
+        const res = await MarksEntryService.importExcel(selectedExam, selectedSubject, file);
+        if (res.success) {
+            Swal.fire("Imported!", res.message, "success");
+            handleFetchData();
+        } else {
+            Swal.fire("Error", res.message, "error");
+        }
+    } catch (error) {
+        Swal.fire("Error", "Failed to import excel.", "error");
+    } finally {
+        setLoading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const columns = useMemo(() => {
     const base = [
         { key: "seatNo", label: "Seat No", sortable: true },
@@ -226,10 +270,17 @@ export default function MarksEntry() {
       {marksData.length > 0 && (
         <ComponentCard title="Marks Entry Sheet">
            <div className="flex gap-2 mb-4 justify-end">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
                     <Download className="size-4 mr-2" /> Download Template
                 </Button>
-                <Button variant="outline" size="sm">
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    style={{ display: "none" }} 
+                    accept=".xlsx, .xls"
+                    onChange={handleImportExcel}
+                />
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                     <Upload className="size-4 mr-2" /> Import Excel
                 </Button>
            </div>

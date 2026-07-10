@@ -1359,9 +1359,11 @@ export default function Ordinance() {
                         options={[
                           { value: "Subject", label: "Subject" },
                           { value: "TOTAL", label: "Head Total" },
-                          { value: "ESE", label: "End Sem (ESE)" },
+                          { value: "ESE", label: "ESE (TH)" },
+                          { value: "PR", label: "Practical (PR)" },
                           { value: "IA", label: "Internal (IA)" },
                           { value: "TW", label: "Term Work (TW)" },
+                          { value: "OR", label: "Oral (OR)" },
                           { value: "RESULT", label: "Overall Result" },
                           { value: "RLE", label: "RLE" },
                           { value: "Pass", label: "Pass" },

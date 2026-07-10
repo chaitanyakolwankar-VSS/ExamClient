@@ -21,7 +21,7 @@ export default function Marksheet() {
   const [exam, setExam] = useState("");
 
   const semesterOptions = [
-    { value: "3fa85f64-5717-4562-b3fc-2c963f66afa6", label: "Semester I" },
+    { value: "Sem-1", label: "Semester I" },
     { value: "Sem-2", label: "Semester II" },
     { value: "Sem-3", label: "Semester III" },
     { value: "Sem-4", label: "Semester IV" },
@@ -90,7 +90,8 @@ export default function Marksheet() {
           examId: exam,
           semId: semester,
           pattern: pattern,
-          includeHistory: includeHistory
+          includeHistory: includeHistory,
+          resultDate: resultDate || undefined
         });
       } else {
         await ReportService.downloadBulkMarksheet({
@@ -98,7 +99,8 @@ export default function Marksheet() {
           semId: semester,
           pattern: pattern,
           generationType: generationType,
-          includeHistory: includeHistory
+          includeHistory: includeHistory,
+          resultDate: resultDate || undefined
         });
       }
     } catch (error: any) {
