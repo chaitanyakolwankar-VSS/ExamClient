@@ -77,20 +77,20 @@ export const MarksEntryService = {
         }
     },
 
-    importExcel: async (examId: string, subjectId: string, file: File): Promise<ApiResponse<any>> => {
-        try {
-            const formData = new FormData();
-            formData.append("file", file);
+    // importExcel: async (examId: string, subjectId: string, file: File): Promise<ApiResponse<any>> => {
+    //     try {
+    //         const formData = new FormData();
+    //         formData.append("file", file);
 
-            const response = await Client.post<ApiResponse<any>>(`/MarksEntry/Import?examId=${examId}&subjectId=${subjectId}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-            return response.data;
-        } catch (error) {
-            console.error("Error importing excel:", error);
-            throw error;
-        }
-    }
+    //         const response = await Client.post<ApiResponse<any>>(`/MarksEntry/Import?examId=${examId}&subjectId=${subjectId}`, formData, {
+    //             headers: {
+    //                 'Content-Type': 'multipart/form-data'
+    //             }
+    //         });
+    //         return response.data;
+    //     } catch (error) {
+    //         console.error("Error importing excel:", error);
+    //         throw error;
+    //     }
+    // }
 };

@@ -10,12 +10,10 @@ import Alert from "../../../components/ui/alert/Alert";
 import { Modal } from "../../../components/ui/modal";
 import {
   OverallMarksService,
-  SemesterOption,
-  ExamOption,
   ResultData,
 } from "../../../services/OverallMarksService";
-import { CourseService, CourseApiResponse } from "../../../services/Course";
-import { OrdinanceService, PatternData } from "../../../services/OrdinanceService";
+import { CourseService } from "../../../services/Course";
+import { OrdinanceService } from "../../../services/OrdinanceService";
 
 interface Option {
   value: string;
@@ -164,6 +162,7 @@ export default function OverallMarksEntry() {
         await OverallMarksService.exportExcel({
             branchId: selectedCourse,
             semId: selectedSemester,
+
             pattern: selectedPattern,
             examId: selectedExam,
             studentId: isSingleStudent ? studentId : undefined,
@@ -172,6 +171,24 @@ export default function OverallMarksEntry() {
         setIsReportModalOpen(false);
     } catch (error: any) {
         setPageAlert({ variant: "error", title: "Export Error", message: "Failed to export Excel report." });
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!selectedCourse || !selectedSemester || !selectedPattern || !selectedExam) return;
+    
+    try {
+        await OverallMarksService.exportPdf({
+            branchId: selectedCourse,
+            semId: selectedSemester,
+            pattern: selectedPattern,
+            examId: selectedExam,
+            studentId: isSingleStudent ? studentId : undefined,
+            isSingleStudent,
+        });
+        setIsReportModalOpen(false);
+    } catch (error: any) {
+        setPageAlert({ variant: "error", title: "Export Error", message: "Failed to export PDF report." });
     }
   };
 
@@ -360,7 +377,7 @@ export default function OverallMarksEntry() {
            <Button variant="primary" className="w-full justify-start" onClick={handleExportExcel}>
              <FileText className="size-4 mr-2" /> Grid Report (Excel)
            </Button>
-           <Button variant="primary" className="w-full justify-start" disabled>
+           <Button variant="primary" className="w-full justify-start" onClick={handleExportPdf} disabled={!selectedCourse || !selectedSemester || !selectedPattern || !selectedExam}>
              <FileText className="size-4 mr-2" /> Overall Result Report (PDF)
            </Button>
         </div>

@@ -42,7 +42,7 @@ export default function Gazette() {
   const [gpaSems, setGpaSems] = useState<number[]>([]);
 
   const semesterOptions = [
-    { value: "3fa85f64-5717-4562-b3fc-2c963f66afa6", label: "Semester I" },
+    { value: "Sem-1", label: "Semester I" },
     { value: "Sem-2", label: "Semester II" },
     { value: "Sem-3", label: "Semester III" },
     { value: "Sem-4", label: "Semester IV" },
@@ -70,12 +70,20 @@ export default function Gazette() {
   useEffect(() => {
     if (selectedCourse && selectedSemester && selectedPattern) {
         fetchExams();
+    } else {
+        setExamOptions([]);
+        setSelectedExam("");
+        setMergedExamId("");
     }
   }, [selectedCourse, selectedSemester, selectedPattern]);
 
   const fetchExams = async () => {
     try {
-        const ayid = localStorage.getItem("AYID") || "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+        const ayid = localStorage.getItem("AYID");
+        if (!ayid) {
+          setExamOptions([]);
+          return;
+        }
         const exams = await RegularExamService.getExam({ Courseid: selectedCourse, Ayid: ayid });
         setExamOptions(exams.map((e: any) => ({ value: e.examId, label: e.examname })));
     } catch (error) {
@@ -92,8 +100,12 @@ export default function Gazette() {
   };
 
   const handleDownloadPdf = async () => {
-    if (!selectedExam || !selectedSemester || !selectedPattern) {
-      alert("Please ensure core fields (Exam, Semester, Pattern) are filled.");
+    if (!selectedCourse || !selectedExam || !selectedSemester || !selectedPattern) {
+      alert("Please ensure course, exam, semester, and pattern are filled.");
+      return;
+    }
+    if (mergeExam && !mergedExamId) {
+      alert("Select the exam to merge before generating the Gazette.");
       return;
     }
     setLoading(true);
@@ -121,8 +133,12 @@ export default function Gazette() {
   };
 
   const handleDownloadExcel = async () => {
-    if (!selectedExam || !selectedSemester || !selectedPattern) {
-      alert("Please ensure core fields (Exam, Semester, Pattern) are filled.");
+    if (!selectedCourse || !selectedExam || !selectedSemester || !selectedPattern) {
+      alert("Please ensure course, exam, semester, and pattern are filled.");
+      return;
+    }
+    if (mergeExam && !mergedExamId) {
+      alert("Select the exam to merge before exporting the Gazette.");
       return;
     }
     setLoading(true);
@@ -244,17 +260,18 @@ export default function Gazette() {
               
               <div className="col-span-2 md:col-span-4 flex items-center gap-4 mt-2">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={mergeExam} onChange={(e) => setMergeExam(e.target.checked)} className="rounded text-blue-600" />
+                  <input type="checkbox" checked={mergeExam} onChange={(e) => { setMergeExam(e.target.checked); if (!e.target.checked) setMergedExamId(""); }} className="rounded text-blue-600" />
                   <span className="text-sm text-gray-700 dark:text-gray-300">Merge Exam</span>
                 </label>
                 {mergeExam && (
-                  <input 
-                    type="text" 
-                    placeholder="Enter Target Exam ID..." 
-                    value={mergedExamId}
-                    onChange={(e) => setMergedExamId(e.target.value)}
-                    className="flex-1 max-w-sm px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800"
-                  />
+                  <div className="w-full max-w-sm">
+                    <Select
+                      options={examOptions.filter((exam) => exam.value !== selectedExam)}
+                      value={mergedExamId}
+                      onChange={setMergedExamId}
+                      placeholder="Select exam to merge"
+                    />
+                  </div>
                 )}
               </div>
             </div>

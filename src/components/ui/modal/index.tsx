@@ -6,6 +6,7 @@ interface ModalProps {
   onClose: () => void;
   className?: string;
   children: React.ReactNode;
+  title?: string;
   showCloseButton?: boolean;
   isFullscreen?: boolean;
 }
@@ -14,6 +15,7 @@ export const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
   children,
+  title,
   className,
   showCloseButton = true,
   isFullscreen = false,
@@ -67,7 +69,14 @@ export const Modal: React.FC<ModalProps> = ({
             </svg>
           </button>
         )}
-        <div>{children}</div>
+        <div>
+          {title && (
+            <div className="border-b border-gray-200 px-6 py-4 pr-12 dark:border-gray-800">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">{title}</h3>
+            </div>
+          )}
+          {children}
+        </div>
       </div>
     </div>
   );

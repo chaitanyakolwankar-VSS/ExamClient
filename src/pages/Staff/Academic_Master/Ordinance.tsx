@@ -679,7 +679,7 @@ export default function Ordinance() {
           param2Value: 0,
           maxLimit: 0,
           maxTargetCount: 0,
-          target: "TOTAL",
+          target: "FailingSubjects",
         },
       ],
     });
@@ -871,7 +871,7 @@ export default function Ordinance() {
           param2Value: 0,
           maxLimit: 0,
           maxTargetCount: 0,
-          target: "Subject", // Default target
+          target: "FailingSubjects",
         },
       ],
     }));
@@ -1305,6 +1305,7 @@ export default function Ordinance() {
                       <div className="space-y-1">
                         <Select
                           options={[
+                            { value: "None", label: "None" },
                             { value: "Value", label: "Value" },
                             { value: "PercentOfSubject", label: "% of Subject" },
                             { value: "PercentOfAggregate", label: "% of Aggregate" },
@@ -1355,23 +1356,12 @@ export default function Ordinance() {
                       />
                     </td>
                     <td className="px-2 py-2">
-                      <Select
-                        options={[
-                          { value: "Subject", label: "Subject" },
-                          { value: "TOTAL", label: "Head Total" },
-                          { value: "ESE", label: "ESE (TH)" },
-                          { value: "PR", label: "Practical (PR)" },
-                          { value: "IA", label: "Internal (IA)" },
-                          { value: "TW", label: "Term Work (TW)" },
-                          { value: "OR", label: "Oral (OR)" },
-                          { value: "RESULT", label: "Overall Result" },
-                          { value: "RLE", label: "RLE" },
-                          { value: "Pass", label: "Pass" },
-                          { value: "Fail", label: "Fail" },
-                        ]}
+                      <Input
                         value={act.target}
-                        onChange={(val) => updateAction(idx, "target", val)}
+                        onChange={(event) => updateAction(idx, "target", event.target.value)}
+                        placeholder="Exact head name(s), comma separated"
                       />
+                      <p className="mt-1 text-xs text-gray-500">Use the exact configured head name, such as ESE(TH), or a comma-separated list.</p>
                     </td>
                     <td className="px-2 py-2 text-right">
                       <button

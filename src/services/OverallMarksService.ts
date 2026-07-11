@@ -106,5 +106,24 @@ export const OverallMarksService = {
             console.error("Error exporting excel:", error);
             throw error;
         }
+    },
+
+    exportPdf: async (request: ProcessResultRequest): Promise<void> => {
+        try {
+            const response = await Client.post("/OverallMarks/ExportPdf", request, {
+                responseType: 'blob'
+            });
+            
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Results_${request.examId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Error exporting pdf:", error);
+            throw error;
+        }
     }
 };

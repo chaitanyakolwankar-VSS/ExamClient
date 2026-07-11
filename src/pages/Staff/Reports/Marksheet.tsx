@@ -54,7 +54,11 @@ export default function Marksheet() {
 
   const fetchExams = async () => {
     try {
-        const ayid = localStorage.getItem("AYID") || "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+        const ayid = localStorage.getItem("AYID");
+        if (!ayid) {
+          setExamOptions([]);
+          return;
+        }
         const exams = await RegularExamService.getExam({ Courseid: selectedCourse, Ayid: ayid });
         setExamOptions(exams.map((e: any) => ({ value: e.examId, label: e.examname })));
     } catch (error) {
@@ -65,20 +69,26 @@ export default function Marksheet() {
   // Settings
   const [showSettings, setShowSettings] = useState(false);
   const [generationType, setGenerationType] = useState<"single" | "all" | "pass" | "fail">("single");
-  const [studentId, setStudentId] = useState("3fa85f64-5717-4562-b3fc-2c963f66afa6"); // Guid
+  const [studentId, setStudentId] = useState("");
   const [resultDate, setResultDate] = useState("");
   
   const [includeHistory, setIncludeHistory] = useState(false);
+  const [noRleForFail, setNoRleForFail] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleDownload = async () => {
-    if (!exam || !semester || !pattern) {
-      alert("Please ensure all core fields are filled.");
+    if (!selectedCourse || !exam || !semester || !pattern) {
+      alert("Please ensure course, exam, semester, and pattern are filled.");
       return;
     }
     
     if (generationType === "single" && !studentId) {
       alert("Please enter a Student ID for single generation.");
+      return;
+    }
+
+    if (generationType === "single" && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(studentId)) {
+      alert("Student ID must be a valid identifier.");
       return;
     }
 
@@ -91,7 +101,8 @@ export default function Marksheet() {
           semId: semester,
           pattern: pattern,
           includeHistory: includeHistory,
-          resultDate: resultDate || undefined
+          resultDate: resultDate || undefined,
+          noRleForFail: noRleForFail
         });
       } else {
         await ReportService.downloadBulkMarksheet({
@@ -100,7 +111,8 @@ export default function Marksheet() {
           pattern: pattern,
           generationType: generationType,
           includeHistory: includeHistory,
-          resultDate: resultDate || undefined
+          resultDate: resultDate || undefined,
+          noRleForFail: noRleForFail
         });
       }
     } catch (error: any) {
@@ -265,6 +277,19 @@ export default function Marksheet() {
                   <span className="text-sm text-gray-700 dark:text-gray-300">Include Final Semester History</span>
                 </label>
                 <p className="text-xs text-gray-500 mt-1">Appends previous semesters' history table at the bottom.</p>
+              </div>
+
+              <div className="pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={noRleForFail}
+                    onChange={(e) => setNoRleForFail(e.target.checked)}
+                    className="rounded text-blue-600 focus:ring-blue-500" 
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">No RLE For Fail</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1">If checked, failing students will have "Fail" remark instead of "RLE".</p>
               </div>
 
               <div className="pt-2">

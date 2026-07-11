@@ -23,6 +23,8 @@ export interface DownloadMarksheetParams {
   semId: string;
   pattern: string;
   includeHistory?: boolean;
+  resultDate?: string;
+  noRleForFail?: boolean;
 }
 
 export interface DownloadBulkMarksheetParams {
@@ -31,6 +33,8 @@ export interface DownloadBulkMarksheetParams {
   pattern: string;
   generationType: string;
   includeHistory?: boolean;
+  resultDate?: string;
+  noRleForFail?: boolean;
 }
 
 export const ReportService = {
