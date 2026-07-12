@@ -329,15 +329,15 @@ const exportToCSV = async () => {
   });
 
   // 🔥 Column Width
-  worksheet.columns.forEach((col, index) => {
+  worksheet.columns?.forEach((col: any, index: number) => {
     if (index === 1) col.width = 15;
     else if (index === 2) col.width = 25;
     else col.width = 15;
   });
 
   // 🔥 Apply Border + Header Bold
- worksheet.eachRow((row, rowNumber) => {
-  row.eachCell((cell, colNumber) => {  // ✅ colNumber yaha define hota hai
+ worksheet.eachRow((row: any, rowNumber: number) => {
+  row.eachCell((cell: any, colNumber: number) => {  // ✅ colNumber yaha define hota hai
 
     // Border
     cell.border = {
