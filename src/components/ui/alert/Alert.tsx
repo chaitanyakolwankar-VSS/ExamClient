@@ -7,6 +7,7 @@ interface AlertProps {
   showLink?: boolean; // Whether to show the "Learn More" link
   linkHref?: string; // Link URL
   linkText?: string; // Link text
+  onClose?: () => void;
 }
 
 const Alert: React.FC<AlertProps> = ({
@@ -16,6 +17,7 @@ const Alert: React.FC<AlertProps> = ({
   showLink = false,
   linkHref = "#",
   linkText = "Learn more",
+  onClose,
 }) => {
   // Tailwind classes for each variant
   const variantClasses = {
@@ -136,6 +138,16 @@ const Alert: React.FC<AlertProps> = ({
             </Link>
           )}
         </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Dismiss alert"
+            className="ml-auto text-lg leading-none text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"
+          >
+            ×
+          </button>
+        )}
       </div>
     </div>
   );

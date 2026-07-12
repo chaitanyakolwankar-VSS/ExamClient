@@ -70,6 +70,12 @@ const navItems: NavItem[] = [
     subItems: [
       {
         icon: <SubMenuIcon />,
+        name: "Ordineances",
+        path: "/Staff/Ordinance",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
         name: "Subject Master",
         path: "/Staff/SubjectMaster",
         pro: false,
@@ -167,7 +173,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Apply Grace Marks",
-        path: "/blank",
+        path: "/Staff/OverallMarksEntry",
         pro: false,
       },
       {
@@ -191,13 +197,13 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Generate Gazette",
-        path: "/blank",
+        path: "/Staff/Gazette",
         pro: false,
       },
       {
         icon: <SubMenuIcon />,
         name: "Generate Result",
-        path: "/blank",
+        path: "/Staff/Marksheet",
         pro: false,
       },
       {
@@ -268,13 +274,13 @@ const AppSidebar: React.FC = () => {
     index: number;
   } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
+    {},
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const isActive = useCallback(
     (path: string) => location.pathname === path,
-    [location.pathname]
+    [location.pathname],
   );
 
   useEffect(() => {
@@ -450,11 +456,12 @@ const AppSidebar: React.FC = () => {
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
-        ${isExpanded || isMobileOpen
-          ? "w-[290px]"
-          : isHovered
+        ${
+          isExpanded || isMobileOpen
             ? "w-[290px]"
-            : "w-[90px]"
+            : isHovered
+              ? "w-[290px]"
+              : "w-[90px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}

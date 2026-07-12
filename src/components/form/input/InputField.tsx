@@ -65,7 +65,7 @@ const Input: FC<InputProps> = ({
   inputClasses += ` ${className}`;
 
   return (
-    <div className="relative">
+    <div className="relative w-full h-fit">
       <input
         type={type}
         id={id}
