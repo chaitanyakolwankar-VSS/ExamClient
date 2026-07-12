@@ -121,7 +121,8 @@ export default function OverallMarksEntry() {
     if (selectedCourse && selectedSemester && selectedPattern) {
       const fetchExams = async () => {
         try {
-          const examData = await OverallMarksService.getExams(selectedCourse, selectedSemester, selectedPattern);
+          const ayid = localStorage.getItem("AYID");
+          const examData = await OverallMarksService.getExams(selectedCourse, selectedSemester, selectedPattern, ayid || undefined);
           setExamOptions(examData.map(e => ({ value: e.examId, label: e.examName })));
         } catch (error) {
           console.error("Error fetching exams:", error);

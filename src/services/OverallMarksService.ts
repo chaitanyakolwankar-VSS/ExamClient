@@ -54,10 +54,10 @@ export const OverallMarksService = {
         ];
     },
 
-    getExams: async (branchId: string, semId: string, pattern: string): Promise<ExamOption[]> => {
+    getExams: async (branchId: string, semId: string, pattern: string, ayid?: string): Promise<ExamOption[]> => {
         try {
             const response = await Client.get<ApiResponse<ExamOption[]>>(`/OverallMarks/Exams`, {
-                params: { branchId, semId, pattern }
+                params: { branchId, semId, pattern, ayid }
             });
             if (response.data.success && response.data.data) {
                 return response.data.data;
