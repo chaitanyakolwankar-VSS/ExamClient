@@ -9,12 +9,14 @@ import ExamMaster from "./pages/Staff/Academic_Master/ExamMaster.tsx"; // Import
 import RegularExam from "./pages/Staff/ConductExam/RegularExam.tsx";  // Import the moved Regular Exam 
 import AssignSeatNo from "./pages/Staff/ConductExam/AssignSeatNo.tsx"; // Import the moved Assign Exam 
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
+import GenerateHallTicket  from "./pages/Staff/Reports/GenerateHallTicket.tsx"; // Import GenerateHallTicket component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
 import AddPermission from "./pages/Staff/Dashboard/AddPermission";
 import CreateUser from "./pages/Staff/Dashboard/CreateUser.tsx";
 import CollegeDetail from "./pages/Staff/Dashboard/CollegeDetail";
 import RoleMaster from "./pages/Staff/Admin/Role_master";
+import HallTicketPage from "./components/HallTicket/Hallticket.tsx";
 import MarksEntry from "./pages/Staff/Marks_entry/Marks_entry.tsx";
 
 
@@ -38,13 +40,12 @@ export default function App() {
                     <Route path="ExamMaster" element={<ExamMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
                 <Route path="RegularExam" element={<RegularExam />} />
-<<<<<<< HEAD
+                 <Route path="GenerateHallTicket" element={<GenerateHallTicket />} />
                 <Route path="MarksEntry" element={<MarksEntry />} />
-=======
                  <Route path="AssignSeatNo" element={<AssignSeatNo />} />
->>>>>>> origin/main
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
+             <Route path="/hallticket" element={<HallTicketPage />} />
           </Route>
 
           {/* FUTURE: STUDENT PORTAL (Master Page 2) */}

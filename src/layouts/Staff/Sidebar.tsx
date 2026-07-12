@@ -185,7 +185,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Generate Hallticket",
-        path: "/blank",
+        path: "/Staff/GenerateHallTicket",
         pro: false,
       },
       {
