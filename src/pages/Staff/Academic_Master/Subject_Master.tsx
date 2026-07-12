@@ -897,9 +897,7 @@ export default function SubjectMaster() {
       )}
 
       <PageMeta title="Subject Master" description="Welcome to Subject Master" />
-      {/* <div className="w-full pt-1">
-        <div className=" min-h-[550px] rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"> */}
-
+ 
 <ComponentCard title="Subject Master">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-5">
             <Switch
@@ -1391,8 +1389,7 @@ export default function SubjectMaster() {
             </div>
 
           )}
-        {/* </div>
-      </div> */}
+ 
 </ComponentCard>
 
       {/* Modal */}
