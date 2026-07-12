@@ -7,11 +7,18 @@ import ExamDashboard from "./pages/Staff/Dashboard/Home"; // Import the moved da
 import SubjectMaster  from "./pages/Staff/Academic_Master/Subject_Master.tsx"; // Import the moved Subject Master
 import ExamMaster from "./pages/Staff/Academic_Master/ExamMaster.tsx"; // Import the moved Exam Master
 import RegularExam from "./pages/Staff/ConductExam/RegularExam.tsx";  // Import the moved Regular Exam 
+import AssignSeatNo from "./pages/Staff/ConductExam/AssignSeatNo.tsx"; // Import the moved Assign Exam 
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import EnterEligibility from "./pages/Staff/MarksEntry/EnterEligibility.tsx";
+import GenerateHallTicket  from "./pages/Staff/Reports/GenerateHallTicket.tsx"; // Import GenerateHallTicket component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
+import AddPermission from "./pages/Staff/Dashboard/AddPermission";
+import CreateUser from "./pages/Staff/Dashboard/CreateUser.tsx";
+import CollegeDetail from "./pages/Staff/Dashboard/CollegeDetail";
 import RoleMaster from "./pages/Staff/Admin/Role_master";
+import HallTicketPage from "./components/HallTicket/Hallticket.tsx";
+import MarksEntry from "./pages/Staff/Marks_entry/Marks_entry.tsx";
 
 
 
@@ -27,13 +34,20 @@ export default function App() {
             <Route path="/Staff" element={<StaffLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<ExamDashboard />} />
+              <Route path="AddPermission" element={<AddPermission />} />
+              <Route path="CreateUser" element={<CreateUser />} />
+              <Route path="CollegeDetail" element={<CollegeDetail />} />
                 <Route path="SubjectMaster" element={<SubjectMaster />} />
                     <Route path="ExamMaster" element={<ExamMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
                 <Route path="RegularExam" element={<RegularExam />} />
                   <Route path="EnterEligibility" element={<EnterEligibility />} />
+                 <Route path="GenerateHallTicket" element={<GenerateHallTicket />} />
+                <Route path="MarksEntry" element={<MarksEntry />} />
+                 <Route path="AssignSeatNo" element={<AssignSeatNo />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
+             <Route path="/hallticket" element={<HallTicketPage />} />
           </Route>
 
           {/* FUTURE: STUDENT PORTAL (Master Page 2) */}

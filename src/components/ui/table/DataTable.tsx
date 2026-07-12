@@ -46,8 +46,9 @@ const DataTable: React.FC<DataTableProps> = ({
     for (let key in filters) {
       const value = filters[key];
       if (value !== undefined && value !== "" && value !== null) {
-        result = result.filter((row) =>
-          String(row[key]).toLowerCase() === String(value).toLowerCase()
+        result = result.filter(
+          (row) =>
+            String(row[key]).toLowerCase() === String(value).toLowerCase(),
         );
       }
     }
@@ -56,8 +57,8 @@ const DataTable: React.FC<DataTableProps> = ({
     if (search && searchKeys.length > 0) {
       result = result.filter((row) =>
         searchKeys.some((key) =>
-          String(row[key]).toLowerCase().includes(search.toLowerCase())
-        )
+          String(row[key]).toLowerCase().includes(search.toLowerCase()),
+        ),
       );
     }
 
@@ -95,7 +96,7 @@ const DataTable: React.FC<DataTableProps> = ({
 
         const r = result as RenderResult;
         return r.rowSpan !== undefined && r.rowSpan > 1;
-      })
+      }),
     );
   }, [filteredData, columns]);
 
@@ -108,7 +109,7 @@ const DataTable: React.FC<DataTableProps> = ({
   const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
   const currentData = filteredData.slice(
     (page - 1) * pageSize,
-    page * pageSize
+    page * pageSize,
   );
 
   const handleSort = (key: string) => {
