@@ -173,7 +173,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Enter Eligibility",
-        path: "/blank",
+        path: "/Staff/EnterEligibility",
         pro: false,
       },
     ],

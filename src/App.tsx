@@ -9,6 +9,7 @@ import ExamMaster from "./pages/Staff/Academic_Master/ExamMaster.tsx"; // Import
 import RegularExam from "./pages/Staff/ConductExam/RegularExam.tsx";  // Import the moved Regular Exam 
 import AssignSeatNo from "./pages/Staff/ConductExam/AssignSeatNo.tsx"; // Import the moved Assign Exam 
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
+import EnterEligibility from "./pages/Staff/MarksEntry/EnterEligibility.tsx";
 import GenerateHallTicket  from "./pages/Staff/Reports/GenerateHallTicket.tsx"; // Import GenerateHallTicket component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
 import TopLoader from "./components/common/TopLoader"; 
@@ -40,6 +41,7 @@ export default function App() {
                     <Route path="ExamMaster" element={<ExamMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
                 <Route path="RegularExam" element={<RegularExam />} />
+                  <Route path="EnterEligibility" element={<EnterEligibility />} />
                  <Route path="GenerateHallTicket" element={<GenerateHallTicket />} />
                 <Route path="MarksEntry" element={<MarksEntry />} />
                  <Route path="AssignSeatNo" element={<AssignSeatNo />} />
