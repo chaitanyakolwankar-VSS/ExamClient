@@ -125,7 +125,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Student Master",
-        path: "/blank",
+        path: "/Staff/Student_Master",
         pro: false,
       },
       {
@@ -166,7 +166,7 @@ const navItems: NavItem[] = [
     subItems: [
       {
         icon: <SubMenuIcon />,
-        name: "Enter Marks",
+        name: "Enter Marks", 
         path: "/Staff/MarksEntry",
         pro: false,
       },
@@ -179,7 +179,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Enter Eligibility",
-        path: "/blank",
+        path: "/Staff/EnterEligibility",
         pro: false,
       },
     ],
@@ -191,7 +191,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Generate Hallticket",
-        path: "/blank",
+        path: "/Staff/GenerateHallTicket",
         pro: false,
       },
       {
