@@ -17,6 +17,7 @@ import AddPermission from "./pages/Staff/Dashboard/AddPermission";
 import CreateUser from "./pages/Staff/Dashboard/CreateUser.tsx";
 import CollegeDetail from "./pages/Staff/Dashboard/CollegeDetail";
 import RoleMaster from "./pages/Staff/Admin/Role_master";
+import StudentMaster from "./pages/Staff/Students Admin/Student_master";
 import HallTicketPage from "./components/HallTicket/Hallticket.tsx";
 import MarksEntry from "./pages/Staff/Marks_entry/Marks_entry.tsx";
 
@@ -40,6 +41,7 @@ export default function App() {
                 <Route path="SubjectMaster" element={<SubjectMaster />} />
                     <Route path="ExamMaster" element={<ExamMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
+              <Route path="Student_master" element={<StudentMaster />} />
                 <Route path="RegularExam" element={<RegularExam />} />
                   <Route path="EnterEligibility" element={<EnterEligibility />} />
                  <Route path="GenerateHallTicket" element={<GenerateHallTicket />} />
