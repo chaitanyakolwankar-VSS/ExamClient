@@ -15,6 +15,7 @@ export interface DownloadGazetteParams {
   subjectsPerRow?: number;
   cxgSems?: number[];
   gpaSems?: number[];
+  fileName?: string;
 }
 
 export interface DownloadMarksheetParams {
@@ -47,7 +48,7 @@ export const ReportService = {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `Gazette_${params.examId}.pdf`);
+      link.setAttribute("download", params.fileName ? `${params.fileName}.pdf` : `Gazette_${params.examId}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -67,7 +68,7 @@ export const ReportService = {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `Gazette_${params.examId}.xlsx`);
+      link.setAttribute("download", params.fileName ? `${params.fileName}.xlsx` : `Gazette_${params.examId}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
