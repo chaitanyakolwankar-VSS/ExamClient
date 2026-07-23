@@ -28,3 +28,10 @@ dist-ssr
 .env
 .env.test
 .env.production
+
+# Ignore zip archives
+*.zip
+
+# Ignore backup logo files
+*_1.svg
+

@@ -89,8 +89,13 @@ const DataTable: React.FC<DataTableProps> = ({
 
         const result = col.render(row);
 
-        // If JSX/Primitive, skip
-        if (React.isValidElement(result) || typeof result !== "object") {
+        // If null/undefined/JSX/Primitive, skip (typeof null === "object")
+        if (
+          result === null ||
+          result === undefined ||
+          React.isValidElement(result) ||
+          typeof result !== "object"
+        ) {
           return false;
         }
 
@@ -100,10 +105,14 @@ const DataTable: React.FC<DataTableProps> = ({
     );
   }, [filteredData, columns]);
 
-  // Reset page when filters or search change
+  // Reset page when filters or search change.
+  // Compare filters by value: the default `{}` is a new reference every
+  // render, which otherwise resets the page on each re-render and makes
+  // pagination impossible.
+  const filtersKey = JSON.stringify(filters);
   useEffect(() => {
     setPage(1);
-  }, [filters, search]);
+  }, [filtersKey, search]);
 
   // PAGINATION
   const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
@@ -197,10 +206,12 @@ const DataTable: React.FC<DataTableProps> = ({
                     let cell: RenderResult;
 
                     if (
+                      result === null ||
+                      result === undefined ||
                       React.isValidElement(result) ||
                       typeof result !== "object"
                     ) {
-                      cell = { content: result };
+                      cell = { content: result as React.ReactNode };
                     } else {
                       cell = result as RenderResult;
                     }

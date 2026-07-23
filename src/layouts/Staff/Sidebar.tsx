@@ -477,14 +477,14 @@ const AppSidebar: React.FC = () => {
             <>
               <img
                 className="dark:hidden"
-                src="/images/logo/logo.svg"
+                src={`${import.meta.env.BASE_URL}images/logo/logo.svg`}
                 alt="Logo"
                 width={80}
                 height={80}
               />
               <img
                 className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
+                src={`${import.meta.env.BASE_URL}images/logo/logo-dark.svg`}
                 alt="Logo"
                 width={80}
                 height={80}
@@ -492,7 +492,7 @@ const AppSidebar: React.FC = () => {
             </>
           ) : (
             <img
-              src="/images/logo/logo-icon.svg"
+              src={`${import.meta.env.BASE_URL}images/logo/logo-icon.svg`}
               alt="Logo"
               width={32}
               height={32}

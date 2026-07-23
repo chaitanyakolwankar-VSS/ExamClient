@@ -28,9 +28,11 @@ import HallTicketPage from "./components/HallTicket/Hallticket.tsx";
 
 
 export default function App() {
+  const basename = import.meta.env.DEV ? "" : "/ExamSoftware";
+
   return (
     <>
-      <Router>
+      <Router basename={basename}>
         <ScrollToTop />
         <TopLoader />
         <Routes>
@@ -70,7 +72,7 @@ export default function App() {
           {/* DEFAULT REDIRECT */}
           <Route
             path="/"
-            element={<Navigate to="/staff/dashboard" replace />}
+            element={<Navigate to="/Staff/dashboard" replace />}
           />
           <Route path="*" element={<NotFound />} />
         </Routes>

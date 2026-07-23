@@ -485,6 +485,7 @@ export default function StudentMaster() {
     setStudentId("");
     setSearchCourse("");
     setDataList([]);
+    setSearched(false);
     setMode("new");
 
   };
@@ -510,6 +511,7 @@ export default function StudentMaster() {
     setLname("");
     setSearchPrn("");
     setDataList([]);
+    setSearched(false);
   };
 
   //
@@ -566,6 +568,7 @@ export default function StudentMaster() {
       });
       return;
     }
+    const ayid = localStorage.getItem("AYID") ?? "";
     const payload = {
       courseId: selectedCourse,
       semesterId: selectedSemester,
@@ -576,6 +579,7 @@ export default function StudentMaster() {
       studentprn: prn,
       gender: gender,
       dyslexia: Dyslexia,
+      ayid: ayid,
     };
     try {
       const res = await StudentMasterService.SaveStudent(payload);
@@ -610,6 +614,7 @@ export default function StudentMaster() {
 
   //searchbycourse
   const [dataList, setDataList] = useState<FetchData[]>([]);
+  const [searched, setSearched] = useState(false);
 
   const [alert2, setAlert2] = useState<{
     variant: "warning";
@@ -673,6 +678,7 @@ export default function StudentMaster() {
     }
 
     setLoading(true);
+    setSearched(true);
 
     try {
 
@@ -698,7 +704,7 @@ export default function StudentMaster() {
 
       }
 
-      setDataList(data ?? []);
+      setDataList(Array.isArray(data) ? data : []);
 
     } catch (err) {
 
@@ -1010,6 +1016,12 @@ export default function StudentMaster() {
               filters={filters}
               pageSizeOptions={[5, 10, 20, 50]}
             />
+          )}
+          {!loading && searched && dataList.length === 0 && (
+            <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+              No students found. Check that the Academic Year selected in the header
+              matches the students you are looking for.
+            </p>
           )}
         </ComponentCard>
       )}

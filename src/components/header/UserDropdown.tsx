@@ -10,7 +10,7 @@ export default function UserDropdown() {
   // Define Base/Fallback values
   const displayName = user?.name || "Guest User";
   const displayEmail = user?.email || "guest@example.com";
-  const displayAvatar = user?.avatar || "/images/user/owner.png"; // Default base image
+  const displayAvatar = user?.avatar || `${import.meta.env.BASE_URL}images/user/owner.png`; // Default base image
   // const displayRole = user?.role || "Visitor"; // Optional if you want to show role
   function toggleDropdown() {
     setIsOpen(!isOpen);
