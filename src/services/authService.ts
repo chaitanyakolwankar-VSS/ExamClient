@@ -1,7 +1,9 @@
 import apiClient from "../api/Client";
 
 export interface LoginRequest {
-  username: string;
+  // Email is the login identifier: usernames are only unique within a college,
+  // so they cannot identify a user across colleges.
+  email: string;
   password: string;
 }
 
@@ -12,6 +14,7 @@ export interface LoginResponse {
     username: string;
     email: string;
     role: string;
+    isPlatformAdmin: boolean;
   };
   college: {
     collegeId: string;
