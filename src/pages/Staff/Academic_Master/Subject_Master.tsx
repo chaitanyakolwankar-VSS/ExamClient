@@ -11,7 +11,7 @@ import { CourseService, CourseApiResponse } from "../../../services/Course";
 import { PatternService, PatternApiResponse } from "../../../services/Pattern";
 import { GetSubject, SubjectApiResponse } from "../../../services/GetSubject";
 import Switch from "../../../components/form/switch/Switch";
-import { Subject, SubjectService, SaveCreditsPayload, GetCredits, PreviousCredits, DeleteCredits, DeleteSubject } from "../../../services/SubjectService";
+import { Subject, SubjectService, SaveCreditsPayload, GetCredits, PreviousCredits, DeleteCredits, DeleteSubject, PassingStrategy } from "../../../services/SubjectService";
 import { academicYearService } from "../../../services/academicYearService";
 import Alert from "../../../components/ui/alert/Alert";
 import Input from "../../../components/form/input/InputField";
@@ -48,6 +48,7 @@ interface CreditFormState {
   internalPassing: string;
 
   passingPercentage: string;
+  passingStrategy: PassingStrategy;
 }
 
 export default function SubjectMaster() {
@@ -146,6 +147,7 @@ export default function SubjectMaster() {
           internalPassing: "",
 
           passingPercentage: "",
+          passingStrategy: "HeadWise",
         });
       }
 
@@ -338,6 +340,7 @@ export default function SubjectMaster() {
           internalPassing: item.internalPassing,
 
           passingPercentage: item.passingPercentage,
+          passingStrategy: item.passingStrategy,
         })),
       };
 
@@ -416,6 +419,7 @@ export default function SubjectMaster() {
           internalPassing: item.internalPassing,
 
           passingPercentage: item.passingPercentage,
+          passingStrategy: item.passingStrategy,
         })),
       };
 
@@ -506,11 +510,12 @@ export default function SubjectMaster() {
         return false;
       }
 
-      if (c.passingPercentage === "" || c.passingPercentage == null) {
+      // Only a combined subject needs a subject-level threshold; head-wise uses each head's own.
+      if (c.passingStrategy === "Combined" && (c.passingPercentage === "" || c.passingPercentage == null)) {
         setAlert({
           variant: "error",
           title: "Validation Error",
-          message: `Passing Percentage should not be blank for Credit ${i + 1}`,
+          message: `Combined Passing % should not be blank for Credit ${i + 1}`,
         });
         return false;
       }
@@ -821,6 +826,7 @@ export default function SubjectMaster() {
           internalOutOf: c.internalOutOf ?? "",
           internalPassing: c.internalPassing ?? "",
           passingPercentage: c.passingPercentage ?? "",
+          passingStrategy: c.passingStrategy ?? "HeadWise",
         }))
       );
     }
@@ -1150,6 +1156,32 @@ export default function SubjectMaster() {
                             }
                             className="border p-2 rounded"
                           />
+
+                          {/* Head-wise: every head must clear its own passing marks.
+                              Combined: only the sum must clear the threshold. */}
+                          <select
+                            disabled={IsViewMode}
+                            value={creditData[index]?.passingStrategy ?? "HeadWise"}
+                            onChange={(e) => {
+                              const passingStrategy = e.target.value as PassingStrategy;
+                              setCreditData(prev =>
+                                prev.map((item, i) =>
+                                  i === index
+                                    ? {
+                                        ...item,
+                                        passingStrategy,
+                                        // A head-wise subject has no subject-level threshold.
+                                        passingPercentage: passingStrategy === "Combined" ? item.passingPercentage : "",
+                                      }
+                                    : item
+                                )
+                              );
+                            }}
+                            className="mt-2 w-full rounded border border-gray-300 p-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                          >
+                            <option value="HeadWise">Head-wise</option>
+                            <option value="Combined">Combined</option>
+                          </select>
                         </TableCell>
 
                         <TableCell className="p-3">
@@ -1252,9 +1284,12 @@ export default function SubjectMaster() {
                           />
                         </TableCell>
                         <TableCell className="p-3" rowSpan={2}>
+                          {/* Only a combined subject has a subject-level threshold; a head-wise
+                              subject passes on each head's own passing marks. */}
+                          {creditData[index]?.passingStrategy === "Combined" ? (
                           <Input
                             type="number"
-                            label="Passing Marks in %"
+                            label="Combined Passing %"
                             disabled={
                               !(
                                 Object.values(creditData[index]?.examType ?? {}).some(Boolean) ||
@@ -1277,6 +1312,11 @@ export default function SubjectMaster() {
                             }}
                             className="border p-2 rounded"
                           />
+                          ) : (
+                            <span className="text-xs text-gray-400 dark:text-gray-500">
+                              Per head
+                            </span>
+                          )}
                         </TableCell>
 
                       </TableRow>

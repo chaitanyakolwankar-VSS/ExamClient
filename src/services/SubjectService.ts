@@ -30,8 +30,14 @@ export interface CreditItem {
   internalOutOf: string;
   internalPassing: string;
 
+  /** Combined pass threshold as a % of the subject total; only meaningful when Combined. */
   passingPercentage: string;
+
+  /** How the subject decides pass/fail. Defaults to head-wise. */
+  passingStrategy?: PassingStrategy;
 }
+
+export type PassingStrategy = "HeadWise" | "Combined";
 
 export interface SaveCreditsPayload {
   subjectId: string;

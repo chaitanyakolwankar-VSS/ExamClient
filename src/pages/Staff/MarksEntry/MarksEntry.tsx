@@ -10,7 +10,7 @@ import { CourseService } from "../../../services/Course";
 import { PatternService } from "../../../services/Pattern";
 import { GetSubject } from "../../../services/GetSubject";
 import { RegularExamService } from "../../../services/RegularExamService";
-import { MarksEntryService, MarksEntryData } from "../../../services/MarksEntryService";
+import { MarksEntryService, MarksEntryData, StudentHeadMarks } from "../../../services/MarksEntryService";
 import { Loader2, Save, Search, Download, Upload, RefreshCcw, X } from "lucide-react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
@@ -36,6 +36,9 @@ export default function MarksEntry() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const originalMarksMapRef = useRef<Record<string, string>>({});
   const originalRankRef = useRef<string>("0");
+  /** Condonation limit per head, keyed by subjectCreditId. */
+  const [resolutions, setResolutions] = useState<Record<string, string>>({});
+  const originalResolutionsRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     if (pageAlert) {
@@ -182,7 +185,16 @@ export default function MarksEntry() {
           setRank("0");
           originalRankRef.current = "0";
         }
-        
+
+        // Resolution is configured per head and shared by every student in the subject.
+        const fetchedResolutions: Record<string, string> = {};
+        normalizedData[0]?.heads.forEach(head => {
+          fetchedResolutions[head.subjectCreditId] = head.resolution ? head.resolution.toString() : "";
+        });
+        setResolutions(fetchedResolutions);
+        originalResolutionsRef.current = fetchedResolutions;
+
+
         // Build a high-speed O(1) lookup map of original marks
         const marksMap: Record<string, string> = {};
         normalizedData.forEach(student => {
@@ -309,14 +321,31 @@ export default function MarksEntry() {
 
     const hasRankChanged = rank !== originalRankRef.current;
 
-    if (updates.length === 0 && !hasRankChanged) {
+    // Send every configured limit, not just the edited ones: the backend re-applies resolution
+    // to the whole subject on save, so it needs the full picture.
+    const resolutionUpdates = Object.entries(resolutions).map(([subjectCreditId, value]) => ({
+      subjectCreditId,
+      resolution: value === "" ? null : Number(value),
+    }));
+
+    const hasResolutionChanged = resolutionUpdates.some(
+      r => (originalResolutionsRef.current[r.subjectCreditId] ?? "") !== (r.resolution?.toString() ?? "")
+    );
+
+    if (updates.length === 0 && !hasRankChanged && !hasResolutionChanged) {
       Swal.fire("Info", "No changes detected to save.", "info");
       return;
     }
 
     setLoading(true);
     try {
-        const res = await MarksEntryService.saveMarks({ updates, rank: parsedRank });
+        const res = await MarksEntryService.saveMarks({
+            updates,
+            rank: parsedRank,
+            examId: selectedExam,
+            subjectId: selectedSubject,
+            resolutions: resolutionUpdates,
+        });
         if (res.success) {
             Swal.fire("Saved!", "Marks updated successfully.", "success");
             handleFetchData();
@@ -494,6 +523,32 @@ export default function MarksEntry() {
     }
   };
 
+  /**
+   * Whether to flag this mark box red. Head-wise compares the head against its own passing
+   * marks; combined compares the subject total against its threshold, so either every head of
+   * the subject is flagged or none is.
+   */
+  const isSubjectFailing = (row: MarksEntryData, head: StudentHeadMarks) => {
+    if (row.passingStrategy === "Combined") {
+      const entered = row.heads.filter(h => (h.marks ?? "").toString().trim() !== "");
+      if (entered.length !== row.heads.length) return false; // incomplete: nothing to judge yet
+
+      const obtained = row.heads.reduce((sum, h) => {
+        const value = (h.marks ?? "").toString().trim();
+        return sum + (value.toLowerCase() === "ab" ? 0 : Number(value) || 0);
+      }, 0);
+      const outOf = row.heads.reduce((sum, h) => sum + h.outOf, 0);
+      const required = row.passPercentage
+        ? Math.ceil((outOf * row.passPercentage) / 100)
+        : row.heads.reduce((sum, h) => sum + h.passing, 0);
+
+      return obtained < required;
+    }
+
+    const marks = (head.marks ?? "").toString();
+    return marks !== "" && !isNaN(Number(marks)) && parseInt(marks) < head.passing;
+  };
+
   const columns = useMemo(() => {
     const base = [
         { key: "seatNo", label: "Seat No", sortable: true },
@@ -511,8 +566,12 @@ export default function MarksEntry() {
                     if (!head) return "-";
                     
                     const isAb = (head.marks ?? "").toString().toLowerCase() === 'ab';
-                    const isFail = !isAb && (head.marks ?? "").toString() !== "" && !isNaN(Number(head.marks)) && parseInt(head.marks.toString()) < head.passing;
-                    
+
+                    // A combined subject is judged on the sum of its heads, so flagging a head
+                    // that is below its own minimum would be misleading -- colour the whole row
+                    // from the subject total instead.
+                    const isFail = !isAb && isSubjectFailing(row, head);
+
                     const graceVal = head.grace ?? "";
                     const isResolution = graceVal === "^";
                     const isGraceStar = graceVal === "*";
@@ -739,7 +798,39 @@ export default function MarksEntry() {
                   </Button>
               </div>
            </div>
-            
+
+            {/* Resolution: the staff's condonation limit per head, set while viewing the marks
+                (this used to live in Exam Master). Applied on Save, marked with '^'. */}
+            {marksData.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3 mb-4 border-t border-gray-100 dark:border-gray-800 pt-3">
+                <span className="text-gray-400 dark:text-gray-500 uppercase tracking-wider text-[10px]">
+                  Resolution:
+                </span>
+                {marksData[0].heads.map(h => (
+                  <div key={h.subjectCreditId} className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{h.headName}</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={resolutions[h.subjectCreditId] ?? ""}
+                      placeholder="0"
+                      maxLength={2}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "").slice(0, 2);
+                        setResolutions(prev => ({ ...prev, [h.subjectCreditId]: value }));
+                      }}
+                      className="h-9 w-16 rounded border border-gray-300 px-2 text-center text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                ))}
+                <span className="text-[11px] text-gray-400 dark:text-gray-500">
+                  {marksData[0].passingStrategy === "Combined"
+                    ? "Closes the subject deficit using the head(s) you set a limit on."
+                    : "Lifts a head to its own passing marks when it falls short by no more than the limit."}
+                </span>
+              </div>
+            )}
+
             {/* Color Legend */}
             <div className="flex flex-wrap items-center gap-4 mb-4 text-xs font-medium text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800 pt-3">
               <span className="text-gray-400 dark:text-gray-500 uppercase tracking-wider text-[10px]">Legend:</span>
@@ -776,6 +867,7 @@ export default function MarksEntry() {
                     columns={columns}
                     searchKeys={["studentId", "studentName", "seatNo"]}
                     pageSizeOptions={[20, 50, 100]}
+                    stickyHeader
                 />
            </div>
         </div>
