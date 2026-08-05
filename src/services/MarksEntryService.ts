@@ -15,15 +15,23 @@ export interface MarksEntryFilterRequest {
     studentId?: string;
 }
 
+export type PassingStrategy = "HeadWise" | "Combined";
+
 export interface StudentHeadMarks {
     studentMarksId: string;
     creditId: string;
+    /** The configured head row; resolution limits are keyed on this. */
+    subjectCreditId: string;
     headName: string;
     marks: string;
     outOf: number;
     passing: number;
     grace?: string;
-    remark?: string;
+    isAbsent: boolean;
+    /** Derived server-side: whether this head clears its own passing marks. */
+    isPassed: boolean;
+    /** Condonation limit configured for this head on this exam. */
+    resolution?: number | null;
     isEnabled: boolean;
 }
 
@@ -33,6 +41,9 @@ export interface MarksEntryData {
     studentName: string;
     seatNo: string;
     rank: number;
+    /** Combined subjects are judged on the sum of their heads, not per head. */
+    passingStrategy: PassingStrategy;
+    passPercentage?: number | null;
     heads: StudentHeadMarks[];
 }
 
@@ -42,6 +53,14 @@ export interface SaveMarksRequest {
         marks: string;
     }[];
     rank: number;
+    /** Scopes the resolution pass, which spans a subject's heads even when no mark changed. */
+    examId: string;
+    subjectId: string;
+    /** Resolution limits per head; the backend upserts these into ResolutionMaster. */
+    resolutions: {
+        subjectCreditId: string;
+        resolution: number | null;
+    }[];
 }
 
 export const MarksEntryService = {

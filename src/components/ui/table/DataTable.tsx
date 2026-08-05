@@ -23,6 +23,9 @@ interface DataTableProps<T = any> {
   searchKeys?: string[];
   filters?: Record<string, any>;
   pageSizeOptions?: number[];
+  /** Keeps the header row visible while the body scrolls. Opt-in so other screens keep their
+   *  existing full-height layout. */
+  stickyHeader?: boolean;
 }
 
 const DataTable: React.FC<DataTableProps> = ({
@@ -31,6 +34,7 @@ const DataTable: React.FC<DataTableProps> = ({
   searchKeys = [],
   filters = {},
   pageSizeOptions = [5, 10, 20, 50],
+  stickyHeader = false,
 }) => {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -166,9 +170,9 @@ const DataTable: React.FC<DataTableProps> = ({
       </div>
 
       {/* TABLE */}
-      <div className=" overflow-y-auto border rounded-lg">
+      <div className={`overflow-y-auto border rounded-lg ${stickyHeader ? "max-h-[70vh]" : ""}`}>
         <table className="w-full border border-gray-200 rounded-lg text-sm">
-          <thead className="bg-gray-100">
+          <thead className={`bg-gray-100 ${stickyHeader ? "sticky top-0 z-20" : ""}`}>
             <tr>
               {columns.map((col) => (
                 <th
