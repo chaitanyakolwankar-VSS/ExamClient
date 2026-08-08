@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: 'https://localhost:7225/api', // Check your API port!
+  baseURL: import.meta.env.DEV ? 'https://localhost:7225/api' : '/ExamAPI/api',
   headers: {
     'Content-Type': 'application/json',
   },

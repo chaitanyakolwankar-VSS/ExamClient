@@ -22,7 +22,7 @@ AuthLayoutProps) {
           {/* Logo Header */}
           <div className="mb-10 flex items-center gap-3">
             <img
-              src="/images/logo/logo-icon.svg"
+              src={`${import.meta.env.BASE_URL}images/logo/logo-icon.svg`}
               alt="Logo"
               className="h-20 w-20"
             />
@@ -49,7 +49,7 @@ AuthLayoutProps) {
         <div className="relative z-10 max-w-lg px-10 text-center">
           <div className="mb-10 flex items-center gap-3 align-middle justify-center">
             <img
-              src="/images/logo/logo-icon.svg"
+              src={`${import.meta.env.BASE_URL}images/logo/logo-icon.svg`}
               alt="Logo"
               className="h-40 w-40"
             />

@@ -35,7 +35,7 @@ export default function MarksEntry() {
           options={CourseOption}
           placeholder="Select Course"
           value={selectedCourse}
-          onChange={Selectcourse}
+          onChange={setSelectedCourse}
         />
 
         {/* Status Dropdown */}
@@ -43,7 +43,7 @@ export default function MarksEntry() {
           options={Semesteroption}
           placeholder="Select Semester"
           value={selectedSemester}
-          onChange={Selectsemester}
+          onChange={setSelectedSemester}
         />
 
       </div>

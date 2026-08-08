@@ -70,6 +70,12 @@ const navItems: NavItem[] = [
     subItems: [
       {
         icon: <SubMenuIcon />,
+        name: "Ordineances",
+        path: "/Staff/Ordinance",
+        pro: false,
+      },
+      {
+        icon: <SubMenuIcon />,
         name: "Subject Master",
         path: "/Staff/SubjectMaster",
         pro: false,
@@ -167,13 +173,13 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Apply Grace Marks",
-        path: "/blank",
+        path: "/Staff/OverallMarksEntry",
         pro: false,
       },
       {
         icon: <SubMenuIcon />,
         name: "Enter Eligibility",
-        path: "/blank",
+        path: "/Staff/EnterEligibility",
         pro: false,
       },
     ],
@@ -185,19 +191,19 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Generate Hallticket",
-        path: "/blank",
+        path: "/Staff/GenerateHallTicket",
         pro: false,
       },
       {
         icon: <SubMenuIcon />,
         name: "Generate Gazette",
-        path: "/blank",
+        path: "/Staff/Gazette",
         pro: false,
       },
       {
         icon: <SubMenuIcon />,
         name: "Generate Result",
-        path: "/blank",
+        path: "/Staff/Marksheet",
         pro: false,
       },
       {
@@ -481,14 +487,14 @@ const AppSidebar: React.FC = () => {
             <>
               <img
                 className="dark:hidden"
-                src="/images/logo/logo.svg"
+                src={`${import.meta.env.BASE_URL}images/logo/logo.svg`}
                 alt="Logo"
                 width={80}
                 height={80}
               />
               <img
                 className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
+                src={`${import.meta.env.BASE_URL}images/logo/logo-dark.svg`}
                 alt="Logo"
                 width={80}
                 height={80}
@@ -496,7 +502,7 @@ const AppSidebar: React.FC = () => {
             </>
           ) : (
             <img
-              src="/images/logo/logo-icon.svg"
+              src={`${import.meta.env.BASE_URL}images/logo/logo-icon.svg`}
               alt="Logo"
               width={32}
               height={32}

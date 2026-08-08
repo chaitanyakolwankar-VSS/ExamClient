@@ -11,17 +11,28 @@ import AssignSeatNo from "./pages/Staff/ConductExam/AssignSeatNo.tsx"; // Import
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import TopLoader from "./components/common/TopLoader";
+import EnterEligibility from "./pages/Staff/MarksEntry/EnterEligibility.tsx";
+import GenerateHallTicket from "./pages/Staff/Reports/GenerateHallTicket.tsx"; // Import GenerateHallTicket component
 import AddPermission from "./pages/Staff/Dashboard/AddPermission";
 import CreateUser from "./pages/Staff/Dashboard/CreateUser.tsx";
 import CollegeDetail from "./pages/Staff/Dashboard/CollegeDetail";
 import RoleMaster from "./pages/Staff/Admin/Role_master";
-import MarksEntry from "./pages/Staff/Marks_entry/Marks_entry.tsx";
 import DeclareResult from "./pages/Staff/Students Admin/DeclareResult.tsx";
+import Ordinance from "./pages/Staff/Academic_Master/Ordinance.tsx";
+import OverallMarksEntry from "./pages/Staff/MarksEntry/OverallMarksEntry.tsx";
+import MarksEntry from "./pages/Staff/MarksEntry/MarksEntry.tsx";
+import Gazette from "./pages/Staff/Reports/Gazette.tsx";
+import Marksheet from "./pages/Staff/Reports/Marksheet.tsx";
+import StudentMaster from "./pages/Staff/Students Admin/Student_master";
+import HallTicketPage from "./components/HallTicket/Hallticket.tsx";
+import ReleaseHallTicket from "./pages/Staff/Students Admin/ReleaseHallTicket.tsx";
 
 export default function App() {
+  const basename = import.meta.env.DEV ? "" : "/ExamSoftware";
+
   return (
     <>
-      <Router>
+      <Router basename={basename}>
         <ScrollToTop />
         <TopLoader />
         <Routes>
@@ -36,14 +47,31 @@ export default function App() {
               <Route path="SubjectMaster" element={<SubjectMaster />} />
               <Route path="ExamMaster" element={<ExamMaster />} />
               <Route path="Role_master" element={<RoleMaster />} />
+
               <Route path="RegularExam" element={<RegularExam />} />
               <Route path="MarksEntry" element={<MarksEntry />} />
 
               <Route path="AssignSeatNo" element={<AssignSeatNo />} />
               <Route path="DeclareResult" element={<DeclareResult />} />
+              <Route path="ReleaseHallTicket" element={<ReleaseHallTicket />} />
+
+              <Route path="Ordinance" element={<Ordinance />} />
+              <Route path="OverallMarksEntry" element={<OverallMarksEntry />} />
+              <Route path="Student_master" element={<StudentMaster />} />
+              <Route path="RegularExam" element={<RegularExam />} />
+              <Route path="EnterEligibility" element={<EnterEligibility />} />
+              <Route
+                path="GenerateHallTicket"
+                element={<GenerateHallTicket />}
+              />
+              <Route path="MarksEntry" element={<MarksEntry />} />
+              <Route path="AssignSeatNo" element={<AssignSeatNo />} />
+              <Route path="Gazette" element={<Gazette />} />
+              <Route path="Marksheet" element={<Marksheet />} />
 
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
+            <Route path="/hallticket" element={<HallTicketPage />} />
           </Route>
 
           {/* FUTURE: STUDENT PORTAL (Master Page 2) */}
@@ -56,7 +84,7 @@ export default function App() {
           {/* DEFAULT REDIRECT */}
           <Route
             path="/"
-            element={<Navigate to="/staff/dashboard" replace />}
+            element={<Navigate to="/Staff/dashboard" replace />}
           />
           <Route path="*" element={<NotFound />} />
         </Routes>

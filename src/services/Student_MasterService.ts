@@ -8,7 +8,8 @@ export interface StudentMasterDto {
 
 export const StudentMasterService = {
   async GetData(): Promise<StudentMasterDto[]> {
-    const response = await apiClient.get<StudentMasterDto[]>("/StudentMaster/GetData");
+    const ayid = localStorage.getItem("AYID") ?? "";
+    const response = await apiClient.get<StudentMasterDto[]>(`/StudentMaster/GetData?ayid=${ayid}`);
     return response.data;
   },
 
@@ -16,14 +17,22 @@ export const StudentMasterService = {
     return apiClient.post("/StudentMaster/SaveStudent", payload);
   },
    GetByCourse: async (courseId: string) => {
-    const res = await apiClient.get(`/StudentMaster/Getbycourse?courseId=${courseId}`);
+    const ayid = localStorage.getItem("AYID") ?? "";
+    const res = await apiClient.get(`/StudentMaster/Getbycourse?courseId=${courseId}&ayid=${ayid}`);
     return res.data;
   },
   SearchStudents(payload: any) {
-  return apiClient.post("/StudentMaster/SearchStudents", payload)
-    .then(res => res.data);
-}
+    const ayid = localStorage.getItem("AYID") ?? "";
+    return apiClient.post("/StudentMaster/SearchStudents", { ...payload, AYID: ayid })
+      .then(res => res.data);
+  }
 };
+
+
+ 
+
+ 
+
 
 
  

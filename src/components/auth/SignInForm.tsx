@@ -41,7 +41,7 @@ export default function SignInForm() {
         name: data.user.username,
         email: data.user.email,
         role: data.user.role,
-        avatar: "/images/user/owner.png",
+        avatar: `${import.meta.env.BASE_URL}images/user/owner.png`,
         CollegeId: data.college.collegeId,
       };
 
