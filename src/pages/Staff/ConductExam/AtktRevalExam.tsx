@@ -58,6 +58,25 @@ const statusClasses: Record<string, string> = {
   NotAttempted: "bg-gray-50 text-gray-500 dark:bg-white/[0.03] dark:text-gray-400",
 };
 
+/** Subject-scope tokens come back normalised ("NOTATTEMPTED"); make them readable. */
+const scopeLabels: Record<string, string> = {
+  FAILED: "failed",
+  PASSED: "cleared",
+  ABSENT: "absent",
+  NOTATTEMPTED: "not attempted",
+};
+
+const describeScopes = (scopes: string[]): string =>
+  scopes.length === 0
+    ? "every subject"
+    : scopes.map((s) => scopeLabels[s] ?? s.toLowerCase()).join(", ");
+
+const PolicyChip = ({ label, value }: { label: string; value: string }) => (
+  <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+    {label}: {value}
+  </span>
+);
+
 /** Isolated so ticking one box does not re-render every other cell of the grid. */
 const SelectableCell = React.memo(function SelectableCell({
   stdMstId,
@@ -740,31 +759,27 @@ export default function AtktRevalExam() {
 
         </div>
 
-        {/* Policy banner: the server-side configuration, made visible to the operator */}
+        {/* Which ordinance rule set is governing this screen, made visible to the operator */}
         {policy && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <span className="font-semibold text-gray-700 dark:text-gray-300">{policy.name}</span>
-            <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
-              Passed subjects: {policy.offerPassedSubjects ? "allowed" : "blocked"}
+            <span className="font-semibold text-gray-700 dark:text-gray-300">
+              {policy.ruleSetName}
+              {policy.examType ? ` (${policy.examType})` : ""}
             </span>
-            <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
-              Absent students: {policy.blockAbsentStudents ? "blocked" : "allowed"}
-            </span>
-            {policy.eligibleHeadTypes.length > 0 && (
-              <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
-                Heads: {policy.eligibleHeadTypes.join(", ")}
+            {!policy.isConfigured && (
+              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-amber-700 dark:border-amber-700/50 dark:bg-amber-500/10 dark:text-amber-400">
+                No rule set configured — using defaults
               </span>
             )}
+            <PolicyChip label="Subjects" value={describeScopes(policy.subjectScopes)} />
+            <PolicyChip
+              label="Heads"
+              value={policy.headTypes.length > 0 ? policy.headTypes.join(", ") : "all heads re-attempted"}
+            />
             {policy.maxSubjectsPerStudent != null && (
-              <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
-                Max subjects: {policy.maxSubjectsPerStudent}
-              </span>
+              <PolicyChip label="Max subjects" value={String(policy.maxSubjectsPerStudent)} />
             )}
-            {policy.hasEligibilityRules && policy.ruleSetName && (
-              <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
-                Rules: {policy.ruleSetName}
-              </span>
-            )}
+            {policy.rules.length > 0 && <PolicyChip label="Rules" value={policy.rules.join(", ")} />}
           </div>
         )}
 

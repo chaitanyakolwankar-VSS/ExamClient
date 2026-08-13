@@ -6,26 +6,27 @@ export interface ApiResponse<T> {
     data?: T;
 }
 
-/** The effective assignment policy, echoed by the server so the screen stays data driven. */
+/**
+ * The ordinance rule set governing this screen, echoed by the server so the operator can see
+ * what is being applied and why a cell is locked. There is no separate assignment config --
+ * this is resolved from RuleSet / Rule / RuleAction.
+ */
 export interface AtktPolicy {
-    policyId: string;
-    name: string;
+    ruleSetId: string;
+    ruleSetName: string;
+    examType?: string | null;
+    /** "ATKT" | "Revaluation". */
     mode: string;
-    requireFailedSubject: boolean;
-    offerPassedSubjects: boolean;
-    blockAbsentStudents: boolean;
-    autoSelectFailedSubjects: boolean;
-    carryForwardSeatNo: boolean;
-    carryForwardMarks: boolean;
-    blockDeleteAfterMarksEntry: boolean;
+    /** False when no rule set governs this exam type and the built-in fallback is in force. */
+    isConfigured: boolean;
+    /** Subject statuses in scope. Empty means every subject. */
+    subjectScopes: string[];
+    /** Heads that get re-attempted. Empty means every head of a selected subject. */
+    headTypes: string[];
+    /** From RuleAction.MaxTargetCount. Null means no cap. */
     maxSubjectsPerStudent?: number | null;
-    subjectsPerRow: number;
-    eligibleHeadTypes: string[];
-    sourceExamTypes: string[];
-    targetExamTypes: string[];
-    /** True when an eligibility rule set from the ordinance engine is gating the list. */
-    hasEligibilityRules: boolean;
-    ruleSetName?: string | null;
+    /** Names of the rules that grant assignment. */
+    rules: string[];
 }
 
 export interface AtktExamOption {
@@ -67,8 +68,10 @@ export interface AtktCell {
     obtainedTotal: number;
     outOfTotal: number;
     requiredToPass: number;
+    /** Marks short of passing. 0 when cleared. */
+    deficit: number;
     isAbsent: boolean;
-    /** Whether the operator may tick this cell, per the policy. */
+    /** Whether the operator may tick this cell, per the governing rule. */
     selectable: boolean;
     /** Current selection -- true when the student is appearing for this subject. */
     selected: boolean;
@@ -105,7 +108,6 @@ export interface AtktMatrixRequest {
     /** Required for revaluation; for ATKT the student's latest attempt is used. */
     sourceExamId?: string | null;
     targetExamId: string;
-    policyId?: string | null;
     /** false = list candidates not yet assigned; true = list students already assigned. */
     editMode: boolean;
 }
@@ -138,13 +140,6 @@ export interface AtktSaveResult {
 }
 
 export const AtktRevalExamService = {
-    async getPolicies(mode?: string): Promise<AtktPolicy[]> {
-        const response = await apiClient.get<AtktPolicy[]>(
-            "/AtktRevalExam/policies", { params: { mode } }
-        );
-        return response.data;
-    },
-
     async getSourceExams(params: {
         courseId: string;
         ayid: string;

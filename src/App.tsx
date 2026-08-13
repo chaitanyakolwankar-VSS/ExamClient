@@ -7,7 +7,8 @@ import ExamDashboard from "./pages/Staff/Dashboard/Home"; // Import the moved da
 import SubjectMaster  from "./pages/Staff/Academic_Master/Subject_Master.tsx"; // Import the moved Subject Master
 import ExamMaster from "./pages/Staff/Academic_Master/ExamMaster.tsx"; // Import the moved Exam Master
 import RegularExam from "./pages/Staff/ConductExam/RegularExam.tsx";  // Import the moved Regular Exam 
-import AssignSeatNo from "./pages/Staff/ConductExam/AssignSeatNo.tsx"; // Import the moved Assign Exam 
+import AssignSeatNo from "./pages/Staff/ConductExam/AssignSeatNo.tsx"; // Import the moved Assign Exam
+import AtktRevalExam from "./pages/Staff/ConductExam/AtktRevalExam.tsx"; // ATKT / Revaluation assignment
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import EnterEligibility from "./pages/Staff/MarksEntry/EnterEligibility.tsx";
 import GenerateHallTicket  from "./pages/Staff/Reports/GenerateHallTicket.tsx"; // Import GenerateHallTicket component
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="OverallMarksEntry" element={<OverallMarksEntry />} />
               <Route path="Student_master" element={<StudentMaster />} />
                 <Route path="RegularExam" element={<RegularExam />} />
+                <Route path="AtktRevalExam" element={<AtktRevalExam />} />
                   <Route path="EnterEligibility" element={<EnterEligibility />} />
                  <Route path="GenerateHallTicket" element={<GenerateHallTicket />} />
                 <Route path="MarksEntry" element={<MarksEntry />} />

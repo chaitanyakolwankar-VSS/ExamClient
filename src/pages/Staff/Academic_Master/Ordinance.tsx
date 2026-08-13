@@ -140,6 +140,9 @@ export default function Ordinance() {
     { value: "Regular", label: "Regular" },
     { value: "KT", label: "KT / ATKT" },
     { value: "REEXAM", label: "Re-Exam" },
+    // Revaluation exams inherit their parent's ExamType, so a rule set opts in to governing
+    // them by carrying this value instead.
+    { value: "REVAL", label: "Revaluation" },
   ];
 
   const filters = useMemo(() => ({}), []);
