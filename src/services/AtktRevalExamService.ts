@@ -87,6 +87,7 @@ export interface AtktStudentRow {
     sourceMarksId?: string | null;
     sourceExamId?: string | null;
     sourceExamName?: string | null;
+    sourceSelectionReason?: string | null;
     /** Non-null once the student has been assigned to the target exam. */
     targetMarksId?: string | null;
     isAssigned: boolean;

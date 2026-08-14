@@ -309,6 +309,17 @@ export default function AtktRevalExam() {
       { key: "studentId", label: "Student ID", sortable: true },
       { key: "seatNo", label: "Seat No", sortable: true, render: (row) => row.seatNo || "—" },
       { key: "studentName", label: "Student Name", sortable: true, className: "text-left min-w-[200px]" },
+      {
+        key: "sourceExamName",
+        label: "Source attempt",
+        sortable: true,
+        className: "min-w-[150px]",
+        render: (row) => (
+          <span title={row.sourceSelectionReason || row.sourceExamName || "No valid source attempt"}>
+            {row.sourceExamName || "—"}
+          </span>
+        ),
+      },
     ];
 
     if (mode === MODE_ATKT) {
