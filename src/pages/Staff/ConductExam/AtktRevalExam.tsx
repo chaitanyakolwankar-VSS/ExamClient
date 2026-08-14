@@ -15,6 +15,8 @@ import {
   AtktMatrixRequest,
   AtktMatrixResponse,
   AtktStudentRow,
+  AtktCell,
+  AtktSubjectColumn,
 } from "../../../services/AtktRevalExamService";
 import Swal from "sweetalert2";
 import { Loader2, Save, Trash2, Users, Download, FileSpreadsheet } from "lucide-react";
@@ -44,8 +46,19 @@ interface AlertState {
   message: string;
 }
 
-/** Every selected subject of one student, keyed by StdMstId. */
-type SelectionMap = Record<string, string[]>;
+/**
+ * Selection state, head-aware. Keyed by StdMstId, then SubjectId. Presence of a subject key means
+ * the student is appearing for it; the value lists the head keys ("H1") being re-sat. An empty
+ * array means the whole subject (every head) -- used for combined subjects and for backlog subjects
+ * that carry no heads (never attempted). Head-wise subjects store their specific chosen heads.
+ */
+type SelectionMap = Record<string, Record<string, string[]>>;
+
+const COMBINED = "Combined";
+
+/** The head keys the operator may re-sit for a subject cell. */
+const selectableHeadKeys = (cell: { heads: { head: string; selectable: boolean }[] }): string[] =>
+  (cell.heads ?? []).filter((h) => h.selectable).map((h) => h.head);
 
 const MODE_ATKT = "ATKT";
 const MODE_REVALUATION = "Revaluation";
@@ -103,6 +116,85 @@ const SelectableCell = React.memo(function SelectableCell({
   );
 });
 
+const tileBorder: Record<string, string> = {
+  Failed: "border-red-300 dark:border-red-900/40",
+  Absent: "border-amber-300 dark:border-amber-900/40",
+};
+
+/** One subject tile: per-head marks + checkboxes (head-wise) or one re-appear checkbox (combined). */
+const SubjectTile = React.memo(function SubjectTile({
+  cell,
+  column,
+  headWise,
+  subjectChecked,
+  isHeadFresh,
+  onToggleSubject,
+  onToggleHead,
+}: {
+  stdMstId: string;
+  cell: AtktCell;
+  column?: AtktSubjectColumn;
+  headWise: boolean;
+  subjectChecked: boolean;
+  isHeadFresh: (headKey: string) => boolean;
+  onToggleSubject: (checked: boolean) => void;
+  onToggleHead: (headKey: string, checked: boolean) => void;
+}) {
+  const border = tileBorder[cell.status] || "border-gray-200 dark:border-gray-700";
+  const fail = cell.status === "Failed" || cell.status === "Absent";
+  return (
+    <div className={`flex-1 basis-[220px] min-w-[200px] rounded-xl border ${border} bg-white dark:bg-gray-900 p-3`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[11px] text-gray-400">{column?.subjectCode || ""}</div>
+          <div className="text-[13px] font-medium leading-tight text-gray-800 dark:text-white/90">
+            {column?.subjectName || ""}
+          </div>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${
+            headWise
+              ? "bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300"
+              : "bg-teal-50 text-teal-700 dark:bg-teal-900/20 dark:text-teal-300"
+          }`}
+        >
+          {headWise ? "head-wise" : "combined"}
+        </span>
+      </div>
+
+      {headWise ? (
+        <div className="mt-2">
+          {cell.heads.map((h) => (
+            <div
+              key={h.head}
+              className="flex items-center justify-between gap-2 border-t border-gray-100 dark:border-gray-800 py-1.5 text-xs"
+            >
+              <span className="text-gray-700 dark:text-gray-300">{h.headType}</span>
+              <span className={h.isFailing || h.isAbsent ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}>
+                {h.isAbsent ? "Ab" : `${h.obtained ?? "—"}/${h.outOf}`}
+              </span>
+              <Checkbox checked={isHeadFresh(h.head)} disabled={!h.selectable} onChange={(v) => onToggleHead(h.head, v)} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-2">
+          <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 py-1.5 text-xs">
+            <span className="text-gray-500 dark:text-gray-400">Total</span>
+            <span className={fail ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-300"}>
+              {cell.isAbsent ? "Ab" : `${cell.obtainedTotal}/${cell.outOfTotal}`} · need {cell.requiredToPass}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 border-t border-gray-100 dark:border-gray-800 pt-2 text-xs text-gray-700 dark:text-gray-300">
+            <Checkbox checked={subjectChecked} onChange={onToggleSubject} />
+            re-appear
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
 export default function AtktRevalExam() {
 
   // 🔹 Mode
@@ -149,6 +241,8 @@ export default function AtktRevalExam() {
   //     Matrix
   const [matrix, setMatrix] = useState<AtktMatrixResponse | null>(null);
   const [selections, setSelections] = useState<SelectionMap>({});
+  /** "tiles" is the per-student card view (head-aware); "grid" keeps the legacy subject matrix. */
+  const [viewMode, setViewMode] = useState<"tiles" | "grid">("tiles");
   /** The filter the loaded matrix belongs to; every write replays it. */
   const [appliedFilter, setAppliedFilter] = useState<AtktMatrixRequest | null>(null);
 
@@ -242,33 +336,76 @@ export default function AtktRevalExam() {
     };
   };
 
-  /** Seeds the tick state from what the server says is already selected. */
+  /** True when a subject offers per-head choice (head-wise with heads); combined/headless don't. */
+  const isHeadWise = (cell: AtktCell) =>
+    cell.passingStrategy !== COMBINED && (cell.heads?.length ?? 0) > 0;
+
+  /** What a whole-subject tick stores: specific heads for head-wise, [] (all) otherwise. */
+  const wholeSubjectHeads = (cell: AtktCell) => (isHeadWise(cell) ? selectableHeadKeys(cell) : []);
+
+  /** Seeds the tick state from what the server says is already selected, per head. */
   const seedSelections = (response: AtktMatrixResponse): SelectionMap => {
     const seeded: SelectionMap = {};
     response.students.forEach((row) => {
-      seeded[row.stdMstId] = row.cells.filter((c) => c.selected).map((c) => c.subjectId);
+      const subs: Record<string, string[]> = {};
+      row.cells.forEach((cell) => {
+        if (isHeadWise(cell)) {
+          const chosen = cell.heads.filter((h) => h.selected).map((h) => h.head);
+          if (chosen.length) subs[cell.subjectId] = chosen;
+        } else if (cell.selected) {
+          subs[cell.subjectId] = [];
+        }
+      });
+      seeded[row.stdMstId] = subs;
     });
     return seeded;
   };
 
-  const handleToggleCell = useCallback((stdMstId: string, subjectId: string, checked: boolean) => {
+  const isSubjectSelected = (stdMstId: string, subjectId: string) =>
+    !!(selections[stdMstId] && subjectId in selections[stdMstId]);
+
+  const isHeadFresh = (stdMstId: string, cell: AtktCell, headKey: string) => {
+    const heads = selections[stdMstId]?.[cell.subjectId];
+    if (!heads) return false;
+    return heads.length === 0 ? true : heads.includes(headKey);
+  };
+
+  /** Select or clear a whole subject (combined checkbox, matrix cell, or every head of head-wise). */
+  const toggleSubject = useCallback((stdMstId: string, cell: AtktCell, checked: boolean) => {
     setSelections((prev) => {
-      const current = prev[stdMstId] ?? [];
-      const next = checked
-        ? current.includes(subjectId) ? current : [...current, subjectId]
-        : current.filter((id) => id !== subjectId);
-      return { ...prev, [stdMstId]: next };
+      const subs = { ...(prev[stdMstId] ?? {}) };
+      if (checked) subs[cell.subjectId] = wholeSubjectHeads(cell);
+      else delete subs[cell.subjectId];
+      return { ...prev, [stdMstId]: subs };
     });
   }, []);
 
-  /** Ticks (or clears) every selectable cell of one row, leaving locked ones untouched. */
-  const toggleRow = (row: AtktStudentRow, checked: boolean) => {
-    const selectableIds = row.cells.filter((c) => c.selectable).map((c) => c.subjectId);
+  /** Toggle a single head of a head-wise subject; clearing the last head clears the subject. */
+  const toggleHead = useCallback((stdMstId: string, cell: AtktCell, headKey: string, checked: boolean) => {
     setSelections((prev) => {
-      const current = prev[row.stdMstId] ?? [];
-      const kept = current.filter((id) => !selectableIds.includes(id));
-      return { ...prev, [row.stdMstId]: checked ? [...kept, ...selectableIds] : kept };
+      const subs = { ...(prev[stdMstId] ?? {}) };
+      const current = subs[cell.subjectId] ? [...subs[cell.subjectId]] : [];
+      const next = checked
+        ? current.includes(headKey) ? current : [...current, headKey]
+        : current.filter((h) => h !== headKey);
+      if (next.length === 0) delete subs[cell.subjectId];
+      else subs[cell.subjectId] = next;
+      return { ...prev, [stdMstId]: subs };
     });
+  }, []);
+
+  const applyRow = (subs: Record<string, string[]>, row: AtktStudentRow, checked: boolean) => {
+    const next = { ...subs };
+    row.cells.filter((c) => c.selectable).forEach((cell) => {
+      if (checked) next[cell.subjectId] = wholeSubjectHeads(cell);
+      else delete next[cell.subjectId];
+    });
+    return next;
+  };
+
+  /** Ticks (or clears) every selectable subject of one row, leaving locked ones untouched. */
+  const toggleRow = (row: AtktStudentRow, checked: boolean) => {
+    setSelections((prev) => ({ ...prev, [row.stdMstId]: applyRow(prev[row.stdMstId] ?? {}, row, checked) }));
   };
 
   const toggleAllStudents = (checked: boolean) => {
@@ -276,29 +413,26 @@ export default function AtktRevalExam() {
     setSelections((prev) => {
       const next: SelectionMap = { ...prev };
       matrix.students.forEach((row) => {
-        const selectableIds = row.cells.filter((c) => c.selectable).map((c) => c.subjectId);
-        const current = next[row.stdMstId] ?? [];
-        const kept = current.filter((id) => !selectableIds.includes(id));
-        next[row.stdMstId] = checked ? [...kept, ...selectableIds] : kept;
+        next[row.stdMstId] = applyRow(next[row.stdMstId] ?? {}, row, checked);
       });
       return next;
     });
   };
 
   const isRowFullySelected = (row: AtktStudentRow) => {
-    const selectableIds = row.cells.filter((c) => c.selectable).map((c) => c.subjectId);
-    if (selectableIds.length === 0) return false;
-    const current = selections[row.stdMstId] ?? [];
-    return selectableIds.every((id) => current.includes(id));
+    const selectable = row.cells.filter((c) => c.selectable);
+    if (selectable.length === 0) return false;
+    const subs = selections[row.stdMstId] ?? {};
+    return selectable.every((c) => c.subjectId in subs);
   };
 
   const allStudentsSelected = useMemo(() => {
     if (!matrix || matrix.students.length === 0) return false;
     return matrix.students.every((row) => {
-      const selectableIds = row.cells.filter((c) => c.selectable).map((c) => c.subjectId);
-      if (selectableIds.length === 0) return true;
-      const current = selections[row.stdMstId] ?? [];
-      return selectableIds.every((id) => current.includes(id));
+      const selectable = row.cells.filter((c) => c.selectable);
+      if (selectable.length === 0) return true;
+      const subs = selections[row.stdMstId] ?? {};
+      return selectable.every((c) => c.subjectId in subs);
     });
   }, [matrix, selections]);
 
@@ -388,10 +522,10 @@ export default function AtktRevalExam() {
               <SelectableCell
                 stdMstId={row.stdMstId}
                 subjectId={cell.subjectId}
-                checked={(selections[row.stdMstId] ?? []).includes(cell.subjectId)}
+                checked={isSubjectSelected(row.stdMstId, cell.subjectId)}
                 colorClasses={colorClasses}
                 title={cell.reason || ""}
-                onToggle={handleToggleCell}
+                onToggle={(std, _sid, checked) => toggleSubject(std, cell, checked)}
               />
             );
           }
@@ -416,7 +550,7 @@ export default function AtktRevalExam() {
     });
 
     return base;
-  }, [matrix, selections, mode, editMode, handleToggleCell]);
+  }, [matrix, selections, mode, editMode, toggleSubject]);
 
   // ================= API CALLS =================
 
@@ -538,13 +672,17 @@ export default function AtktRevalExam() {
 
     const students = matrix.students.map((row) => ({
       stdMstId: row.stdMstId,
-      subjectIds: selections[row.stdMstId] ?? [],
+      subjectIds: [] as string[],
+      subjects: Object.entries(selections[row.stdMstId] ?? {}).map(([subjectId, heads]) => ({
+        subjectId,
+        heads,
+      })),
     }));
 
     // Rows that lost every tick are sent too, so the server can unassign them -- the legacy
     // screen simply skipped them and left stale registrations behind.
     const removals = matrix.students.filter(
-      (row) => row.isAssigned && (selections[row.stdMstId] ?? []).length === 0
+      (row) => row.isAssigned && Object.keys(selections[row.stdMstId] ?? {}).length === 0
     ).length;
 
     if (removals > 0) {
@@ -821,7 +959,23 @@ export default function AtktRevalExam() {
               </Button>
             </div>
 
-            <div className="flex justify-end mb-3 ml-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("tiles")}
+                  className={`px-3 py-1.5 text-sm rounded-md transition ${viewMode === "tiles" ? "bg-brand-500 text-white" : "text-gray-600 dark:text-gray-300"}`}
+                >
+                  Tiles
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  className={`px-3 py-1.5 text-sm rounded-md transition ${viewMode === "grid" ? "bg-brand-500 text-white" : "text-gray-600 dark:text-gray-300"}`}
+                >
+                  Grid
+                </button>
+              </div>
               <Switch
                 label="Select all students"
                 color="blue"
@@ -830,17 +984,88 @@ export default function AtktRevalExam() {
               />
             </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-theme-md border border-gray-200 dark:border-gray-800 p-4">
-              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
-                <DataTable
-                  data={matrix.students}
-                  columns={columns}
-                  searchKeys={["studentId", "studentName", "seatNo"]}
-                  pageSizeOptions={[20, 50, 100]}
-                  stickyHeader
-                />
+            {viewMode === "grid" ? (
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow-theme-md border border-gray-200 dark:border-gray-800 p-4">
+                <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
+                  <DataTable
+                    data={matrix.students}
+                    columns={columns}
+                    searchKeys={["studentId", "studentName", "seatNo"]}
+                    pageSizeOptions={[20, 50, 100]}
+                    stickyHeader
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                {matrix.students.map((row) => {
+                  const tileCells = row.cells.filter(
+                    (c) => c.selectable || isSubjectSelected(row.stdMstId, c.subjectId)
+                  );
+                  return (
+                    <div
+                      key={row.stdMstId}
+                      className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="flex size-9 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
+                          {(row.studentName || "?").trim().charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate text-sm font-medium text-gray-800 dark:text-white/90">
+                            {row.studentName}
+                          </div>
+                          <div className="truncate text-xs text-gray-500 dark:text-gray-400">
+                            {row.seatNo || row.studentId}
+                            {mode === MODE_ATKT ? ` · ${row.backlogCount} backlog${row.backlogCount === 1 ? "" : "s"}` : ""}
+                            {row.sourceExamName ? ` · from ${row.sourceExamName}` : ""}
+                          </div>
+                        </div>
+                        <Switch
+                          label="all"
+                          color="blue"
+                          checked={isRowFullySelected(row)}
+                          onChange={(checked) => toggleRow(row, checked)}
+                        />
+                        {editMode && (
+                          <button
+                            type="button"
+                            title={row.canDelete ? "Remove from this exam" : row.deleteBlockedReason || "Cannot be removed"}
+                            disabled={!row.canDelete}
+                            onClick={() => handleDelete(row)}
+                            className="inline-flex items-center justify-center rounded-lg bg-red-600 p-2 text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+
+                      {tileCells.length === 0 ? (
+                        <div className="rounded-lg border border-dashed border-gray-200 dark:border-gray-700 px-3 py-4 text-center text-xs text-gray-400">
+                          Nothing to assign for this student.
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {tileCells.map((cell) => (
+                            <SubjectTile
+                              key={cell.subjectId}
+                              stdMstId={row.stdMstId}
+                              cell={cell}
+                              column={matrix.columns.find((c) => c.subjectId === cell.subjectId)}
+                              headWise={isHeadWise(cell)}
+                              subjectChecked={isSubjectSelected(row.stdMstId, cell.subjectId)}
+                              isHeadFresh={(headKey) => isHeadFresh(row.stdMstId, cell, headKey)}
+                              onToggleSubject={(checked) => toggleSubject(row.stdMstId, cell, checked)}
+                              onToggleHead={(headKey, checked) => toggleHead(row.stdMstId, cell, headKey, checked)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
 

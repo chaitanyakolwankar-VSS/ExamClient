@@ -59,10 +59,28 @@ export interface AtktSubjectColumn {
     heads: AtktHead[];
 }
 
+/** One head of a subject for a single student: the mark held and its selection state. */
+export interface AtktCellHead {
+    head: string;
+    headType: string;
+    obtained?: number | null;
+    outOf: number;
+    pass: number;
+    isAbsent: boolean;
+    /** Below its own passing marks. Only meaningful for a head-wise subject. */
+    isFailing: boolean;
+    selectable: boolean;
+    selected: boolean;
+}
+
 /** Per-subject state for one student. */
 export interface AtktCell {
     subjectId: string;
     creditsId: string;
+    /** "HeadWise" | "Combined" -- drives per-head vs subject-level selection. */
+    passingStrategy: string;
+    /** Per-head marks and selection. The head-wise selection surface. */
+    heads: AtktCellHead[];
     /** "Passed" | "Failed" | "Absent" | "NotAttempted". */
     status: string;
     obtainedTotal: number;
@@ -121,10 +139,19 @@ export interface AtktMatrixResponse {
     students: AtktStudentRow[];
 }
 
+/** A subject the student is appearing for, with the exact heads being re-sat. */
+export interface AtktSubjectSelection {
+    subjectId: string;
+    /** Heads to re-sit ("H1" or "ESE"). Empty = whole subject (every head). Combined sends empty. */
+    heads: string[];
+}
+
 export interface AtktStudentSelection {
     stdMstId: string;
-    /** Subjects the student is appearing for. Empty removes an existing assignment. */
+    /** Subject-level selection (all heads). Kept for the matrix view and combined subjects. */
     subjectIds: string[];
+    /** Head-level selection from the tile view. Takes precedence for the subjects it names. */
+    subjects?: AtktSubjectSelection[];
 }
 
 export interface AtktSaveRequest {
