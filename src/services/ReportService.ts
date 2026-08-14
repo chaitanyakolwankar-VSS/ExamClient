@@ -32,6 +32,8 @@ export interface DownloadBulkMarksheetParams {
   examId: string;
   semId: string;
   pattern: string;
+  ayid: string;
+  courseId: string;
   generationType: string;
   includeHistory?: boolean;
   resultDate?: string;
@@ -48,7 +50,12 @@ export const ReportService = {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", params.fileName ? `${params.fileName}.pdf` : `Gazette_${params.examId}.pdf`);
+      link.setAttribute(
+        "download",
+        params.fileName
+          ? `${params.fileName}.pdf`
+          : `Gazette_${params.examId}.pdf`,
+      );
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -68,7 +75,12 @@ export const ReportService = {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", params.fileName ? `${params.fileName}.xlsx` : `Gazette_${params.examId}.xlsx`);
+      link.setAttribute(
+        "download",
+        params.fileName
+          ? `${params.fileName}.xlsx`
+          : `Gazette_${params.examId}.xlsx`,
+      );
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -83,7 +95,7 @@ export const ReportService = {
     try {
       const response = await apiClient.get("/Report/marksheet", {
         params,
-        responseType: "blob", 
+        responseType: "blob",
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -100,24 +112,37 @@ export const ReportService = {
     }
   },
 
-  async downloadBulkMarksheet(params: DownloadBulkMarksheetParams): Promise<void> {
+  async downloadBulkMarksheet(
+    params: DownloadBulkMarksheetParams,
+  ): Promise<void> {
     try {
       const response = await apiClient.get("/Report/bulk-marksheet", {
         params,
-        responseType: "blob", 
+        responseType: "blob",
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `BulkMarksheet_${params.generationType}_${params.examId}.pdf`);
+      link.setAttribute(
+        "download",
+        `BulkMarksheet_${params.generationType}_${params.examId}.pdf`,
+      );
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error downloading Bulk Marksheet", error);
+    } catch (error: any) {
+      if (error.response?.data instanceof Blob) {
+        const text = await error.response.data.text();
+        console.log("Server Error:", text);
+      }
+
       throw error;
     }
+    // catch (error) {
+    //   console.error("Error downloading Bulk Marksheet", error);
+    //   throw error;
+    // }
   },
 };

@@ -1,4 +1,4 @@
-import PageMeta from "../../../components/common/PageMeta"; 
+import PageMeta from "../../../components/common/PageMeta";
 import { useState, useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ComponentCard from "../../../components/common/ComponentCard";
@@ -6,8 +6,18 @@ import Select from "../../../components/form/Select";
 import { PatternService, PatternApiResponse } from "../../../services/Pattern";
 import { CourseService, CourseApiResponse } from "../../../services/Course";
 import Swal from "sweetalert2";
-import { ExamApiRequest ,ExamApiResponse} from "../../../services/RegularExamService";
-import { GenerateHallTicketService,HallticketSubjects, HallticketSubjectsRequest,SaveTimeTable,StudentHallTicketDataRequest ,StudentHallTicketData} from "../../../services/GenerateHallTicketService";
+import {
+  ExamApiRequest,
+  ExamApiResponse,
+} from "../../../services/RegularExamService";
+import {
+  GenerateHallTicketService,
+  HallticketSubjects,
+  HallticketSubjectsRequest,
+  SaveTimeTable,
+  StudentHallTicketDataRequest,
+  StudentHallTicketData,
+} from "../../../services/GenerateHallTicketService";
 import DataTable from "../../../components/ui/table/DataTable";
 import Input from "../../../components/form/input/InputField";
 import { Save, Printer, Loader2 } from "lucide-react";
@@ -108,99 +118,102 @@ export default function GenerateHallTicket() {
 
   const filters = useMemo(() => ({}), []);
 
-  const columns = useMemo<Column<HallticketSubjects>[]>(() => [
-    {
-      key: "subjectCode",
-      label: "Subject Code",
-      sortable: true,
-    },
-    {
-      key: "subjectName",
-      label: "Subject Name",
-      sortable: true,
-    },
-    {
-      key: "examTime",
-      label: "Exam Time",
-      sortable: true,
-      render: (row) => (
-        <Input
-          type="text"
-          value={row.examTime || ""}
-          placeholder="HH:MM AM - HH:MM PM"
-          maxLength={20}
-          onChange={(e) => {
-            let value = e.target.value;
-            value = value.replace(/[^0-9apAP]/g, "");
-            let formatted = "";
+  const columns = useMemo<Column<HallticketSubjects>[]>(
+    () => [
+      {
+        key: "subjectCode",
+        label: "Subject Code",
+        sortable: true,
+      },
+      {
+        key: "subjectName",
+        label: "Subject Name",
+        sortable: true,
+      },
+      {
+        key: "examTime",
+        label: "Exam Time",
+        sortable: true,
+        render: (row) => (
+          <Input
+            type="text"
+            value={row.examTime || ""}
+            placeholder="HH:MM AM - HH:MM PM"
+            maxLength={20}
+            onChange={(e) => {
+              let value = e.target.value;
+              value = value.replace(/[^0-9apAP]/g, "");
+              let formatted = "";
 
-            if (value.length >= 1) formatted += value[0];
-            if (value.length >= 2) formatted += value[1];
-            if (value.length >= 2) formatted += ":";
-            if (value.length >= 3) formatted += value[2];
-            if (value.length >= 4) formatted += value[3];
-            if (value.length >= 4) formatted += " ";
+              if (value.length >= 1) formatted += value[0];
+              if (value.length >= 2) formatted += value[1];
+              if (value.length >= 2) formatted += ":";
+              if (value.length >= 3) formatted += value[2];
+              if (value.length >= 4) formatted += value[3];
+              if (value.length >= 4) formatted += " ";
 
-            if (value.length >= 5) {
-              if (value[4].toLowerCase() === "a") {
-                formatted += "AM";
-              } else if (value[4].toLowerCase() === "p") {
-                formatted += "PM";
+              if (value.length >= 5) {
+                if (value[4].toLowerCase() === "a") {
+                  formatted += "AM";
+                } else if (value[4].toLowerCase() === "p") {
+                  formatted += "PM";
+                }
               }
-            }
 
-            if (value.length >= 5) formatted += " - ";
-            if (value.length >= 6) formatted += value[5];
-            if (value.length >= 7) formatted += value[6];
-            if (value.length >= 7) formatted += ":";
-            if (value.length >= 8) formatted += value[7];
-            if (value.length >= 9) formatted += value[8];
-            if (value.length >= 9) formatted += " ";
+              if (value.length >= 5) formatted += " - ";
+              if (value.length >= 6) formatted += value[5];
+              if (value.length >= 7) formatted += value[6];
+              if (value.length >= 7) formatted += ":";
+              if (value.length >= 8) formatted += value[7];
+              if (value.length >= 9) formatted += value[8];
+              if (value.length >= 9) formatted += " ";
 
-            if (value.length >= 10) {
-              if (value[9].toLowerCase() === "a") {
-                formatted += "AM";
-              } else if (value[9].toLowerCase() === "p") {
-                formatted += "PM";
+              if (value.length >= 10) {
+                if (value[9].toLowerCase() === "a") {
+                  formatted += "AM";
+                } else if (value[9].toLowerCase() === "p") {
+                  formatted += "PM";
+                }
               }
-            }
 
-            handleTimeChange(row.subjectId, formatted);
-          }}
-        />
-      ),
-    },
-    {
-      key: "examDate",
-      label: "Exam Date",
-      sortable: true,
-      render: (row) => (
-        <Input
-          type="text"
-          value={row.examDate || ""}
-          placeholder="DD-MM-YYYY"
-          maxLength={10}
-          onChange={(e) => {
-            let value = e.target.value;
-            value = value.replace(/[^0-9]/g, "");
+              handleTimeChange(row.subjectId, formatted);
+            }}
+          />
+        ),
+      },
+      {
+        key: "examDate",
+        label: "Exam Date",
+        sortable: true,
+        render: (row) => (
+          <Input
+            type="text"
+            value={row.examDate || ""}
+            placeholder="DD-MM-YYYY"
+            maxLength={10}
+            onChange={(e) => {
+              let value = e.target.value;
+              value = value.replace(/[^0-9]/g, "");
 
-            if (value.length > 2 && value.length <= 4) {
-              value = value.slice(0, 2) + "-" + value.slice(2);
-            } else if (value.length > 4) {
-              value =
-                value.slice(0, 2) +
-                "-" +
-                value.slice(2, 4) +
-                "-" +
-                value.slice(4, 8);
-            }
+              if (value.length > 2 && value.length <= 4) {
+                value = value.slice(0, 2) + "-" + value.slice(2);
+              } else if (value.length > 4) {
+                value =
+                  value.slice(0, 2) +
+                  "-" +
+                  value.slice(2, 4) +
+                  "-" +
+                  value.slice(4, 8);
+              }
 
-            handleDateChange(row.subjectId, value);
-          }}
-        />
-      ),
-    }
-  ], []);
+              handleDateChange(row.subjectId, value);
+            }}
+          />
+        ),
+      },
+    ],
+    [],
+  );
 
   // Auto-clearing Alert
   useEffect(() => {
@@ -217,14 +230,14 @@ export default function GenerateHallTicket() {
   useEffect(() => {
     if (courseId) {
       fetchPatterns(courseId);
-    } 
+    }
   }, [courseId]);
 
   useEffect(() => {
     if (semester) {
       setExam("");
       fetchexam();
-    } 
+    }
   }, [semester]);
 
   useEffect(() => {
@@ -233,7 +246,7 @@ export default function GenerateHallTicket() {
     setSingleStudent(false);
     if (Exam) {
       fetchsubjects();
-    } 
+    }
   }, [Exam]);
 
   // Cascading Reset Handlers
@@ -269,16 +282,16 @@ export default function GenerateHallTicket() {
 
     setSubjects((prev) =>
       prev.map((sub) =>
-        sub.subjectId === id ? { ...sub, examDate: value } : sub
-      )
+        sub.subjectId === id ? { ...sub, examDate: value } : sub,
+      ),
     );
   };
 
   const handleTimeChange = (id: string, value: string) => {
     setSubjects((prev) =>
       prev.map((sub) =>
-        sub.subjectId === id ? { ...sub, examTime: value } : sub
-      )
+        sub.subjectId === id ? { ...sub, examTime: value } : sub,
+      ),
     );
   };
 
@@ -294,7 +307,7 @@ export default function GenerateHallTicket() {
         data.map((c) => ({
           value: c.courseid,
           label: c.coursename,
-        }))
+        })),
       );
     } catch (error) {
       console.error("Failed to fetch courses", error);
@@ -308,7 +321,7 @@ export default function GenerateHallTicket() {
         data.map((p) => ({
           value: p.patternName,
           label: p.patternName,
-        }))
+        })),
       );
     } catch (error) {
       console.error("Failed to fetch patterns", error);
@@ -324,12 +337,13 @@ export default function GenerateHallTicket() {
 
       const parameter: ExamApiRequest = {
         Courseid: courseId,
-        Ayid: ayid
+        Ayid: ayid,
       };
-      const data: ExamApiResponse[] = await GenerateHallTicketService.getExam(parameter);
+      const data: ExamApiResponse[] =
+        await GenerateHallTicketService.getExam(parameter);
       const mappedData = data.map((e) => ({
         value: e.examId,
-        label: e.examname
+        label: e.examname,
       }));
       setExamOptions(mappedData);
     } catch (error) {
@@ -349,17 +363,19 @@ export default function GenerateHallTicket() {
         courseId: courseId,
         semester: semester,
         pattern: pattern,
-        examId: Exam
+        examId: Exam,
       };
-      const data: HallticketSubjects[] = await GenerateHallTicketService.getHallTicketSubjects(parameter);
+      const data: HallticketSubjects[] =
+        await GenerateHallTicketService.getHallTicketSubjects(parameter);
       setSubjects(data);
       if (data.length === 0) {
         return setAlert({
           variant: "warning",
           title: "No Data Found",
-          message: "No subjects found for the selected exam timetable configuration.",
+          message:
+            "No subjects found for the selected exam timetable configuration.",
         });
-      } 
+      }
     } catch (error) {
       console.error("Failed to fetch subjects", error);
     }
@@ -374,7 +390,7 @@ export default function GenerateHallTicket() {
       const payload: SaveTimeTable = {
         ExamId: Exam,
         CourseId: courseId,
-        TimeTableData: Subjects
+        TimeTableData: Subjects,
       };
 
       setLoading(true);
@@ -409,7 +425,7 @@ export default function GenerateHallTicket() {
     if (!ayid) {
       return Swal.fire("Error", "Academic Year missing", "error");
     }
-    
+
     let hallticketmode = SingleStudent ? "Single" : "All";
 
     const payload: StudentHallTicketDataRequest = {
@@ -418,19 +434,21 @@ export default function GenerateHallTicket() {
       Semester: semester,
       Pattern: pattern,
       Mode: hallticketmode,
-      StudentId: SingleStudent ? studentId : ""
+      CourseId: courseId,
+      StudentId: SingleStudent ? studentId : "",
     };
-    
-    const data: StudentHallTicketData[] = await GenerateHallTicketService.getHallTicketStudents(payload);
+
+    const data: StudentHallTicketData[] =
+      await GenerateHallTicketService.getHallTicketStudents(payload);
     const collegedata = await GenerateHallTicketService.getcollegeDataExam();
-    
+
     const hallTicketData: HallTicketData = {
       college: {
         logo: collegedata.logo,
         center: collegedata.center,
-        CourseNmae: "MECHANICAL ENGINEERING (" + pattern + ")"
+        CourseNmae: "MECHANICAL ENGINEERING (" + pattern + ")",
       },
-      students: data 
+      students: data,
     };
 
     if (data.length === 0) {
@@ -440,7 +458,7 @@ export default function GenerateHallTicket() {
         message: "No student records found to generate hall tickets.",
       });
     }
-    
+
     localStorage.setItem("hallTicketData", JSON.stringify(hallTicketData));
     window.open("/hallticket", "_blank");
   };
@@ -461,7 +479,7 @@ export default function GenerateHallTicket() {
         title="Staff Dashboard"
         description="Welcome to the Staff Portal"
       />
-      
+
       <ComponentCard title="Generate HallTicket - Filters">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
           {/* Course Dropdown */}
@@ -546,13 +564,17 @@ export default function GenerateHallTicket() {
                 transition={{ duration: 0.2 }}
                 className="w-full flex items-end gap-2 h-11"
               >
-                <Button 
+                <Button
                   variant="primary"
                   onClick={handleSave}
                   disabled={loading}
                   className="flex-grow h-11"
                 >
-                  {loading ? <Loader2 className="animate-spin size-4 mr-2" /> : <Save className="size-4 mr-2" />}
+                  {loading ? (
+                    <Loader2 className="animate-spin size-4 mr-2" />
+                  ) : (
+                    <Save className="size-4 mr-2" />
+                  )}
                   Save Timetable
                 </Button>
               </motion.div>
@@ -579,8 +601,8 @@ export default function GenerateHallTicket() {
               {/* Student ID input if Single mode is selected */}
               {SingleStudent && (
                 <div className="w-64">
-                  <Input 
-                    type="text" 
+                  <Input
+                    type="text"
                     placeholder="Enter Student ID"
                     maxLength={9}
                     value={studentId}
@@ -595,7 +617,7 @@ export default function GenerateHallTicket() {
             </div>
 
             {/* Print / View HallTickets Action */}
-            <Button 
+            <Button
               variant="primary"
               onClick={HallTicket}
               className="whitespace-nowrap h-11"
@@ -610,7 +632,9 @@ export default function GenerateHallTicket() {
       {/* Subjects Datatable */}
       {Subjects.length > 0 && (
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-theme-md border border-gray-200 dark:border-gray-800 p-4">
-          <h4 className="font-semibold text-gray-850 dark:text-gray-200 mb-3 text-sm">Exam Timetable Schedule List</h4>
+          <h4 className="font-semibold text-gray-850 dark:text-gray-200 mb-3 text-sm">
+            Exam Timetable Schedule List
+          </h4>
           <DataTable
             data={Subjects}
             columns={columns}

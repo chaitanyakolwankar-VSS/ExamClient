@@ -9,6 +9,7 @@ import {
   DeclareResultService,
 } from "../../../services/DeclareResultService";
 import Alert from "../../../components/ui/alert/Alert";
+import DataTable from "../../../components/ui/table/DataTable";
 
 interface Option {
   value: string;
@@ -284,6 +285,70 @@ const DeclareResult = () => {
     }, timeout);
   };
 
+  const columns = [
+    {
+      key: "examname",
+      label: "Exam Name",
+      sortable: true,
+    },
+    {
+      key: "semester",
+      label: "Semester",
+      sortable: false,
+    },
+    {
+      key: "declareDate",
+      label: "Declare Date",
+      sortable: false,
+      render: (row: ExamRow) => (
+        <input
+          ref={(el) => {
+            dateInputRefs.current[row.examId] = el;
+          }}
+          type="date"
+          className={`border rounded px-2 py-1 w-full ${
+            row.isDeclare ? "bg-gray-100 cursor-not-allowed" : ""
+          }`}
+          value={row.declareDate}
+          disabled={row.isDeclare}
+          onClick={() => !row.isDeclare && handleDateFieldClick(row.examId)}
+          onChange={(e) => handleDateChange(row.examId, e.target.value)}
+        />
+      ),
+    },
+    {
+      key: "action",
+      label: "Action",
+      sortable: false,
+      className: "text-center",
+      headerClassName: "text-center",
+      render: (row: ExamRow) => (
+        <div className="flex justify-center items-center">
+          <button
+            type="button"
+            onClick={() => handleToggleDeclare(row)}
+            disabled={!row.isDeclare && !row.declareDate}
+            title={
+              row.isDeclare
+                ? "Declared (click to undeclare)"
+                : !row.declareDate
+                  ? "Select a declare date first"
+                  : "Not declared (click to declare)"
+            }
+          >
+            {row.isDeclare ? (
+              <Eye className="w-7 h-7 text-green-600" />
+            ) : (
+              <EyeOff
+                className={`w-7 h-7 ${!row.declareDate ? "text-gray-200" : "text-gray-400"}`}
+              />
+            )}
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <ComponentCard title="Declare Result">
@@ -313,6 +378,10 @@ const DeclareResult = () => {
               onChange={(value) => {
                 setPattern(value);
                 setSemester("");
+                setExamOptions([]);
+                setExamId("");
+                setTableRow(null);
+                setLoadingExamOptions(true);
               }}
             />
           )}
@@ -322,7 +391,13 @@ const DeclareResult = () => {
               options={semesterOptions}
               placeholder="Select Semester"
               value={semester}
-              onChange={(value) => setSemester(value)}
+              onChange={(value) => {
+                setSemester(value);
+                setExamOptions([]);
+                setExamId("");
+                setTableRow(null);
+                setLoadingExamOptions(true);
+              }}
             />
           )}
 
@@ -335,17 +410,20 @@ const DeclareResult = () => {
                 options={examOptions}
                 placeholder="Select Exam"
                 value={examId}
-                onChange={(value) => setExamId(value)}
+                onChange={(value) => {
+                  setExamId(value);
+                  setTableRow(null);
+                  setLoadingTableRow(true);
+                }}
               />
             )}
         </div>
 
         {courseId && pattern && semester && (
-          <div className="mt-6 overflow-x-auto">
+          <div className="mt-6">
             {loadingExamOptions ? (
               <p className="text-sm text-gray-500">Loading exams...</p>
             ) : examOptions.length === 0 ? (
-              // <p className="text-sm text-gray-500">No exams found.</p>
               <Alert
                 variant="warning"
                 title="No Exams"
@@ -356,74 +434,17 @@ const DeclareResult = () => {
             ) : loadingTableRow ? (
               <p className="text-sm text-gray-500">Loading exam details...</p>
             ) : !tableRow ? (
-              <p className="text-sm text-gray-500">
-                <Alert
-                  variant="warning"
-                  title="Not Found"
-                  message="No declare-result record found for this exam."
-                />
-              </p>
+              <Alert
+                variant="warning"
+                title="Not Found"
+                message="No Exam Record Found for this exam."
+              />
             ) : (
-              <table className="min-w-full border border-gray-200 text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-4 py-2 border">Exam Name</th>
-                    <th className="px-4 py-2 border">Semester</th>
-                    <th className="px-4 py-2 border">Declare Date</th>
-                    <th className="px-4 py-2 border text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="px-4 py-2 border">{tableRow.examname}</td>
-                    <td className="px-4 py-2 border">{tableRow.semester}</td>
-                    <td className="px-4 py-2 border">
-                      <input
-                        ref={(el) =>
-                          (dateInputRefs.current[tableRow.examId] = el)
-                        }
-                        type="date"
-                        className={`border rounded px-2 py-1 w-full ${
-                          tableRow.isDeclare
-                            ? "bg-gray-100 cursor-not-allowed"
-                            : ""
-                        }`}
-                        value={tableRow.declareDate}
-                        disabled={tableRow.isDeclare}
-                        onClick={() =>
-                          !tableRow.isDeclare &&
-                          handleDateFieldClick(tableRow.examId)
-                        }
-                        onChange={(e) =>
-                          handleDateChange(tableRow.examId, e.target.value)
-                        }
-                      />
-                    </td>
-                    <td className="px-4 py-2 text-center border">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleDeclare(tableRow)}
-                        disabled={!tableRow.isDeclare && !tableRow.declareDate}
-                        title={
-                          tableRow.isDeclare
-                            ? "Declared (click to undeclare)"
-                            : !tableRow.declareDate
-                              ? "Select a declare date first"
-                              : "Not declared (click to declare)"
-                        }
-                      >
-                        {tableRow.isDeclare ? (
-                          <Eye className="w-7 h-7 text-green-600" />
-                        ) : (
-                          <EyeOff
-                            className={`w-7 h-7 ${!tableRow.declareDate ? "text-gray-200" : "text-gray-400"}`}
-                          />
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <DataTable
+                data={[tableRow]}
+                columns={columns}
+                pageSizeOptions={[5]}
+              />
             )}
           </div>
         )}
