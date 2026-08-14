@@ -52,12 +52,15 @@ export interface RuleAction {
     actionType: string;
     calculationMode: string;
     param1Type: string;
-    param1Value: number;
+    // These four are nullable decimal/int columns on RuleAction, so the API really can
+    // return null (e.g. a "None" param, or a rule with no cap). Typing them as plain
+    // numbers hid that from the compiler and blanked the rule editor on .toString().
+    param1Value: number | null;
     param2Type: string;
-    param2Value: number;
-    maxLimit: number;
+    param2Value: number | null;
+    maxLimit: number | null;
     expression?: string;
-    maxTargetCount: number;
+    maxTargetCount: number | null;
     target: string;
 }
 

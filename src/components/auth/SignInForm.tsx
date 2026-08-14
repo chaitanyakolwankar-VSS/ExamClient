@@ -13,8 +13,8 @@ export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
 
-  const [email, setEmail] = useState("admin");
-  const [password, setPassword] = useState("admin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +24,7 @@ export default function SignInForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError("Please enter both username and password.");
+      setError("Please enter both email and password.");
       return;
     }
     setError(null);
@@ -32,7 +32,7 @@ export default function SignInForm() {
     try {
       // CALL THE  API
       const data = await authService.login({
-        username: email,
+        email: email,
         password: password,
       });
 
@@ -54,7 +54,7 @@ export default function SignInForm() {
       console.error("Login failed", error);
 
       if (error.response && error.response.status === 401) {
-        setError("Invalid username or password");
+        setError("Invalid email or password");
       } else {
         setError(`Server error occurred. Please try again later.`);
       }
@@ -107,9 +107,9 @@ export default function SignInForm() {
                 )}
                 <div>
                   <Input
-                    label="Email/Username"
-                    placeholder="admin"
-                    type="text"
+                    label="Email"
+                    placeholder="you@college.edu"
+                    type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />

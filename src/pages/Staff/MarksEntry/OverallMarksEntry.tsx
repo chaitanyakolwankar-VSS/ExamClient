@@ -288,12 +288,57 @@ export default function OverallMarksEntry() {
   const filteredResults = useMemo(() => {
     if (!searchQuery) return results;
     const q = searchQuery.toLowerCase();
-    return results.filter(r => 
+    return results.filter(r =>
       r.studentId.toLowerCase().includes(q) ||
       r.studentName.toLowerCase().includes(q) ||
       r.seatNo.toLowerCase().includes(q)
     );
   }, [results, searchQuery]);
+
+  const GRACE_SYMBOLS = ["^", "*", "@", "#"] as const;
+
+  /**
+   * A combined subject records its grace on the subject, not on any one head, so the per-head
+   * `subjectMarks` cells never carry it. `remarks` does ("BP601T: 2@"), so the symbol is pulled
+   * from there and shown once per subject.
+   */
+  const graceBySubject = (remarks: string): Record<string, string> => {
+    const map: Record<string, string> = {};
+    for (const note of (remarks || "").split(",")) {
+      const match = note.trim().match(/^(\S+):\s*\d*([\^*@#])$/);
+      if (match) map[match[1]] = match[2];
+    }
+    return map;
+  };
+
+  /** The subject code that a `"CODE - Name"` column header belongs to. */
+  const subjectCodeOf = (subject: string) => subject.split(" - ")[0].trim();
+
+  /** The symbol to append to this cell, or "" — only on the subject's first head, and only
+   *  when that head does not already show the symbol itself. */
+  const subjectGraceFor = (row: ResultData, sh: SubjectHead): string => {
+    const group = subjectsGrouped.find(g => g.subject === sh.subject);
+    if (!group || group.heads[0].key !== sh.key) return "";
+
+    const symbol = graceBySubject(row.remarks)[subjectCodeOf(sh.subject)];
+    if (!symbol) return "";
+
+    const alreadyShown = group.heads.some(h => (row.subjectMarks[h.key] || "").includes(symbol));
+    return alreadyShown ? "" : symbol;
+  };
+
+  /** Only the symbols actually on this page get a legend entry. */
+  const presentSymbols = useMemo(() => {
+    const found = new Set<string>();
+    filteredResults.forEach(row => {
+      subjectHeads.forEach(sh => {
+        const value = (row.subjectMarks[sh.key] || "") + subjectGraceFor(row, sh);
+        GRACE_SYMBOLS.forEach(symbol => { if (value.includes(symbol)) found.add(symbol); });
+        if (!row.subjectMarks[sh.key]) found.add("-");
+      });
+    });
+    return found;
+  }, [filteredResults, subjectHeads, subjectsGrouped]);
 
   return (
     <div className="space-y-6">
@@ -450,30 +495,42 @@ export default function OverallMarksEntry() {
 
       {results.length > 0 && (
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-theme-md border border-gray-200 dark:border-gray-800 p-4">
-           {/* Color Legend */}
+           {/* Color Legend -- only the symbols actually present on this page */}
+           {presentSymbols.size > 0 && (
            <div className="flex flex-wrap items-center gap-4 mb-4 text-xs font-medium text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800 pt-3">
              <span className="text-gray-400 dark:text-gray-500 uppercase tracking-wider text-[10px]">Legend:</span>
+             {presentSymbols.has("^") && (
              <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2.5 py-1 rounded-full border border-green-200 dark:border-green-900/30">
                <span className="size-1.5 rounded-full bg-green-500 animate-pulse"></span>
                <span>Resolution (^)</span>
              </div>
+             )}
+             {presentSymbols.has("*") && (
              <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 px-2.5 py-1 rounded-full border border-blue-200 dark:border-blue-900/30">
                <span className="size-1.5 rounded-full bg-blue-500"></span>
                <span>Grace Marks (*)</span>
              </div>
+             )}
+             {presentSymbols.has("@") && (
              <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-900/30">
                <span className="size-1.5 rounded-full bg-amber-500"></span>
                <span>Grace Marks (@)</span>
              </div>
+             )}
+             {presentSymbols.has("#") && (
              <div className="flex items-center gap-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 px-2.5 py-1 rounded-full border border-purple-200 dark:border-purple-900/30">
                <span className="size-1.5 rounded-full bg-purple-500"></span>
                <span>Quota (#)</span>
              </div>
-             <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-750">
+             )}
+             {presentSymbols.has("-") && (
+             <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700">
                <span className="size-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>
                <span>No Head for Credit</span>
              </div>
+             )}
            </div>
+           )}
 
            {/* Search Input */}
            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
@@ -493,9 +550,11 @@ export default function OverallMarksEntry() {
            </div>
 
            {/* Custom Styled HTML Table with RowSpan / ColSpan */}
-           <div className="w-full overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
+           <div className="w-full max-h-[70vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-800">
              <table className="w-full border-collapse border border-gray-200 dark:border-gray-800 text-center text-sm">
-               <thead className="bg-gray-50 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 font-semibold uppercase tracking-wider text-[11px] border-b border-gray-200 dark:border-gray-800">
+               {/* The grid is never paginated, so the header sticks while the body scrolls.
+                   Background must be opaque or rows show through it. */}
+               <thead className="sticky top-0 z-20 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold uppercase tracking-wider text-[11px] border-b border-gray-200 dark:border-gray-800">
                  <tr>
                    <th rowSpan={2} className="px-4 py-3 border border-gray-200 dark:border-gray-800 font-bold whitespace-nowrap">Seat No</th>
                    <th rowSpan={2} className="px-4 py-3 border border-gray-200 dark:border-gray-800 font-bold whitespace-nowrap">Student ID</th>
@@ -528,7 +587,9 @@ export default function OverallMarksEntry() {
                      <td className="px-4 py-3 border border-gray-200 dark:border-gray-800 font-medium whitespace-nowrap">{row.studentId}</td>
                      <td className="px-4 py-3 border border-gray-200 dark:border-gray-800 text-left whitespace-nowrap">{row.studentName}</td>
                      {subjectHeads.map(sh => {
-                       const val = row.subjectMarks[sh.key] || "-";
+                       // A combined subject's grace lives on the subject, so it is appended to
+                       // the subject's first head cell rather than baked into the head marks.
+                       const val = (row.subjectMarks[sh.key] || "-") + subjectGraceFor(row, sh);
                        let badgeColor = "text-gray-700 dark:text-gray-300";
                        if (val.includes("^")) badgeColor = "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-900/30";
                        else if (val.includes("*")) badgeColor = "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/30";
@@ -549,8 +610,8 @@ export default function OverallMarksEntry() {
                      <td className="px-4 py-3 border border-gray-200 dark:border-gray-800 font-semibold whitespace-nowrap">{row.cgpi}</td>
                      <td className="px-4 py-3 border border-gray-200 dark:border-gray-800 whitespace-nowrap">
                        <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase ${
-                         row.resultStatus.toLowerCase() === 'pass' 
-                           ? 'bg-green-500 text-white dark:bg-green-600' 
+                         row.resultStatus.toLowerCase() === 'pass'
+                           ? 'bg-green-500 text-white dark:bg-green-600'
                            : 'bg-red-500 text-white dark:bg-red-600'
                        }`}>
                          {row.resultStatus}

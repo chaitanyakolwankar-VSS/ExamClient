@@ -23,12 +23,14 @@ export interface GetExams {
   Courseid: string;
   Ayid: string;
 }
+
 export interface GetResolutionExams {
   Courseid: string;
   Ayid: string;
   Semester: string;
   Pattern: string;
 }
+
 export interface UpdateExams {
   ExamId: string;
   ActiveStatus: Boolean;
@@ -36,6 +38,7 @@ export interface UpdateExams {
 export interface DeleteExams {
   ExamId: string;
 }
+
 export interface GetCreditHeadResolutionreq {
   SubjectId: string;
   ExamId: string;
@@ -137,3 +140,28 @@ export const ExamService = {
     return response.data;
   },
 };
+
+// export const ExamService = {
+
+//     async SaveExam(Exam: Saveexam): Promise<Response> {
+//         const response = await apiClient.post<Response>("/ExamMaster/save-exam", Exam);
+//         return response.data;
+//     },
+//     async SearchExam(params: Saveexam): Promise<Response> {
+//         const response = await apiClient.get<Response>("/ExamMaster/search-exam", {params});
+//         return response.data;
+//     },
+//     async GetExam(params: GetExams): Promise<Exams[]> {
+//         const response = await apiClient.get<Exams[]>("/ExamMaster/get-exam", { params });
+//         return response.data;
+//     },
+//     async UpdateExam(Exam: UpdateExams): Promise<Response> {
+//         const response = await apiClient.put<Response>("/ExamMaster/update-exam", Exam);
+//         return response.data;
+//     },
+//     async DeleteExam(Exam: DeleteExams): Promise<Response> {
+//         const response = await apiClient.delete<Response>("/ExamMaster/delete-exam", { data: Exam });
+//         return response.data;
+//     },
+
+// }

@@ -28,7 +28,11 @@ import HallTicketPage from "./components/HallTicket/Hallticket.tsx";
 import ReleaseHallTicket from "./pages/Staff/Students Admin/ReleaseHallTicket.tsx";
 
 export default function App() {
-  const basename = import.meta.env.DEV ? "" : "/ExamSoftware";
+  // Derive the router basename from Vite's own base path so the two can never disagree.
+  // vite.config.ts sets base:'/ExamSoftware/' for BOTH dev and build, so hardcoding ""
+  // in dev made every URL (/ExamSoftware/signin) fail to match every route (/signin),
+  // and the app rendered its 404 page on every navigation.
+  const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
 
   return (
     <>

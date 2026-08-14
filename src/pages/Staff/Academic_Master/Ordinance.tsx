@@ -34,6 +34,34 @@ type AlertInfo = {
 
 const allowedCharsRegex = /^[a-zA-Z0-9\-\[\]()+/.,\s]*$/;
 
+/** Word-form operators used by the seed scripts -> the symbol form the editor offers. */
+const OPERATOR_ALIASES: Record<string, string> = {
+  equals: "==",
+  notequals: "!=",
+  greaterthan: ">",
+  greaterorequal: ">=",
+  greaterthanorequal: ">=",
+  lessthan: "<",
+  lessorequal: "<=",
+  lessthanorequal: "<=",
+};
+
+const normalizeOperator = (operator: string | undefined) =>
+  OPERATOR_ALIASES[(operator || "").toLowerCase()] ?? operator ?? "";
+
+/**
+ * Keeps a stored value selectable when it is not one of the built-in options (e.g. the
+ * "GraceChart" param type used by the ordinance seed). Without this the select falls back
+ * to its first option and saving silently rewrites the rule.
+ */
+const withCurrentValue = (
+  options: { value: string; label: string }[],
+  value: string | undefined,
+) =>
+  value && !options.some((option) => option.value === value)
+    ? [...options, { value, label: value }]
+    : options;
+
 const GRADE_PRESETS = [
   { value: "10pt_cbgs", label: "10-Point Scale (CBGS)" },
   { value: "7pt", label: "7-Point Scale" },
@@ -688,7 +716,19 @@ export default function Ordinance() {
 
   const handleEditRule = (rule: Rule) => {
     // Deep copy to avoid mutating state directly
-    setCurrentRule(JSON.parse(JSON.stringify(rule)));
+    const copy: Rule = JSON.parse(JSON.stringify(rule));
+
+    // Seeded rules store operators in word form ("GreaterOrEqual"); the metadata endpoint
+    // only offers the symbol form. The engine accepts both, but a <select> whose value
+    // matches no option silently displays the first one ("==") -- and saving would then
+    // persist that, quietly changing ">= 1" into "== 1". Map to the symbol the editor can
+    // actually show, so what is displayed is what gets saved.
+    copy.conditions = (copy.conditions || []).map((cond) => ({
+      ...cond,
+      operator: normalizeOperator(cond.operator),
+    }));
+
+    setCurrentRule(copy);
     setRuleViewMode("form");
   };
 
@@ -909,9 +949,9 @@ export default function Ordinance() {
     const actStrings = currentRule.actions.map((a) => {
       if (!a.actionType || !a.calculationMode) return "...";
       let summary = `${a.actionType} via ${a.calculationMode}`;
-      if (a.param1Type !== "None") summary += ` (${a.param1Type}: ${a.param1Value})`;
+      if (a.param1Type !== "None") summary += ` (${a.param1Type}: ${a.param1Value ?? 0})`;
       summary += ` to ${a.target}`;
-      if (a.maxLimit > 0) summary += ` (Max: ${a.maxLimit})`;
+      if ((a.maxLimit ?? 0) > 0) summary += ` (Max: ${a.maxLimit})`;
       return summary;
     });
 
@@ -1304,18 +1344,21 @@ export default function Ordinance() {
                     <td className="px-2 py-2">
                       <div className="space-y-1">
                         <Select
-                          options={[
-                            { value: "None", label: "None" },
-                            { value: "Value", label: "Value" },
-                            { value: "PercentOfSubject", label: "% of Subject" },
-                            { value: "PercentOfAggregate", label: "% of Aggregate" },
-                          ]}
+                          options={withCurrentValue(
+                            [
+                              { value: "None", label: "None" },
+                              { value: "Value", label: "Value" },
+                              { value: "PercentOfSubject", label: "% of Subject" },
+                              { value: "PercentOfAggregate", label: "% of Aggregate" },
+                            ],
+                            act.param1Type,
+                          )}
                           value={act.param1Type}
                           onChange={(val) => updateAction(idx, "param1Type", val)}
                         />
                         <Input
                           type="number"
-                          value={act.param1Value.toString()}
+                          value={act.param1Value?.toString() ?? ""}
                           onChange={(e) => updateAction(idx, "param1Value", parseFloat(e.target.value) || 0)}
                           placeholder="Value"
                         />
@@ -1324,18 +1367,21 @@ export default function Ordinance() {
                     <td className="px-2 py-2">
                       <div className="space-y-1">
                         <Select
-                          options={[
-                            { value: "None", label: "None" },
-                            { value: "Value", label: "Value" },
-                            { value: "PercentOfSubject", label: "% of Subject" },
-                            { value: "PercentOfAggregate", label: "% of Aggregate" },
-                          ]}
+                          options={withCurrentValue(
+                            [
+                              { value: "None", label: "None" },
+                              { value: "Value", label: "Value" },
+                              { value: "PercentOfSubject", label: "% of Subject" },
+                              { value: "PercentOfAggregate", label: "% of Aggregate" },
+                            ],
+                            act.param2Type,
+                          )}
                           value={act.param2Type}
                           onChange={(val) => updateAction(idx, "param2Type", val)}
                         />
                         <Input
                           type="number"
-                          value={act.param2Value.toString()}
+                          value={act.param2Value?.toString() ?? ""}
                           onChange={(e) => updateAction(idx, "param2Value", parseFloat(e.target.value) || 0)}
                           placeholder="Value"
                         />
@@ -1344,7 +1390,7 @@ export default function Ordinance() {
                     <td className="px-2 py-2">
                       <Input
                         type="number"
-                        value={act.maxLimit.toString()}
+                        value={act.maxLimit?.toString() ?? ""}
                         onChange={(e) => updateAction(idx, "maxLimit", parseFloat(e.target.value) || 0)}
                       />
                     </td>
