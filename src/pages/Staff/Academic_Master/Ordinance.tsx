@@ -147,6 +147,17 @@ export default function Ordinance() {
 
   const filters = useMemo(() => ({}), []);
 
+  // The AllowExamAssignment action drives ATKT/Revaluation assignment, not result processing, so
+  // it is only meaningful on a KT or Revaluation rule set. Hide it from the action dropdown for
+  // every other exam type (e.g. Regular).
+  const availableActions = useMemo(() => {
+    const activeExamType = ruleSets.find((rs) => rs.ruleSetId === ruleSet)?.examType || "";
+    const allowsAssignment = ["KT", "REVAL"].includes(activeExamType);
+    return allowsAssignment
+      ? metadataActions
+      : metadataActions.filter((a) => a.value !== "AllowExamAssignment");
+  }, [metadataActions, ruleSets, ruleSet]);
+
   // --- Effects ---
   useEffect(() => {
     if (pageAlert) {
@@ -1326,7 +1337,7 @@ export default function Ordinance() {
                   <tr key={idx} className="bg-white align-top">
                     <td className="px-2 py-2">
                       <Select
-                        options={metadataActions}
+                        options={availableActions}
                         value={act.actionType}
                         onChange={(val) => updateAction(idx, "actionType", val)}
                       />

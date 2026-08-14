@@ -55,6 +55,15 @@ export const RegularExamService = {
         );
         return response.data;
     },
+    /** Active exams of every type (Regular + ATKT + Revaluation). Use on the post-assignment
+     *  screens (Marks Entry, Gazette, Hall Ticket, Marksheet, Assign Seat No) so an ATKT/Reval
+     *  exam is selectable. The Regular conduct screen keeps using getExam. */
+    async getAllExams(params: ExamApiRequest): Promise<ExamApiResponse[]> {
+        const response = await apiClient.get<ExamApiResponse[]>(
+            "/RegularExam/get-all-exams", { params }
+        );
+        return response.data;
+    },
     // async CheckCredit(params: RegularCredits): Promise<Response> {
     //     const response = await apiClient.get<Response>(
     //         "/RegularExam/get-credit", { params }

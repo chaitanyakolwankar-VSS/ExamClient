@@ -128,7 +128,7 @@ export default function MarksEntry() {
   const fetchExams = async () => {
     try {
         const ayid = localStorage.getItem("AYID");
-        const exams = await RegularExamService.getExam({ Courseid: selectedCourse, Ayid: ayid || "" });
+        const exams = await RegularExamService.getAllExams({ Courseid: selectedCourse, Ayid: ayid || "" });
         setExamOptions(exams.map(e => ({ value: e.examId, label: e.examname })));
     } catch (error) {
         console.error("Fetch exams error:", error);
@@ -564,7 +564,24 @@ export default function MarksEntry() {
                 render: (row: MarksEntryData) => {
                     const head = row.heads.find(x => x.headName === h.headName);
                     if (!head) return "-";
-                    
+
+                    // Carried forward from the source attempt (ATKT/Revaluation): the student is
+                    // not appearing for this head, the mark is fixed. Render a locked, light-blue
+                    // cell rather than a disabled input so the fill reads clearly (a disabled
+                    // input greys out) and the value can never be edited.
+                    if (head.isCarryForward === true) {
+                        return (
+                          <div className="w-full min-w-[70px]">
+                            <div
+                              title="Carried forward from the source attempt — the student is not appearing for this head, so its mark is fixed."
+                              className="text-center font-medium px-2 h-11 flex items-center justify-center rounded-lg border border-sky-300 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-900/40 cursor-not-allowed select-none"
+                            >
+                              {head.marks ?? "—"}
+                            </div>
+                          </div>
+                        );
+                    }
+
                     const isAb = (head.marks ?? "").toString().toLowerCase() === 'ab';
 
                     // A combined subject is judged on the sum of its heads, so flagging a head
@@ -857,6 +874,10 @@ export default function MarksEntry() {
               <div className="flex items-center gap-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 px-2.5 py-1 rounded-full border border-purple-200 dark:border-purple-900/30">
                 <span className="size-1.5 rounded-full bg-purple-500"></span>
                 <span>Quota (#)</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 px-2.5 py-1 rounded-full border border-sky-300 dark:border-sky-900/40">
+                <span className="size-1.5 rounded-full bg-sky-500"></span>
+                <span>Carried forward (locked)</span>
               </div>
             </div>
             

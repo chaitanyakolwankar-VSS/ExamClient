@@ -33,6 +33,8 @@ export interface StudentHeadMarks {
     /** Condonation limit configured for this head on this exam. */
     resolution?: number | null;
     isEnabled: boolean;
+    /** True when carried forward from the source attempt (ATKT/Revaluation): locked, mark fixed. */
+    isCarryForward?: boolean;
 }
 
 export interface MarksEntryData {
