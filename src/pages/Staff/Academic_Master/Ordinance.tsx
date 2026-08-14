@@ -5,6 +5,7 @@ import Button from "../../../components/ui/button/Button";
 import { Plus, Pencil, Trash2, ChevronLeft, Save } from "lucide-react";
 import { Modal } from "../../../components/ui/modal";
 import Input from "../../../components/form/input/InputField";
+import MultiSelect from "../../../components/form/MultiSelect";
 import DataTable from "../../../components/ui/table/DataTable";
 import Swal from "sweetalert2";
 import {
@@ -73,6 +74,8 @@ export default function Ordinance() {
   const [metadataFacts, setMetadataFacts] = useState<Option[]>([]);
   const [metadataActions, setMetadataActions] = useState<Option[]>([]);
   const [metadataOperators, setMetadataOperators] = useState<Option[]>([]);
+  const [metadataScopes, setMetadataScopes] = useState<string[]>([]);
+  const [metadataHeadTypes, setMetadataHeadTypes] = useState<string[]>([]);
 
   const [patterns, setPatterns] = useState<PatternData[]>([]);
   const [patternOptions, setPatternOptions] = useState<Option[]>([]);
@@ -158,6 +161,27 @@ export default function Ordinance() {
       : metadataActions.filter((a) => a.value !== "AllowExamAssignment");
   }, [metadataActions, ruleSets, ruleSet]);
 
+  // Target multiselect options: fixed subject scopes + this college's configured head labels.
+  const targetBaseOptions = useMemo(
+    () => [
+      ...metadataScopes.map((s) => ({ value: s, text: s })),
+      ...metadataHeadTypes.map((h) => ({ value: h, text: `Head: ${h}` })),
+    ],
+    [metadataScopes, metadataHeadTypes]
+  );
+
+  const parseTarget = (target?: string) =>
+    (target ?? "").split(",").map((t) => t.trim()).filter(Boolean);
+
+  /** Options for one action's Target, keeping any already-stored token that isn't in the base list. */
+  const targetOptionsFor = (target?: string) => {
+    const opts = [...targetBaseOptions];
+    parseTarget(target).forEach((tok) => {
+      if (!opts.some((o) => o.value.toLowerCase() === tok.toLowerCase())) opts.push({ value: tok, text: tok });
+    });
+    return opts;
+  };
+
   // --- Effects ---
   useEffect(() => {
     if (pageAlert) {
@@ -184,6 +208,8 @@ export default function Ordinance() {
       setMetadataFacts(data.facts.map((f: string) => ({ value: f, label: f })));
       setMetadataActions(data.actions.map((a: string) => ({ value: a, label: a })));
       setMetadataOperators(data.operators.map((o: string) => ({ value: o, label: o })));
+      setMetadataScopes(data.subjectScopes ?? []);
+      setMetadataHeadTypes(data.headTypes ?? []);
     } catch (error) {
       console.error(error);
     }
@@ -1415,13 +1441,15 @@ export default function Ordinance() {
                         placeholder="[SubjectOutOf] * 0.01"
                       />
                     </td>
-                    <td className="px-2 py-2">
-                      <Input
-                        value={act.target}
-                        onChange={(event) => updateAction(idx, "target", event.target.value)}
-                        placeholder="Exact head name(s), comma separated"
+                    <td className="px-2 py-2 min-w-[230px]">
+                      <MultiSelect
+                        label=""
+                        options={targetOptionsFor(act.target)}
+                        value={parseTarget(act.target)}
+                        onChange={(sel) => updateAction(idx, "target", sel.join(", "))}
+                        placeholder="Every subject & head"
                       />
-                      <p className="mt-1 text-xs text-gray-500">Use the exact configured head name, such as ESE(TH), or a comma-separated list.</p>
+                      <p className="mt-1 text-xs text-gray-500">Empty = every subject &amp; head. Pick subject scopes and/or head names.</p>
                     </td>
                     <td className="px-2 py-2 text-right">
                       <button
