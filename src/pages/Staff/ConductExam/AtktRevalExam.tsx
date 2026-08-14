@@ -126,6 +126,7 @@ const SubjectTile = React.memo(function SubjectTile({
   cell,
   column,
   headWise,
+  isElective,
   subjectChecked,
   isHeadFresh,
   onToggleSubject,
@@ -135,6 +136,7 @@ const SubjectTile = React.memo(function SubjectTile({
   cell: AtktCell;
   column?: AtktSubjectColumn;
   headWise: boolean;
+  isElective: boolean;
   subjectChecked: boolean;
   isHeadFresh: (headKey: string) => boolean;
   onToggleSubject: (checked: boolean) => void;
@@ -143,10 +145,17 @@ const SubjectTile = React.memo(function SubjectTile({
   const border = tileBorder[cell.status] || "border-gray-200 dark:border-gray-700";
   const fail = cell.status === "Failed" || cell.status === "Absent";
   return (
-    <div className={`flex-1 basis-[220px] min-w-[200px] rounded-xl border ${border} bg-white dark:bg-gray-900 p-3`}>
+    <div className={`w-full min-w-0 rounded-xl border ${border} bg-white dark:bg-gray-900 p-3`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-[11px] text-gray-400">{column?.subjectCode || ""}</div>
+          <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+            {column?.subjectCode || ""}
+            {isElective && (
+              <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                elective
+              </span>
+            )}
+          </div>
           <div className="text-[13px] font-medium leading-tight text-gray-800 dark:text-white/90">
             {column?.subjectName || ""}
           </div>
@@ -435,6 +444,44 @@ export default function AtktRevalExam() {
       return selectable.every((c) => c.subjectId in subs);
     });
   }, [matrix, selections]);
+
+  /**
+   * Subjects not taken by every loaded student -- i.e. electives. A student "took" a subject when
+   * they hold marks for it (the cell carries heads); a subject with no heads was never attempted by
+   * that student. Electives are ordered after the core subjects in the tile view.
+   */
+  const electiveSubjectIds = useMemo(() => {
+    const elective = new Set<string>();
+    if (!matrix || matrix.students.length === 0) return elective;
+    const total = matrix.students.length;
+    const took: Record<string, number> = {};
+    matrix.students.forEach((row) =>
+      row.cells.forEach((c) => {
+        if ((c.heads?.length ?? 0) > 0) took[c.subjectId] = (took[c.subjectId] ?? 0) + 1;
+      })
+    );
+    Object.entries(took).forEach(([sid, count]) => {
+      if (count < total) elective.add(sid);
+    });
+    return elective;
+  }, [matrix]);
+
+  const orderOf = (subjectId: string) =>
+    matrix?.columns.find((c) => c.subjectId === subjectId)?.order ?? 999;
+
+  /** Tiles for one student: only subjects they actually took, core first then electives. */
+  const tilesFor = (row: AtktStudentRow): AtktCell[] =>
+    row.cells
+      .filter(
+        (c) =>
+          (c.heads?.length ?? 0) > 0 &&
+          (c.selectable || isSubjectSelected(row.stdMstId, c.subjectId))
+      )
+      .sort((a, b) => {
+        const ea = electiveSubjectIds.has(a.subjectId) ? 1 : 0;
+        const eb = electiveSubjectIds.has(b.subjectId) ? 1 : 0;
+        return ea !== eb ? ea - eb : orderOf(a.subjectId) - orderOf(b.subjectId);
+      });
 
   const filters = useMemo(() => ({}), []);
 
@@ -999,9 +1046,7 @@ export default function AtktRevalExam() {
             ) : (
               <div className="space-y-3">
                 {matrix.students.map((row) => {
-                  const tileCells = row.cells.filter(
-                    (c) => c.selectable || isSubjectSelected(row.stdMstId, c.subjectId)
-                  );
+                  const tileCells = tilesFor(row);
                   return (
                     <div
                       key={row.stdMstId}
@@ -1045,7 +1090,7 @@ export default function AtktRevalExam() {
                           Nothing to assign for this student.
                         </div>
                       ) : (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(210px,1fr))]">
                           {tileCells.map((cell) => (
                             <SubjectTile
                               key={cell.subjectId}
@@ -1053,6 +1098,7 @@ export default function AtktRevalExam() {
                               cell={cell}
                               column={matrix.columns.find((c) => c.subjectId === cell.subjectId)}
                               headWise={isHeadWise(cell)}
+                              isElective={electiveSubjectIds.has(cell.subjectId)}
                               subjectChecked={isSubjectSelected(row.stdMstId, cell.subjectId)}
                               isHeadFresh={(headKey) => isHeadFresh(row.stdMstId, cell, headKey)}
                               onToggleSubject={(checked) => toggleSubject(row.stdMstId, cell, checked)}
