@@ -834,6 +834,7 @@ export default function AtktRevalExam() {
   return (
 
     <>
+      <style>{`@keyframes atktFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`}</style>
       {alert && (
         <div className="w-full mb-4">
           <Alert
@@ -848,7 +849,35 @@ export default function AtktRevalExam() {
         description="Welcome to the Staff Portal"
       />
       <ComponentCard title="Assign ATKT / Revaluation Exam">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 pt-5">
+        {/* New / Edit -- own row above the filters, with a sliding indicator */}
+        <div className="flex flex-wrap items-center gap-3 pt-5">
+          <div className="relative flex h-11 w-full max-w-xs rounded-lg border border-gray-200 p-1 dark:border-gray-700">
+            <span
+              className="pointer-events-none absolute inset-y-1 rounded-md bg-brand-500 transition-all duration-300 ease-out"
+              style={editMode ? { left: "50%", right: "0.25rem" } : { left: "0.25rem", right: "50%" }}
+            />
+            <button
+              type="button"
+              onClick={() => setEditMode(false)}
+              className={`relative z-10 flex-1 rounded-md text-sm font-medium transition-colors ${
+                !editMode ? "text-white" : "text-gray-600 dark:text-gray-300"
+              }`}
+            >
+              New assignment
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditMode(true)}
+              className={`relative z-10 flex-1 rounded-md text-sm font-medium transition-colors ${
+                editMode ? "text-white" : "text-gray-600 dark:text-gray-300"
+              }`}
+            >
+              Edit assigned
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 pt-4">
 
           {/* Mode */}
           <Select
@@ -859,28 +888,6 @@ export default function AtktRevalExam() {
               setMode(value);
             }}
           />
-
-          {/* New / Edit */}
-          <div className="inline-flex h-11 items-center rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
-            <button
-              type="button"
-              onClick={() => setEditMode(false)}
-              className={`h-full rounded-md px-3 text-sm transition ${
-                !editMode ? "bg-brand-500 text-white" : "text-gray-600 dark:text-gray-300"
-              }`}
-            >
-              New assignment
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditMode(true)}
-              className={`h-full rounded-md px-3 text-sm transition ${
-                editMode ? "bg-brand-500 text-white" : "text-gray-600 dark:text-gray-300"
-              }`}
-            >
-              Edit assigned
-            </button>
-          </div>
 
           {/* Course */}
           <Select
@@ -999,18 +1006,22 @@ export default function AtktRevalExam() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 mb-3">
-              <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-0.5">
+              <div className="relative flex h-9 w-40 rounded-lg border border-gray-200 p-1 dark:border-gray-700">
+                <span
+                  className="pointer-events-none absolute inset-y-1 rounded-md bg-brand-500 transition-all duration-300 ease-out"
+                  style={viewMode === "grid" ? { left: "50%", right: "0.25rem" } : { left: "0.25rem", right: "50%" }}
+                />
                 <button
                   type="button"
                   onClick={() => setViewMode("tiles")}
-                  className={`px-3 py-1.5 text-sm rounded-md transition ${viewMode === "tiles" ? "bg-brand-500 text-white" : "text-gray-600 dark:text-gray-300"}`}
+                  className={`relative z-10 flex-1 rounded-md text-sm font-medium transition-colors ${viewMode === "tiles" ? "text-white" : "text-gray-600 dark:text-gray-300"}`}
                 >
                   Tiles
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode("grid")}
-                  className={`px-3 py-1.5 text-sm rounded-md transition ${viewMode === "grid" ? "bg-brand-500 text-white" : "text-gray-600 dark:text-gray-300"}`}
+                  className={`relative z-10 flex-1 rounded-md text-sm font-medium transition-colors ${viewMode === "grid" ? "text-white" : "text-gray-600 dark:text-gray-300"}`}
                 >
                   Grid
                 </button>
@@ -1030,7 +1041,7 @@ export default function AtktRevalExam() {
             </div>
 
             {viewMode === "grid" ? (
-              <div className="bg-white dark:bg-gray-900 rounded-lg shadow-theme-md border border-gray-200 dark:border-gray-800 p-4">
+              <div key="grid" style={{ animation: "atktFade .28s ease" }} className="bg-white dark:bg-gray-900 rounded-lg shadow-theme-md border border-gray-200 dark:border-gray-800 p-4">
                 <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
                   <DataTable
                     data={matrix.students}
@@ -1042,7 +1053,7 @@ export default function AtktRevalExam() {
                 </div>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+              <div key="tiles" style={{ animation: "atktFade .28s ease" }} className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
                 <div className="min-w-max">
                   <div className="flex border-b border-gray-100 bg-gray-50/70 dark:border-gray-800 dark:bg-white/[0.02]">
                     <div className="sticky left-0 z-10 w-[210px] flex-shrink-0 bg-gray-50 px-3 py-2 text-[11px] font-medium text-gray-500 dark:bg-gray-900 dark:text-gray-400">
