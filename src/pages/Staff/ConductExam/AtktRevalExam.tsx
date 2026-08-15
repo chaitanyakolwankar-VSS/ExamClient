@@ -121,7 +121,7 @@ const tileBorder: Record<string, string> = {
   Absent: "border-amber-300 dark:border-amber-900/40",
 };
 
-/** One subject tile: per-head marks + checkboxes (head-wise) or one re-appear checkbox (combined). */
+/** Compact subject tile for the dense per-student row: subject code, head marks, and checkboxes. */
 const SubjectTile = React.memo(function SubjectTile({
   cell,
   column,
@@ -142,44 +142,40 @@ const SubjectTile = React.memo(function SubjectTile({
   onToggleSubject: (checked: boolean) => void;
   onToggleHead: (headKey: string, checked: boolean) => void;
 }) {
-  const border = tileBorder[cell.status] || "border-gray-200 dark:border-gray-700";
+  const border = isElective
+    ? "border-dashed border-amber-300 dark:border-amber-900/40"
+    : tileBorder[cell.status] || "border-gray-200 dark:border-gray-700";
   const fail = cell.status === "Failed" || cell.status === "Absent";
   return (
-    <div className={`w-full min-w-0 rounded-xl border ${border} bg-white dark:bg-gray-900 p-3`}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-            {column?.subjectCode || ""}
-            {isElective && (
-              <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
-                elective
-              </span>
-            )}
-          </div>
-          <div className="text-[13px] font-medium leading-tight text-gray-800 dark:text-white/90">
-            {column?.subjectName || ""}
-          </div>
-        </div>
+    <div
+      title={`${column?.subjectName || ""}${isElective ? " (elective)" : ""}`}
+      className={`w-[136px] flex-shrink-0 rounded-lg border ${border} bg-white dark:bg-gray-900 p-2`}
+    >
+      <div className="flex items-center justify-between gap-1">
+        <span className="truncate text-[11px] font-medium text-gray-700 dark:text-gray-300">
+          {column?.subjectCode || ""}
+        </span>
         <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${
+          className={`shrink-0 rounded-sm px-1 text-[9px] font-medium ${
             headWise
               ? "bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300"
               : "bg-teal-50 text-teal-700 dark:bg-teal-900/20 dark:text-teal-300"
           }`}
         >
-          {headWise ? "head-wise" : "combined"}
+          {headWise ? "HW" : "C"}
         </span>
       </div>
 
       {headWise ? (
-        <div className="mt-2">
+        <div className="mt-1 space-y-0.5">
           {cell.heads.map((h) => (
-            <div
-              key={h.head}
-              className="flex items-center justify-between gap-2 border-t border-gray-100 dark:border-gray-800 py-1.5 text-xs"
-            >
-              <span className="text-gray-700 dark:text-gray-300">{h.headType}</span>
-              <span className={h.isFailing || h.isAbsent ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}>
+            <div key={h.head} className="flex items-center gap-1 text-[11px]">
+              <span className="w-7 shrink-0 truncate text-gray-600 dark:text-gray-400">{h.headType}</span>
+              <span
+                className={`flex-1 text-right ${
+                  h.isFailing || h.isAbsent ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"
+                }`}
+              >
                 {h.isAbsent ? "Ab" : `${h.obtained ?? "—"}/${h.outOf}`}
               </span>
               <Checkbox checked={isHeadFresh(h.head)} disabled={!h.selectable} onChange={(v) => onToggleHead(h.head, v)} />
@@ -187,17 +183,11 @@ const SubjectTile = React.memo(function SubjectTile({
           ))}
         </div>
       ) : (
-        <div className="mt-2">
-          <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 py-1.5 text-xs">
-            <span className="text-gray-500 dark:text-gray-400">Total</span>
-            <span className={fail ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-300"}>
-              {cell.isAbsent ? "Ab" : `${cell.obtainedTotal}/${cell.outOfTotal}`} · need {cell.requiredToPass}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 border-t border-gray-100 dark:border-gray-800 pt-2 text-xs text-gray-700 dark:text-gray-300">
-            <Checkbox checked={subjectChecked} onChange={onToggleSubject} />
-            re-appear
-          </div>
+        <div className="mt-1 flex items-center gap-1 text-[11px]">
+          <span className={`flex-1 ${fail ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}`}>
+            {cell.isAbsent ? "Ab" : `${cell.obtainedTotal}/${cell.outOfTotal}`}
+          </span>
+          <Checkbox checked={subjectChecked} onChange={onToggleSubject} />
         </div>
       )}
     </div>
@@ -1044,72 +1034,75 @@ export default function AtktRevalExam() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                {matrix.students.map((row) => {
-                  const tileCells = tilesFor(row);
-                  return (
-                    <div
-                      key={row.stdMstId}
-                      className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="flex size-9 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
-                          {(row.studentName || "?").trim().charAt(0)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="truncate text-sm font-medium text-gray-800 dark:text-white/90">
-                            {row.studentName}
+              <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+                <div className="min-w-max">
+                  <div className="flex border-b border-gray-100 bg-gray-50/70 dark:border-gray-800 dark:bg-white/[0.02]">
+                    <div className="sticky left-0 z-10 w-[210px] flex-shrink-0 bg-gray-50 px-3 py-2 text-[11px] font-medium text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                      Student
+                    </div>
+                    <div className="px-3 py-2 text-[11px] text-gray-400">Backlog subjects · electives last · scroll →</div>
+                  </div>
+
+                  {matrix.students.map((row) => {
+                    const tileCells = tilesFor(row);
+                    return (
+                      <div
+                        key={row.stdMstId}
+                        className="flex items-center border-b border-gray-100 last:border-0 dark:border-gray-800"
+                      >
+                        <div className="sticky left-0 z-10 flex w-[210px] flex-shrink-0 items-center gap-2 bg-white px-3 py-2 dark:bg-gray-900">
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-[13px] font-medium text-gray-800 dark:text-white/90">
+                              {row.studentName}
+                            </div>
+                            <div className="truncate text-[11px] text-gray-500 dark:text-gray-400">
+                              {row.seatNo || row.studentId}
+                              {mode === MODE_ATKT ? ` · ${row.backlogCount}` : ""}
+                            </div>
                           </div>
-                          <div className="truncate text-xs text-gray-500 dark:text-gray-400">
-                            {row.seatNo || row.studentId}
-                            {mode === MODE_ATKT ? ` · ${row.backlogCount} backlog${row.backlogCount === 1 ? "" : "s"}` : ""}
-                            {row.sourceExamName ? ` · from ${row.sourceExamName}` : ""}
-                          </div>
+                          <Switch
+                            label=""
+                            color="blue"
+                            checked={isRowFullySelected(row)}
+                            onChange={(checked) => toggleRow(row, checked)}
+                          />
+                          {editMode && (
+                            <button
+                              type="button"
+                              title={row.canDelete ? "Remove from this exam" : row.deleteBlockedReason || "Cannot be removed"}
+                              disabled={!row.canDelete}
+                              onClick={() => handleDelete(row)}
+                              className="inline-flex items-center justify-center rounded-md bg-red-600 p-1.5 text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
-                        <Switch
-                          label="all"
-                          color="blue"
-                          checked={isRowFullySelected(row)}
-                          onChange={(checked) => toggleRow(row, checked)}
-                        />
-                        {editMode && (
-                          <button
-                            type="button"
-                            title={row.canDelete ? "Remove from this exam" : row.deleteBlockedReason || "Cannot be removed"}
-                            disabled={!row.canDelete}
-                            onClick={() => handleDelete(row)}
-                            className="inline-flex items-center justify-center rounded-lg bg-red-600 p-2 text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+
+                        {tileCells.length === 0 ? (
+                          <div className="px-3 py-2 text-[11px] text-gray-400">Nothing to assign.</div>
+                        ) : (
+                          <div className="flex gap-2 px-2 py-2">
+                            {tileCells.map((cell) => (
+                              <SubjectTile
+                                key={cell.subjectId}
+                                stdMstId={row.stdMstId}
+                                cell={cell}
+                                column={matrix.columns.find((c) => c.subjectId === cell.subjectId)}
+                                headWise={isHeadWise(cell)}
+                                isElective={electiveSubjectIds.has(cell.subjectId)}
+                                subjectChecked={isSubjectSelected(row.stdMstId, cell.subjectId)}
+                                isHeadFresh={(headKey) => isHeadFresh(row.stdMstId, cell, headKey)}
+                                onToggleSubject={(checked) => toggleSubject(row.stdMstId, cell, checked)}
+                                onToggleHead={(headKey, checked) => toggleHead(row.stdMstId, cell, headKey, checked)}
+                              />
+                            ))}
+                          </div>
                         )}
                       </div>
-
-                      {tileCells.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-gray-200 dark:border-gray-700 px-3 py-4 text-center text-xs text-gray-400">
-                          Nothing to assign for this student.
-                        </div>
-                      ) : (
-                        <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(210px,1fr))]">
-                          {tileCells.map((cell) => (
-                            <SubjectTile
-                              key={cell.subjectId}
-                              stdMstId={row.stdMstId}
-                              cell={cell}
-                              column={matrix.columns.find((c) => c.subjectId === cell.subjectId)}
-                              headWise={isHeadWise(cell)}
-                              isElective={electiveSubjectIds.has(cell.subjectId)}
-                              subjectChecked={isSubjectSelected(row.stdMstId, cell.subjectId)}
-                              isHeadFresh={(headKey) => isHeadFresh(row.stdMstId, cell, headKey)}
-                              onToggleSubject={(checked) => toggleSubject(row.stdMstId, cell, checked)}
-                              onToggleHead={(headKey, checked) => toggleHead(row.stdMstId, cell, headKey, checked)}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </>
