@@ -534,7 +534,7 @@ export default function AtktRevalExam() {
       base.push({
         key: `subject_${col.subjectId}`,
         sortable: false,
-        className: "text-center min-w-[110px]",
+        className: "text-center min-w-[132px]",
         label: (
           <div className="leading-tight" title={col.subjectName}>
             <div className="font-semibold text-gray-800 dark:text-white/90">{`${col.subjectCode}`}</div>
@@ -559,19 +559,22 @@ export default function AtktRevalExam() {
             // view; combined subjects stay a single subject-level checkbox.
             if (isHeadWise(cell)) {
               return (
-                <div className={`flex flex-col items-center gap-0.5 rounded-md py-1 ${colorClasses}`}>
+                <div className={`rounded-md px-1.5 py-1 ${colorClasses}`}>
                   {cell.heads.map((h) => (
-                    <div
-                      key={h.head}
-                      className="flex items-center gap-1 text-[10px]"
-                      title={`${h.headType} ${h.isAbsent ? "Ab" : `${h.obtained ?? "—"}/${h.outOf}`}`}
-                    >
+                    <div key={h.head} className="flex items-center gap-1.5 py-0.5 text-[11px] leading-tight">
+                      <span className="w-8 shrink-0 text-left font-medium">{h.headType}</span>
+                      <span
+                        className={`flex-1 text-right tabular-nums ${
+                          h.isFailing || h.isAbsent ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"
+                        }`}
+                      >
+                        {h.isAbsent ? "Ab" : `${h.obtained ?? "—"}/${h.outOf}`}
+                      </span>
                       <Checkbox
                         checked={isHeadFresh(row.stdMstId, cell, h.head)}
                         disabled={!h.selectable}
                         onChange={(v) => toggleHead(row.stdMstId, cell, h.head, v)}
                       />
-                      <span>{h.headType}</span>
                     </div>
                   ))}
                 </div>
