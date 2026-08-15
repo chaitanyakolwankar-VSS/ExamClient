@@ -779,39 +779,6 @@ export default function AtktRevalExam() {
     }
   };
 
-  const handleAssignAll = async () => {
-    if (!appliedFilter) return;
-
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "Every eligible student will be assigned to every subject the policy allows. Do you want to proceed?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#2647dcff",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes, assign all",
-    });
-
-    if (!result.isConfirmed) return;
-
-    setSaving(true);
-    try {
-      const res = await AtktRevalExamService.assignAll({ filter: appliedFilter });
-
-      if (res.success) {
-        setAlert({ variant: "success", title: "Assigned", message: res.message });
-        await loadMatrix(appliedFilter);
-      } else {
-        setAlert({ variant: "error", title: "Error", message: res.message });
-      }
-    } catch (error) {
-      console.error("Failed to assign all students", error);
-      setAlert({ variant: "error", title: "Error", message: "Failed to assign students." });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleDelete = async (row: AtktStudentRow) => {
     if (!appliedFilter) return;
 
@@ -894,12 +861,26 @@ export default function AtktRevalExam() {
           />
 
           {/* New / Edit */}
-          <Switch
-            label="Edit assigned students"
-            color="blue"
-            checked={editMode}
-            onChange={(checked) => setEditMode(checked)}
-          />
+          <div className="inline-flex h-11 items-center rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={() => setEditMode(false)}
+              className={`h-full rounded-md px-3 text-sm transition ${
+                !editMode ? "bg-brand-500 text-white" : "text-gray-600 dark:text-gray-300"
+              }`}
+            >
+              New assignment
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditMode(true)}
+              className={`h-full rounded-md px-3 text-sm transition ${
+                editMode ? "bg-brand-500 text-white" : "text-gray-600 dark:text-gray-300"
+              }`}
+            >
+              Edit assigned
+            </button>
+          </div>
 
           {/* Course */}
           <Select
@@ -1007,10 +988,6 @@ export default function AtktRevalExam() {
                 <Save className="size-4 mr-2" />
                 {editMode ? "Update" : "Save"}
               </Button>
-              <Button variant="outline" onClick={handleAssignAll} disabled={saving} className="min-w-48 h-11">
-                <Users className="size-4 mr-2" />
-                Assign all eligible
-              </Button>
               <Button variant="outline" onClick={() => handleExport("All")} disabled={saving} className="min-w-48 h-11">
                 <Download className="size-4 mr-2" />
                 Export ALL
@@ -1021,7 +998,7 @@ export default function AtktRevalExam() {
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <div className="flex flex-wrap items-center gap-3 mb-3">
               <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-0.5">
                 <button
                   type="button"
@@ -1038,12 +1015,18 @@ export default function AtktRevalExam() {
                   Grid
                 </button>
               </div>
-              <Switch
-                label="Select all students"
-                color="blue"
-                checked={allStudentsSelected}
-                onChange={toggleAllStudents}
-              />
+              <button
+                type="button"
+                onClick={() => toggleAllStudents(!allStudentsSelected)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition ${
+                  allStudentsSelected
+                    ? "border-brand-500 bg-brand-500 text-white"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                }`}
+              >
+                <Users className="size-4" />
+                {allStudentsSelected ? "Clear all" : "Select all"}
+              </button>
             </div>
 
             {viewMode === "grid" ? (
