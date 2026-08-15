@@ -19,7 +19,7 @@ import {
   AtktSubjectColumn,
 } from "../../../services/AtktRevalExamService";
 import Swal from "sweetalert2";
-import { Loader2, Save, Trash2, Users, Download, FileSpreadsheet } from "lucide-react";
+import { Loader2, Save, Trash2, Users, FileSpreadsheet, Info } from "lucide-react";
 
 interface Option {
   value: string;
@@ -83,12 +83,6 @@ const describeScopes = (scopes: string[]): string =>
   scopes.length === 0
     ? "every subject"
     : scopes.map((s) => scopeLabels[s] ?? s.toLowerCase()).join(", ");
-
-const PolicyChip = ({ label, value }: { label: string; value: string }) => (
-  <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
-    {label}: {value}
-  </span>
-);
 
 /** Isolated so ticking one box does not re-render every other cell of the grid. */
 const SelectableCell = React.memo(function SelectableCell({
@@ -958,27 +952,34 @@ export default function AtktRevalExam() {
 
         </div>
 
-        {/* Which ordinance rule set is governing this screen, made visible to the operator */}
+        {/* Assignment policy, in plain terms -- who/what may be assigned for this exam */}
         {policy && (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <span className="font-semibold text-gray-700 dark:text-gray-300">
-              {policy.ruleSetName}
-              {policy.examType ? ` (${policy.examType})` : ""}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-xs dark:border-gray-800 dark:bg-white/[0.03]">
+            <span className="inline-flex items-center gap-1.5 font-medium text-gray-700 dark:text-gray-200">
+              <Info className="size-3.5 text-brand-500" />
+              {policy.isConfigured ? policy.ruleSetName : "Default policy"}
             </span>
-            {!policy.isConfigured && (
-              <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-amber-700 dark:border-amber-700/50 dark:bg-amber-500/10 dark:text-amber-400">
-                No rule set configured — using defaults
+            <span className="hidden h-4 w-px bg-gray-300 dark:bg-gray-700 sm:block" />
+            <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-gray-400 dark:text-gray-500">Re-appear for </span>
+              {describeScopes(policy.subjectScopes)} subjects
+            </span>
+            <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-gray-400 dark:text-gray-500">Heads </span>
+              {policy.headTypes.length > 0 ? policy.headTypes.join(", ") : "all"}
+            </span>
+            {policy.maxSubjectsPerStudent != null && (
+              <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-gray-400 dark:text-gray-500">Max </span>
+                {policy.maxSubjectsPerStudent} subjects
               </span>
             )}
-            <PolicyChip label="Subjects" value={describeScopes(policy.subjectScopes)} />
-            <PolicyChip
-              label="Heads"
-              value={policy.headTypes.length > 0 ? policy.headTypes.join(", ") : "all heads re-attempted"}
-            />
-            {policy.maxSubjectsPerStudent != null && (
-              <PolicyChip label="Max subjects" value={String(policy.maxSubjectsPerStudent)} />
+            {policy.rules.length > 0 && (
+              <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-gray-400 dark:text-gray-500">Rules </span>
+                {policy.rules.join(", ")}
+              </span>
             )}
-            {policy.rules.length > 0 && <PolicyChip label="Rules" value={policy.rules.join(", ")} />}
           </div>
         )}
 
@@ -995,14 +996,24 @@ export default function AtktRevalExam() {
                 <Save className="size-4 mr-2" />
                 {editMode ? "Update" : "Save"}
               </Button>
-              <Button variant="outline" onClick={() => handleExport("All")} disabled={saving} className="min-w-48 h-11">
-                <Download className="size-4 mr-2" />
-                Export ALL
-              </Button>
-              <Button variant="outline" onClick={() => handleExport("SeatNo")} disabled={saving} className="min-w-48 h-11">
-                <FileSpreadsheet className="size-4 mr-2" />
-                Export Seat No
-              </Button>
+              <button
+                type="button"
+                onClick={() => handleExport("All")}
+                disabled={saving}
+                className="inline-flex h-11 items-center gap-2 rounded-lg bg-gray-100 px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-200 disabled:opacity-50 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
+              >
+                <FileSpreadsheet className="size-4 text-green-600 dark:text-green-500" />
+                Export all (Excel)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExport("SeatNo")}
+                disabled={saving}
+                className="inline-flex h-11 items-center gap-2 rounded-lg bg-gray-100 px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-200 disabled:opacity-50 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
+              >
+                <FileSpreadsheet className="size-4 text-green-600 dark:text-green-500" />
+                Seat numbers (Excel)
+              </button>
             </div>
 
             <div className="flex flex-wrap items-center gap-3 mb-3">
