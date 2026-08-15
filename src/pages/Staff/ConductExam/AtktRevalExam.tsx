@@ -555,6 +555,28 @@ export default function AtktRevalExam() {
           const colorClasses = statusClasses[cell.status] || statusClasses.NotAttempted;
 
           if (cell.selectable) {
+            // Head-wise subjects offer a checkbox per head (ESE, IA) so the grid matches the tile
+            // view; combined subjects stay a single subject-level checkbox.
+            if (isHeadWise(cell)) {
+              return (
+                <div className={`flex flex-col items-center gap-0.5 rounded-md py-1 ${colorClasses}`}>
+                  {cell.heads.map((h) => (
+                    <div
+                      key={h.head}
+                      className="flex items-center gap-1 text-[10px]"
+                      title={`${h.headType} ${h.isAbsent ? "Ab" : `${h.obtained ?? "—"}/${h.outOf}`}`}
+                    >
+                      <Checkbox
+                        checked={isHeadFresh(row.stdMstId, cell, h.head)}
+                        disabled={!h.selectable}
+                        onChange={(v) => toggleHead(row.stdMstId, cell, h.head, v)}
+                      />
+                      <span>{h.headType}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
             return (
               <SelectableCell
                 stdMstId={row.stdMstId}
@@ -587,7 +609,7 @@ export default function AtktRevalExam() {
     });
 
     return base;
-  }, [matrix, selections, mode, editMode, toggleSubject]);
+  }, [matrix, selections, mode, editMode, toggleSubject, toggleHead]);
 
   // ================= API CALLS =================
 
