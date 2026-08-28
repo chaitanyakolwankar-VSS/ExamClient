@@ -31,13 +31,15 @@ export default function StatisticalReportPage() {
   const [semesterId, setSemesterId] = useState("");
   const [pattern, setPattern] = useState("");
   const [examId, setExamId] = useState("");
+  const [mergeExam, setMergeExam] = useState(false);
+  const [mergedExamId, setMergedExamId] = useState("");
   const [report, setReport] = useState<StatisticalReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [alert, setAlert] = useState<AlertState | null>(null);
 
   const academicYearId = localStorage.getItem("AYID") || "";
-  const canRequest = Boolean(courseId && semesterId && pattern && examId && academicYearId);
+  const canRequest = Boolean(courseId && semesterId && pattern && examId && academicYearId && (!mergeExam || mergedExamId));
 
   useEffect(() => {
     const loadOptions = async () => {
@@ -55,6 +57,7 @@ export default function StatisticalReportPage() {
   useEffect(() => {
     const loadExams = async () => {
       setExamId("");
+      setMergedExamId("");
       setReport(null);
       if (!courseId || !academicYearId) {
         setExamOptions([]);
@@ -75,9 +78,11 @@ export default function StatisticalReportPage() {
     courseId,
     academicYearId,
     examId,
+    mergeExam,
+    mergedExamId: mergeExam ? mergedExamId : undefined,
     semesterId,
     pattern,
-  }), [academicYearId, courseId, examId, pattern, semesterId]);
+  }), [academicYearId, courseId, examId, mergeExam, mergedExamId, pattern, semesterId]);
 
   const ensureReady = () => {
     if (canRequest) return true;
@@ -85,7 +90,9 @@ export default function StatisticalReportPage() {
       variant: "warning",
       title: "Required filters missing",
       message: academicYearId
-        ? "Select course, semester, pattern and exam."
+        ? mergeExam
+          ? "Select course, semester, pattern, primary exam and an exam to merge."
+          : "Select course, semester, pattern and exam."
         : "Select an academic year before generating the report.",
     });
     return false;
@@ -165,6 +172,30 @@ export default function StatisticalReportPage() {
             placeholder="Select Exam"
           />
         </div>
+
+        {examId && (
+          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:flex-row sm:items-center dark:border-gray-700 dark:bg-gray-800/50">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+              <input
+                type="checkbox"
+                checked={mergeExam}
+                onChange={(event) => resetDownstream(() => { setMergeExam(event.target.checked); if (!event.target.checked) setMergedExamId(""); })}
+                className="rounded text-brand-500"
+              />
+              Merge another processed exam
+            </label>
+            {mergeExam && (
+              <div className="min-w-64 flex-1">
+                <Select
+                  options={examOptions.filter(option => option.value !== examId)}
+                  value={mergedExamId}
+                  onChange={(value) => resetDownstream(() => setMergedExamId(value))}
+                  placeholder="Select Exam to Merge"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end dark:border-gray-800">
           <Button onClick={loadReport} disabled={loading || exporting} className="flex items-center justify-center gap-2">

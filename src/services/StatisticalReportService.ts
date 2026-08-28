@@ -5,6 +5,8 @@ export interface StatisticalReportRequest {
   courseId: string;
   academicYearId: string;
   examId: string;
+  mergeExam: boolean;
+  mergedExamId?: string;
   semesterId: string;
   pattern: string;
 }
