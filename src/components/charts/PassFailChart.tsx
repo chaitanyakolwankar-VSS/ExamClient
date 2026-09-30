@@ -6,6 +6,7 @@ import {
 } from "../../services/Dashboard";
 
 interface PassFailChartProps {
+  ayid?: string | null;
   courseId: string | null;
   activeSemester: string | null;
 }
@@ -16,6 +17,7 @@ const COLORS = {
 };
 
 const PassFailChart: React.FC<PassFailChartProps> = ({
+  ayid,
   courseId,
   activeSemester,
 }) => {
@@ -24,7 +26,6 @@ const PassFailChart: React.FC<PassFailChartProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const fetchPassFailData = async () => {
-    const ayid = localStorage.getItem("AYID");
     if (!courseId || !ayid) return;
 
     try {
@@ -50,7 +51,7 @@ const PassFailChart: React.FC<PassFailChartProps> = ({
     } else {
       setAllData([]);
     }
-  }, [courseId]);
+  }, [courseId, ayid]);
 
   // Client-side filter — jo bhi semester select hoga wizard mein, wahi data yahan filter hoga
   const currentSemesterData = allData.find(

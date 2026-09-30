@@ -6,9 +6,28 @@ import { CourseService, CourseApiResponse } from "../../../services/Course";
 import { PatternService, PatternApiResponse } from "../../../services/Pattern";
 import { GetSubject, SubjectApiResponse } from "../../../services/GetSubject";
 import { GetCredits } from "../../../services/SubjectService";
-import { ExamApiRequest, ExamApiResponse, RegularExamService, RegularStudents, GetStudents, RegularCredits } from "../../../services/RegularExamService";
+import {
+  ExamApiRequest,
+  ExamApiResponse,
+  RegularExamService,
+  RegularStudents,
+  GetStudents,
+  RegularCredits,
+} from "../../../services/RegularExamService";
 import Swal from "sweetalert2";
-import { Plus, Trash2, Edit, X, Pencil, Save, RefreshCcw, CheckCircle, Eye, Copy, Delete } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Edit,
+  X,
+  Pencil,
+  Save,
+  RefreshCcw,
+  CheckCircle,
+  Eye,
+  Copy,
+  Delete,
+} from "lucide-react";
 import DataTable from "../../../components/ui/table/DataTable";
 import Switch from "../../../components/form/switch/Switch";
 import Alert from "../../../components/ui/alert/Alert";
@@ -39,7 +58,6 @@ interface AlertState {
 }
 
 export default function RegularExam() {
-
   // 🔹 Course
   const [courseOptions, setCourseOptions] = useState<Option[]>([]);
   const [courseId, setCourseId] = useState("");
@@ -70,8 +88,12 @@ export default function RegularExam() {
   const [subject, setSubject] = useState("");
 
   //     Regular Students
-  const [unassignedStudents, setUnassignedStudents] = useState<RegularStudents[]>([]);
-  const [assignedStudents, setAssignedStudents] = useState<RegularStudents[]>([]);
+  const [unassignedStudents, setUnassignedStudents] = useState<
+    RegularStudents[]
+  >([]);
+  const [assignedStudents, setAssignedStudents] = useState<RegularStudents[]>(
+    [],
+  );
 
   //     Edit Mode
   const [isEditMode, setIsEditMode] = useState(false);
@@ -84,59 +106,47 @@ export default function RegularExam() {
 
   const [selectAll, setSelectAll] = useState(false);
 
-
   const filters = useMemo(() => ({}), []);
 
-  const columns = useMemo<Column<RegularStudents>[]>(() => [
-
-    {
-      key: "studentId",
-      label: "Student ID",
-      sortable: true,
-    },
-    {
-      key: "studentName",
-      label: "Student Name",
-      sortable: true,
-    },
-    {
-      key: "assigned",
-      label: "Assigned",
-      render: (row) => ({
-        content: (
-          <Switch
-            key={row.stdMstId + "-" + row.assigned} // 🔥 important
-            label=""
-            color="blue"
-            defaultChecked={!!row.assigned}
-            onChange={(checked) => updateStudent(row.stdMstId, checked)}
-          />
-
-        ),
-      }),
-    },
-
-  ], []);
-
+  const columns = useMemo<Column<RegularStudents>[]>(
+    () => [
+      {
+        key: "studentId",
+        label: "Student ID",
+        sortable: true,
+      },
+      {
+        key: "studentName",
+        label: "Student Name",
+        sortable: true,
+      },
+      {
+        key: "assigned",
+        label: "Assigned",
+        render: (row) => ({
+          content: (
+            <Switch
+              key={row.stdMstId + "-" + row.assigned} // 🔥 important
+              label=""
+              color="blue"
+              defaultChecked={!!row.assigned}
+              onChange={(checked) => updateStudent(row.stdMstId, checked)}
+            />
+          ),
+        }),
+      },
+    ],
+    [],
+  );
 
   const updateStudent = (stdMstId: string, assigned: boolean) => {
-
-    setAssignedStudents(prev =>
-      prev.map(s =>
-        s.stdMstId === stdMstId
-          ? { ...s, assigned }
-          : s
-      )
+    setAssignedStudents((prev) =>
+      prev.map((s) => (s.stdMstId === stdMstId ? { ...s, assigned } : s)),
     );
 
-    setUnassignedStudents(prev =>
-      prev.map(s =>
-        s.stdMstId === stdMstId
-          ? { ...s, assigned }
-          : s
-      )
+    setUnassignedStudents((prev) =>
+      prev.map((s) => (s.stdMstId === stdMstId ? { ...s, assigned } : s)),
     );
-
   };
 
   useEffect(() => {
@@ -168,7 +178,7 @@ export default function RegularExam() {
     if (semester) {
       setExam("");
       fetchexam();
-    } 
+    }
     reset();
   }, [semester]);
   useEffect(() => {
@@ -177,7 +187,6 @@ export default function RegularExam() {
     }
 
     Assignallsubjects(false);
-
   }, [Exam]);
 
   useEffect(() => {
@@ -185,29 +194,27 @@ export default function RegularExam() {
       CheckCredits(false);
     } else {
     }
-    reset()
-
+    reset();
   }, [subject]);
   const Assignallsubjects = async (checked: boolean) => {
-      setSelectAll(false);
+    setSelectAll(false);
     setIsallsubjects(checked);
 
     if (checked) {
-       setSubject("");
+      setSubject("");
       await CheckCredits(true);
     } else {
       setSubject("");
       reset();
- 
     }
   };
 
   const reset = () => {
-      setSelectAll(false);
+    setSelectAll(false);
     setIsEditMode(false);
     setUnassignedStudents([]);
     setAssignedStudents([]);
-  }
+  };
   // ================= API CALLS =================
 
   const fetchCourses = async () => {
@@ -218,7 +225,7 @@ export default function RegularExam() {
         data.map((c) => ({
           value: c.courseid,
           label: c.coursename,
-        }))
+        })),
       );
     } catch (error) {
       console.error("Failed to fetch courses", error);
@@ -231,16 +238,16 @@ export default function RegularExam() {
         return Swal.fire("Error", "Academic Year is missing", "error");
       }
 
-
       const parameter: ExamApiRequest = {
         Courseid: courseId,
-        Ayid: ayid
-      }
-      const data: ExamApiResponse[] = await RegularExamService.getExam(parameter);
+        Ayid: ayid,
+      };
+      const data: ExamApiResponse[] =
+        await RegularExamService.getExam(parameter);
       console.log("EXAM API RAW RESPONSE 👉", data);
       const mappedData = data.map((e) => ({
         value: e.examId,
-        label: e.examname
+        label: e.examname,
       }));
 
       setExamOptions(mappedData); // ✅ update state
@@ -257,7 +264,7 @@ export default function RegularExam() {
         data.map((p) => ({
           value: p.patternName,
           label: p.patternName,
-        }))
+        })),
       );
     } catch (error) {
       console.error("Failed to fetch patterns", error);
@@ -266,16 +273,20 @@ export default function RegularExam() {
   const fetchSubjects = async (
     courseId: string,
     pattern: string,
-    semester: string
+    semester: string,
   ) => {
     try {
-      const data: SubjectApiResponse[] = await GetSubject.getSubject({ courseId, pattern, semester });
+      const data: SubjectApiResponse[] = await GetSubject.getSubject({
+        courseId,
+        pattern,
+        semester,
+      });
 
       setSubjectOptions(
         data.map((s) => ({
           value: s.subjectId,
           label: s.subjectName,
-        }))
+        })),
       );
     } catch (error) {
       console.error("Failed to fetch subjects", error);
@@ -293,8 +304,8 @@ export default function RegularExam() {
       // }
       const params: RegularCredits = {
         subjectIds: isAll
-          ? subjectOptions.map(s => s.value) // all subjects
-          : [subject],                       // single subject
+          ? subjectOptions.map((s) => s.value) // all subjects
+          : [subject], // single subject
         ayid: ayid,
       };
 
@@ -305,32 +316,33 @@ export default function RegularExam() {
           Pattern: pattern,
           Semester: semester,
           SubjectId: isAll
-            ? subjectOptions.map(s => s.value) // all subjects
-            : [subject],                       // single subject
+            ? subjectOptions.map((s) => s.value) // all subjects
+            : [subject], // single subject
           Ayid: ayid,
           examId: Exam,
-        }
+        };
         const students = await RegularExamService.getRegularStudents(parameter);
         // setUnassignedStudents(students.unassignedStudents);
         // setAssignedStudents(students.assignedStudents)
         const assigned = students.assignedStudents ?? [];
         const unassigned = students.unassignedStudents ?? [];
-       
+
         setAssignedStudents(
-          students.assignedStudents.map(s => ({ ...s, assigned: true }))
+          students.assignedStudents.map((s) => ({ ...s, assigned: true })),
         );
 
         setUnassignedStudents(
-          students.unassignedStudents.map(s => ({ ...s, assigned: false }))
+          students.unassignedStudents.map((s) => ({ ...s, assigned: false })),
         );
-         if (assigned.length > 0) {
+        if (assigned.length > 0) {
           return setAlert({
             variant: "warning",
             title: "Warning",
-            message: "Students are already assigned for this exam. Please use Edit mode to make changes.",
+            message:
+              "Students are already assigned for this exam. Please use Edit mode to make changes.",
           });
         }
-         if (unassigned.length == 0) {
+        if (unassigned.length == 0) {
           return setAlert({
             variant: "error",
             title: "Error",
@@ -338,8 +350,7 @@ export default function RegularExam() {
           });
         }
         setIsEditMode(false);
-      }
-      else {
+      } else {
         Swal.fire({
           title: "Failed!",
           text: data.message,
@@ -366,12 +377,12 @@ export default function RegularExam() {
           pattern,
           semester,
           subjectId: Isallsubjects
-            ? subjectOptions.map(s => s.value) // all subjects
-            : [subject],                       // single subject
+            ? subjectOptions.map((s) => s.value) // all subjects
+            : [subject], // single subject
           ayid,
-          examId: Exam
+          examId: Exam,
         },
-        students: unassignedStudents.map(s => ({
+        students: unassignedStudents.map((s) => ({
           stdMstId: s.stdMstId,
           studentId: s.studentId,
           studentName: s.studentName,
@@ -394,17 +405,16 @@ export default function RegularExam() {
           Pattern: pattern,
           Semester: semester,
           SubjectId: Isallsubjects
-            ? subjectOptions.map(s => s.value) // all subjects
-            : [subject],                       // single subject
+            ? subjectOptions.map((s) => s.value) // all subjects
+            : [subject], // single subject
           Ayid: ayid,
           examId: Exam,
-        }
+        };
         const students = await RegularExamService.getRegularStudents(parameter);
         setUnassignedStudents(students.unassignedStudents);
-        setAssignedStudents(students.assignedStudents)
-               setSelectAll(false);
-      }
-      else {
+        setAssignedStudents(students.assignedStudents);
+        setSelectAll(false);
+      } else {
         Swal.fire({
           title: "Failed!",
           text: res.message,
@@ -421,7 +431,6 @@ export default function RegularExam() {
 
   const handleUpdate = async () => {
     try {
-
       const result = await Swal.fire({
         title: "Are you sure?",
         text: "Unchecked students will deleted from exam. Do you want to proceed?",
@@ -435,7 +444,6 @@ export default function RegularExam() {
       // ❌ Cancel clicked
       if (!result.isConfirmed) return;
 
-
       const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year missing", "error");
@@ -447,12 +455,12 @@ export default function RegularExam() {
           pattern,
           semester,
           subjectId: Isallsubjects
-            ? subjectOptions.map(s => s.value) // all subjects
-            : [subject],                       // single subject
+            ? subjectOptions.map((s) => s.value) // all subjects
+            : [subject], // single subject
           ayid,
-          examId: Exam
+          examId: Exam,
         },
-        students: assignedStudents.map(s => ({
+        students: assignedStudents.map((s) => ({
           stdMstId: s.stdMstId,
           studentId: s.studentId,
           studentName: s.studentName,
@@ -475,18 +483,17 @@ export default function RegularExam() {
           Pattern: pattern,
           Semester: semester,
           SubjectId: Isallsubjects
-            ? subjectOptions.map(s => s.value) // all subjects
-            : [subject],                       // single subject
+            ? subjectOptions.map((s) => s.value) // all subjects
+            : [subject], // single subject
           Ayid: ayid,
-          examId: Exam
-        }
+          examId: Exam,
+        };
         const students = await RegularExamService.getRegularStudents(parameter);
         setUnassignedStudents(students.unassignedStudents);
         setAssignedStudents(students.assignedStudents);
         setIsEditMode(false);
         setSelectAll(false);
-      }
-      else {
+      } else {
         Swal.fire({
           title: "Failed!",
           text: res.message,
@@ -502,7 +509,6 @@ export default function RegularExam() {
   };
 
   return (
-
     <>
       {alert && (
         <div className="w-full mb-4">
@@ -519,7 +525,6 @@ export default function RegularExam() {
       />
       <ComponentCard title="Assign Regular Exam">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 pt-5">
-
           {/* Course */}
           <Select
             options={courseOptions}
@@ -528,9 +533,9 @@ export default function RegularExam() {
             onChange={(value) => {
               setCourseId(value);
               setPattern("");
-               setSemester("");
-                setSubject("");
-                setExam("");
+              setSemester("");
+              setSubject("");
+              setExam("");
             }}
           />
 
@@ -549,14 +554,16 @@ export default function RegularExam() {
             />
           )}
 
-
           {/* Semester */}
           {pattern && (
             <Select
               options={semesterOptions}
               placeholder="Select Semester"
               value={semester}
-              onChange={(value) => { setSemester(value); setSubject(""); }}
+              onChange={(value) => {
+                setSemester(value);
+                setSubject("");
+              }}
             />
           )}
 
@@ -565,7 +572,7 @@ export default function RegularExam() {
             <Select
               options={ExamOptions}
               placeholder="Select Exam"
-              value={Exam}   // 👈 IMPORTANT
+              value={Exam} // 👈 IMPORTANT
               onChange={(value) => {
                 setExam(value);
                 setSubject("");
@@ -580,7 +587,7 @@ export default function RegularExam() {
                 options={subjectOptions}
                 placeholder="Select Subject"
                 disabled={Isallsubjects}
-                value={subject}   // 👈 IMPORTANT
+                value={subject} // 👈 IMPORTANT
                 onChange={(value) => {
                   setSubject(value);
                 }}
@@ -592,67 +599,81 @@ export default function RegularExam() {
                 defaultChecked={Isallsubjects}
                 onChange={Assignallsubjects}
               />
-
             </>
-
-
           )}
-
         </div>
         <div className="flex justify-center gap-4 pt-5">
           {(subject || Isallsubjects) && (
             <>
               {(unassignedStudents.length > 0 || isEditMode) && (
                 <>
-                 <button className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg
-             flex items-center justify-center gap-2"    onClick={isEditMode ? handleUpdate : handleSave}> <Save size={18} />
-                  <span>{isEditMode ? "Update" : "Save"}</span></button>
-                  {isEditMode&&(<button className="min-w-64 bg-red-600 text-white px-4 py-2 rounded-lg
-             flex items-center justify-center gap-2"  onClick={() => { setIsEditMode(false); }}> <X size={18} />
-                  <span>Cancel</span></button>)}
-                      
+                  <button
+                    className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg
+             flex items-center justify-center gap-2"
+                    onClick={isEditMode ? handleUpdate : handleSave}
+                  >
+                    {" "}
+                    <Save size={18} />
+                    <span>{isEditMode ? "Update" : "Save"}</span>
+                  </button>
+                  {isEditMode && (
+                    <button
+                      className="min-w-64 bg-red-600 text-white px-4 py-2 rounded-lg
+             flex items-center justify-center gap-2"
+                      onClick={() => {
+                        setIsEditMode(false);
+                      }}
+                    >
+                      {" "}
+                      <X size={18} />
+                      <span>Cancel</span>
+                    </button>
+                  )}
                 </>
-               
-              )
-              }
+              )}
 
-
-              {(assignedStudents.length > 0 && !isEditMode) && (
-                <button className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg
-             flex items-center justify-center gap-2"  onClick={() => { setIsEditMode(true); }}> <Save size={18} />
-                  <span>Edit</span></button>
+              {assignedStudents.length > 0 && !isEditMode && (
+                <button
+                  className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg
+             flex items-center justify-center gap-2"
+                  onClick={() => {
+                    setIsEditMode(true);
+                  }}
+                >
+                  {" "}
+                  <Save size={18} />
+                  <span>Edit</span>
+                </button>
               )}
             </>
-
           )}
         </div>
-        {(unassignedStudents.length > 0 && !isEditMode) && (
+        {unassignedStudents.length > 0 && !isEditMode && (
           <>
             <div className="flex justify-end mb-3 ml-6">
-    <Switch
-      key={selectAll ? "on" : "off"}
-      label="Select All"
-      color="blue"
-      defaultChecked={selectAll}
-      onChange={(checked) => {
-        setSelectAll(checked);
+              <Switch
+                key={selectAll ? "on" : "off"}
+                label="Select All"
+                color="blue"
+                defaultChecked={selectAll}
+                onChange={(checked) => {
+                  setSelectAll(checked);
 
-        setUnassignedStudents(prev =>
-          prev.map(s => ({ ...s, assigned: checked }))
-        );
-      }}
-    />
-  </div>
-           <DataTable
-            data={unassignedStudents}
-            columns={columns}
-            searchKeys={["name", "examType"]}
-            filters={filters}
-          />
+                  setUnassignedStudents((prev) =>
+                    prev.map((s) => ({ ...s, assigned: checked })),
+                  );
+                }}
+              />
+            </div>
+            <DataTable
+              data={unassignedStudents}
+              columns={columns}
+              searchKeys={["name", "examType"]}
+              filters={filters}
+            />
           </>
-         
         )}
-        {(assignedStudents.length > 0 && isEditMode) && (
+        {assignedStudents.length > 0 && isEditMode && (
           <DataTable
             data={assignedStudents}
             columns={columns}

@@ -7,12 +7,14 @@ import {
 import Alert from "../ui/alert/Alert";
 
 interface SemesterWizardProps {
+  ayid?: string | null;
   courseId: string | null;
   activeSemester: string | null;
   onSemesterChange: (semesterId: string) => void;
 }
 
 const SemesterWizard: React.FC<SemesterWizardProps> = ({
+  ayid,
   courseId,
   activeSemester,
   onSemesterChange,
@@ -24,7 +26,6 @@ const SemesterWizard: React.FC<SemesterWizardProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const fetchSemesterData = async () => {
-    const ayid = localStorage.getItem("AYID");
     if (!courseId || !ayid) return;
 
     try {
@@ -55,7 +56,7 @@ const SemesterWizard: React.FC<SemesterWizardProps> = ({
     } else {
       setSemesterData([]);
     }
-  }, [courseId]);
+  }, [courseId, ayid]);
 
   return (
     <div className="w-full rounded-xl border border-gray-200 bg-white">

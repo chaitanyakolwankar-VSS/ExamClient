@@ -15,6 +15,7 @@ import {
 } from "../../services/Dashboard";
 
 interface SemesterExamTypeChartProps {
+  ayid?: string | null;
   courseId: string | null;
 }
 
@@ -26,6 +27,7 @@ interface PivotedData {
 }
 
 const SemesterExamTypeChart: React.FC<SemesterExamTypeChartProps> = ({
+  ayid,
   courseId,
 }) => {
   const [rawData, setRawData] = useState<SemesterExamTypeCountApiResponse[]>(
@@ -35,7 +37,6 @@ const SemesterExamTypeChart: React.FC<SemesterExamTypeChartProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const ayid = localStorage.getItem("AYID");
     if (!courseId || !ayid) return;
 
     try {
@@ -61,7 +62,7 @@ const SemesterExamTypeChart: React.FC<SemesterExamTypeChartProps> = ({
     } else {
       setRawData([]);
     }
-  }, [courseId]);
+  }, [courseId, ayid]);
 
   // Pivot: flat rows -> grouped by semester with Regular/Reval/ATKT columns
   const pivotedData: PivotedData[] = React.useMemo(() => {

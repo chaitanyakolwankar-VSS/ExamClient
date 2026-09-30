@@ -221,7 +221,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "Student Assign Report",
-        path: "/blank",
+        path: "/Staff/StudentAssignReport",
         pro: false,
       },
       {
