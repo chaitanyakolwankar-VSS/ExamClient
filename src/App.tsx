@@ -24,11 +24,13 @@ import Gazette from "./pages/Staff/Reports/Gazette.tsx";
 import Marksheet from "./pages/Staff/Reports/Marksheet.tsx";
 import StudentMaster from "./pages/Staff/Students Admin/Student_master";
 import HallTicketPage from "./components/HallTicket/Hallticket.tsx";
-
+import ATKTCommulativeReport from "./pages/Staff/Reports/ATKTCommulativeReport.tsx";
 
 
 export default function App() {
-  const basename = import.meta.env.DEV ? "" : "/ExamSoftware";
+  // const basename = import.meta.env.DEV ? "" : "/ExamSoftware";
+
+  const basename = import.meta.env.DEV ? "" : "";
 
   return (
     <>
@@ -57,6 +59,7 @@ export default function App() {
                  <Route path="AssignSeatNo" element={<AssignSeatNo />} />
                  <Route path="Gazette" element={<Gazette />} />
                  <Route path="Marksheet" element={<Marksheet />} />
+                      <Route path="ATKTCommulativeReport" element={<ATKTCommulativeReport />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
              <Route path="/hallticket" element={<HallTicketPage />} />

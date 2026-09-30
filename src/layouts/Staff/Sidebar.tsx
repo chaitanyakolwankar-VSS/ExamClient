@@ -215,7 +215,7 @@ const navItems: NavItem[] = [
       {
         icon: <SubMenuIcon />,
         name: "ATKT Cummulative Report",
-        path: "/blank",
+        path: "/Staff/ATKTCommulativeReport",
         pro: false,
       },
       {
