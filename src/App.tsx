@@ -6,8 +6,11 @@ import StaffLayout from "./layouts/Staff/Layout"; // Import the specific Staff L
 import ExamDashboard from "./pages/Staff/Dashboard/Home"; // Import the moved dashboard
 import SubjectMaster from "./pages/Staff/Academic_Master/Subject_Master.tsx"; // Import the moved Subject Master
 import ExamMaster from "./pages/Staff/Academic_Master/ExamMaster.tsx"; // Import the moved Exam Master
+
 import RegularExam from "./pages/Staff/ConductExam/RegularExam.tsx"; // Import the moved Regular Exam
 import AssignSeatNo from "./pages/Staff/ConductExam/AssignSeatNo.tsx"; // Import the moved Assign Exam
+import AtktRevalExam from "./pages/Staff/ConductExam/AtktRevalExam.tsx"; // ATKT / Revaluation assignment
+
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import TopLoader from "./components/common/TopLoader";
@@ -26,6 +29,8 @@ import Marksheet from "./pages/Staff/Reports/Marksheet.tsx";
 import StudentMaster from "./pages/Staff/Students Admin/Student_master";
 import HallTicketPage from "./components/HallTicket/Hallticket.tsx";
 import ReleaseHallTicket from "./pages/Staff/Students Admin/ReleaseHallTicket.tsx";
+import StudentAssignReport from "./pages/Staff/Reports/StudentAssignReport.tsx";
+import DummyDashboard from "./pages/Staff/Dashboard/DummyDashboard.tsx";
 
 export default function App() {
   // Derive the router basename from Vite's own base path so the two can never disagree.
@@ -45,6 +50,7 @@ export default function App() {
             <Route path="/Staff" element={<StaffLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<ExamDashboard />} />
+              <Route path="dummydashboard" element={<DummyDashboard />} />
               <Route path="AddPermission" element={<AddPermission />} />
               <Route path="CreateUser" element={<CreateUser />} />
               <Route path="CollegeDetail" element={<CollegeDetail />} />
@@ -63,6 +69,7 @@ export default function App() {
               <Route path="OverallMarksEntry" element={<OverallMarksEntry />} />
               <Route path="Student_master" element={<StudentMaster />} />
               <Route path="RegularExam" element={<RegularExam />} />
+              <Route path="AtktRevalExam" element={<AtktRevalExam />} />
               <Route path="EnterEligibility" element={<EnterEligibility />} />
               <Route
                 path="GenerateHallTicket"
@@ -72,6 +79,10 @@ export default function App() {
               <Route path="AssignSeatNo" element={<AssignSeatNo />} />
               <Route path="Gazette" element={<Gazette />} />
               <Route path="Marksheet" element={<Marksheet />} />
+              <Route
+                path="StudentAssignReport"
+                element={<StudentAssignReport />}
+              />
 
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
