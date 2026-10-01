@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
+import { permissionService } from "../services/permissionService";
+import { screenKeysFromForms, canAccessScreen } from "../config/screens";
+import type { Screen } from "../config/screens";
 
 // Define the shape of your User object (adjust based on your API response)
 interface User {
@@ -18,6 +21,13 @@ interface AuthContextType {
   isAdmin: boolean;
   /** Platform (developer) login: creates colleges and college admins. */
   isPlatformAdmin: boolean;
+  /** True while the user's allowed forms (GET /Permission/me) are being fetched. Always false for admins. */
+  permissionsLoading: boolean;
+  /**
+   * Can the user open this screen? Admins: everything. Others: only screens ticked for their role/user.
+   * A non-admin with NO permissions configured (or while the list is loading/failed) gets nothing but the Dashboard.
+   */
+  canAccess: (screen: Screen) => boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
 }
@@ -87,6 +97,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     [token, user?.role, isPlatformAdmin],
   );
 
+  // Allowed screens come from the API on every load (not from the JWT), so a role change takes effect on
+  // refresh without re-login. Admins skip the call: they see everything. Fail closed on error.
+  // Keyed by token so a different login can never reuse the previous user's list.
+  const [allowed, setAllowed] = useState<{ token: string; keys: Set<string> } | null>(null);
+  useEffect(() => {
+    if (!token || isAdmin) return;
+    let cancelled = false;
+    permissionService
+      .getMyAllowedForms()
+      .then((forms) => {
+        if (!cancelled) setAllowed({ token, keys: screenKeysFromForms(forms) });
+      })
+      .catch((error) => {
+        console.error("Failed to load permissions", error);
+        if (!cancelled) setAllowed({ token, keys: new Set() });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, isAdmin]);
+
+  const permissionsLoading = !!token && !isAdmin && allowed?.token !== token;
+  const allowedKeys = useMemo(
+    () => (allowed && allowed.token === token ? allowed.keys : new Set<string>()),
+    [allowed, token],
+  );
+  const canAccess = useMemo(
+    () => (screen: Screen) => canAccessScreen(screen, isAdmin, allowedKeys),
+    [isAdmin, allowedKeys],
+  );
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -97,7 +138,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, isLoading, isAdmin, isPlatformAdmin, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, isLoading, isAdmin, isPlatformAdmin, permissionsLoading, canAccess, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -10,6 +10,7 @@ import { Pencil,Trash2,RotateCcw  } from "lucide-react";
 import Alert from "../../../components/ui/alert/Alert";
 import Swal from "sweetalert2";
 import DataTable from "../../../components/ui/table/DataTable";
+import { SCREENS, screenForFormName } from "../../../config/screens";
 // import GenericTable,{Column} from "../../../components/ui/table/GenericTable";
 
 const AddPermission = () => {
@@ -79,6 +80,41 @@ const handleDelete = async (id: string) => {
     await loadPermissions();
 
     Swal.fire('Deleted!', 'Your permission has been deleted.', 'success');
+  }
+};
+
+// Permission names are free text, but the menu only reacts to names that match a built screen
+// (config/screens.ts). This creates the standard ones that no existing permission already covers.
+const handleAddStandardScreens = async () => {
+  const covered = new Set(
+    permissionGroups.flatMap((g) => g.permissionForms.map((f) => screenForFormName(f.permissionFormName)?.key)),
+  );
+  const missing = SCREENS.filter((s) => !s.adminOnly && !covered.has(s.key));
+  if (missing.length === 0) {
+    setAlert({ variant: "info", title: "Nothing to add", message: "Every menu screen already has a permission." });
+    return;
+  }
+  const confirm = await Swal.fire({
+    title: `Add ${missing.length} permissions?`,
+    html: missing.map((s) => `${s.module}: ${s.label}`).join("<br/>"),
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Add",
+  });
+  if (!confirm.isConfirmed) return;
+
+  setLoading(true);
+  try {
+    for (const s of missing) {
+      await permissionService.createPermission({ permissionModuleName: s.module, permissionFormName: s.label });
+    }
+    setAlert({ variant: "success", title: "Permissions Added", message: `${missing.length} menu screens added` });
+    await loadPermissions();
+  } catch {
+    setAlert({ variant: "error", title: "Failed", message: "Could not add all permissions" });
+    await loadPermissions();
+  } finally {
+    setLoading(false);
   }
 };
 
@@ -178,7 +214,22 @@ const tableColumns = [
     key: "form",
     label: "Form",
     sortable: false,
-    className: "w-1/2 min-w-[300px]",
+    className: "w-1/3 min-w-[240px]",
+  },
+  {
+    // Which menu screen this form unlocks (config/screens.ts). Forms that match nothing do not affect the menu.
+    key: "screen",
+    label: "Menu screen",
+    sortable: false,
+    className: "w-1/4 min-w-[180px]",
+    render: (row: FlatPermissionRow) => {
+      const screen = screenForFormName(row.form);
+      return {
+        content: screen && !screen.adminOnly
+          ? screen.label
+          : <span className="text-gray-400">not a menu screen</span>,
+      };
+    },
   },
   {
     key: "edit",
@@ -325,6 +376,18 @@ const tableColumns = [
     title="Reset"
   >
     <RotateCcw size={20} />
+  </button>
+</div>
+
+<div className="w-full sm:w-1/4 flex items-end">
+  <button
+    type="button"
+    onClick={handleAddStandardScreens}
+    disabled={loading}
+    className="h-11 px-4 rounded-lg border border-brand-500 text-brand-600 text-sm hover:bg-brand-50 disabled:opacity-50"
+    title="Create a permission for every menu screen that does not have one yet"
+  >
+    Add missing menu screens
   </button>
 </div>
 

@@ -11,6 +11,7 @@ import AssignSeatNo from "./pages/Staff/ConductExam/AssignSeatNo.tsx"; // Import
 import AtktRevalExam from "./pages/Staff/ConductExam/AtktRevalExam.tsx"; // ATKT / Revaluation assignment
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import AdminRoute from "./components/auth/AdminRoute"; // Admin-only screens (DEC-17)
+import ScreenRoute from "./components/auth/ScreenRoute"; // Per-role screen permissions (T-05)
 import EnterEligibility from "./pages/Staff/MarksEntry/EnterEligibility.tsx";
 import GenerateHallTicket  from "./pages/Staff/Reports/GenerateHallTicket.tsx"; // Import GenerateHallTicket component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
@@ -45,6 +46,8 @@ export default function App() {
         <Routes>
           {/* STAFF PORTAL (Master Page 1) */}
           <Route element={<ProtectedRoute />}>
+            {/* Permission guard (T-05): a screen not ticked for the user's role is redirected to the dashboard */}
+            <Route element={<ScreenRoute />}>
             <Route path="/Staff" element={<StaffLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<ExamDashboard />} />
@@ -72,6 +75,7 @@ export default function App() {
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
              <Route path="/hallticket" element={<HallTicketPage />} />
+            </Route>
           </Route>
 
           {/* FUTURE: STUDENT PORTAL (Master Page 2) */}
