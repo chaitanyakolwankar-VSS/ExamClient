@@ -47,6 +47,8 @@ export interface StudentHallTicketData {
     centre: string;
     seat:string;
     studentid:string;
+    /** Stored path of the student photo; shown via the authenticated /Files endpoint. */
+    photo?: string | null;
     subjects:StudentsHallTicketSubjects[];
 }
 export interface HallTicketCollege{

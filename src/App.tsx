@@ -4,7 +4,6 @@ import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import StaffLayout from "./layouts/Staff/Layout"; // Import the specific Staff Layout
 import ExamDashboard from "./pages/Staff/Dashboard/Home"; // Import the moved dashboard
-import DummyDashboard from "./pages/Staff/Dashboard/DummyDashboard"; // Dummy analytics dashboard (mock data)
 import SubjectMaster  from "./pages/Staff/Academic_Master/Subject_Master.tsx"; // Import the moved Subject Master
 import ExamMaster from "./pages/Staff/Academic_Master/ExamMaster.tsx"; // Import the moved Exam Master
 import RegularExam from "./pages/Staff/ConductExam/RegularExam.tsx";  // Import the moved Regular Exam 
@@ -47,8 +46,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/Staff" element={<StaffLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard" element={<DummyDashboard />} />
-              <Route path="dashboard-real" element={<ExamDashboard />} />
+              <Route path="dashboard" element={<ExamDashboard />} />
               <Route path="AddPermission" element={<AddPermission />} />
               <Route path="CreateUser" element={<CreateUser />} />
               <Route path="CollegeDetail" element={<CollegeDetail />} />

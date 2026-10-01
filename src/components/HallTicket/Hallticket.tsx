@@ -1,4 +1,5 @@
 import React from "react";
+import AuthImage from "../common/AuthImage";
 
 // ================= TYPES =================
 interface Subject {
@@ -19,6 +20,7 @@ interface Student {
   centre: string;
   seat: string;
   studentid:string;
+  photo?: string | null;
   subjects: Subject[];
 }
 
@@ -98,7 +100,7 @@ const HallTicketCard = ({
           paddingBottom: "10px",
         }}
       >
-        <img
+        <AuthImage
           src={college.logo}
           alt="logo"
           style={{  objectFit: "contain" }}
@@ -153,14 +155,32 @@ const HallTicketCard = ({
                 width: "120px",
               }}
             >
-              <img
-                src="https://vivacollege.org/LTCE_GradeSphere/img/profile.png"
+              {/* The student's own uploaded photo, loaded through the authenticated /Files endpoint. */}
+              <AuthImage
+                src={student.photo}
                 alt="student"
                 style={{
                   width: "116px",
                   height: "120px",
                   objectFit: "cover",
                 }}
+                fallback={
+                  <div
+                    style={{
+                      width: "116px",
+                      height: "120px",
+                      margin: "0 auto",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px dashed #999",
+                      color: "#777",
+                      fontSize: "12px",
+                    }}
+                  >
+                    Photo
+                  </div>
+                }
               />
             </td>
           </tr>

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import Button from "../../../components/ui/button/Button";
 import Input from "../../../components/form/input/InputField";
 import { Modal } from "../../../components/ui/modal";
+import axios from "axios";
+import apiClient from "../../../api/Client";
 
 type PasswordTab = "remember" | "forgot";
 type ForgotStep = "send-otp" | "verify-otp" | "new-password";
@@ -12,7 +14,11 @@ interface ResetPasswordModalProps {
   userId: string;
 }
 
-const BASE_URL = "https://localhost:7225/api";
+// Prefer the API's own { message } over a generic fallback.
+const getErrorMessage = (error: unknown, fallback: string) =>
+  axios.isAxiosError<{ message?: string }>(error) && error.response?.data?.message
+    ? error.response.data.message
+    : fallback;
 
 export const ResetPasswordModal = ({
   isOpen,
@@ -91,11 +97,10 @@ export const ResetPasswordModal = ({
   const fetchEmployeeEmail = async () => {
     setEmailLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/UserMaster/GetAll/${userId}`);
-      if (!res.ok) throw new Error();
-      const data = await res.json();
+      const { data } = await apiClient.get(`/UserMaster/GetAll/${userId}`);
       setEmployeeEmail(data.email);
-    } catch {
+    } catch (error) {
+      console.error("Failed to load employee email", error);
       setEmployeeEmail("Failed to load email.");
     } finally {
       setEmailLoading(false);
@@ -134,24 +139,18 @@ export const ResetPasswordModal = ({
 
     setChangeLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/UserMaster/ChangePassword`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          currentPassword,
-          newPassword,
-        }),
+      await apiClient.post("/UserMaster/ChangePassword", {
+        userId,
+        currentPassword,
+        newPassword,
       });
-
-      if (!res.ok) {
-        const err = await res.json();
-        setChangeError(err.message || "Current password is incorrect.");
-        return;
-      }
       handleClose();
-    } catch {
-      setChangeError("Something went wrong. Please try again.");
+    } catch (error) {
+      setChangeError(
+        axios.isAxiosError(error) && error.response
+          ? getErrorMessage(error, "Current password is incorrect.")
+          : "Something went wrong. Please try again."
+      );
     } finally {
       setChangeLoading(false);
     }
@@ -162,16 +161,11 @@ export const ResetPasswordModal = ({
     setOtpError("");
     setOtpLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/SendResetOtp/send-reset-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userID: userId }),
-      });
-
-      if (!res.ok) throw new Error();
+      await apiClient.post("/SendResetOtp/send-reset-otp", { userID: userId });
       setForgotStep("verify-otp");
       setResendTimer(30);
-    } catch {
+    } catch (error) {
+      console.error("Failed to send OTP", error);
       setOtpError("Failed to send OTP. Please try again.");
     } finally {
       setOtpLoading(false);
@@ -194,25 +188,19 @@ export const ResetPasswordModal = ({
     setOtpError("");
     setOtpLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/SendResetOtp/verify-otp-only`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userID: userId,
-          otp: otp,
-        }),
+      await apiClient.post("/SendResetOtp/verify-otp-only", {
+        userID: userId,
+        otp: otp,
       });
-
-      if (!res.ok) {
-        const err = await res.json();
-        setOtpError(err.message || "Invalid OTP. Please try again.");
-        return;
-      }
 
       setOtpVerified(true);
       setForgotStep("new-password");
-    } catch {
-      setOtpError("Something went wrong. Please try again.");
+    } catch (error) {
+      setOtpError(
+        axios.isAxiosError(error) && error.response
+          ? getErrorMessage(error, "Invalid OTP. Please try again.")
+          : "Something went wrong. Please try again."
+      );
     } finally {
       setOtpLoading(false);
     }
@@ -236,25 +224,19 @@ export const ResetPasswordModal = ({
 
     setForgotPasswordLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/SendResetOtp/VerifyOtp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userID: userId,
-          otp: otp,
-          newPassword: forgotNewPassword,
-        }),
+      await apiClient.post("/SendResetOtp/VerifyOtp", {
+        userID: userId,
+        otp: otp,
+        newPassword: forgotNewPassword,
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        setForgotPasswordError(err.message || "Failed to reset password.");
-        return;
-      }
-
       handleClose();
-    } catch {
-      setForgotPasswordError("Something went wrong. Please try again.");
+    } catch (error) {
+      setForgotPasswordError(
+        axios.isAxiosError(error) && error.response
+          ? getErrorMessage(error, "Failed to reset password.")
+          : "Something went wrong. Please try again."
+      );
     } finally {
       setForgotPasswordLoading(false);
     }

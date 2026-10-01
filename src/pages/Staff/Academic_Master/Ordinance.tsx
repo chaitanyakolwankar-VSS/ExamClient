@@ -155,7 +155,9 @@ export default function Ordinance() {
   // every other exam type (e.g. Regular).
   const availableActions = useMemo(() => {
     const activeExamType = ruleSets.find((rs) => rs.ruleSetId === ruleSet)?.examType || "";
-    const allowsAssignment = ["KT", "REVAL"].includes(activeExamType);
+    // Exam type labels vary ("KT", "A.T.K.T", "ATKT", "Revaluation"), so normalise before matching.
+    const normalisedExamType = activeExamType.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const allowsAssignment = ["KT", "ATKT", "REVAL", "REVALUATION"].includes(normalisedExamType);
     return allowsAssignment
       ? metadataActions
       : metadataActions.filter((a) => a.value !== "AllowExamAssignment");
@@ -858,10 +860,11 @@ export default function Ordinance() {
         });
       }
     } catch (error) {
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setPageAlert({
         variant: "error",
         title: "Error",
-        message: "An unexpected error occurred while saving the rule.",
+        message: apiMessage || "An unexpected error occurred while saving the rule.",
       });
     } finally {
       setIsRuleSubmitting(false);
