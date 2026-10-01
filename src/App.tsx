@@ -10,6 +10,7 @@ import RegularExam from "./pages/Staff/ConductExam/RegularExam.tsx";  // Import 
 import AssignSeatNo from "./pages/Staff/ConductExam/AssignSeatNo.tsx"; // Import the moved Assign Exam
 import AtktRevalExam from "./pages/Staff/ConductExam/AtktRevalExam.tsx"; // ATKT / Revaluation assignment
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
+import AdminRoute from "./components/auth/AdminRoute"; // Admin-only screens (DEC-17)
 import EnterEligibility from "./pages/Staff/MarksEntry/EnterEligibility.tsx";
 import GenerateHallTicket  from "./pages/Staff/Reports/GenerateHallTicket.tsx"; // Import GenerateHallTicket component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
@@ -47,12 +48,15 @@ export default function App() {
             <Route path="/Staff" element={<StaffLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<ExamDashboard />} />
-              <Route path="AddPermission" element={<AddPermission />} />
-              <Route path="CreateUser" element={<CreateUser />} />
-              <Route path="CollegeDetail" element={<CollegeDetail />} />
+              {/* Admin screens: college admin / platform admin only (DEC-17); others are redirected to the dashboard */}
+              <Route element={<AdminRoute />}>
+                <Route path="AddPermission" element={<AddPermission />} />
+                <Route path="CreateUser" element={<CreateUser />} />
+                <Route path="CollegeDetail" element={<CollegeDetail />} />
+                <Route path="Role_master" element={<RoleMaster />} />
+              </Route>
                 <Route path="SubjectMaster" element={<SubjectMaster />} />
                     <Route path="ExamMaster" element={<ExamMaster />} />
-              <Route path="Role_master" element={<RoleMaster />} />
               <Route path="Ordinance" element={<Ordinance />} />
               <Route path="OverallMarksEntry" element={<OverallMarksEntry />} />
               <Route path="Student_master" element={<StudentMaster />} />

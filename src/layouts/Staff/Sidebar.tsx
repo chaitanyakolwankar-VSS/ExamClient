@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 
 import {
@@ -14,11 +14,14 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useSidebar } from "../../context/SidebarContext";
+import { useAuth } from "../../context/AuthContext";
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
+  /** Shown only to a college admin / platform admin (DEC-17). The API enforces the same rule. */
+  adminOnly?: boolean;
   subItems?: {
     icon: React.ReactNode;
     name: string;
@@ -37,6 +40,7 @@ const navItems: NavItem[] = [
   {
     icon: <UserStar />,
     name: "Admin",
+    adminOnly: true,
     subItems: [
       {
         icon: <SubMenuIcon />,
@@ -268,6 +272,10 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
+  const { isAdmin } = useAuth();
+
+  // The Admin group (College Details, Create User, Role Master, Add Permission) is hidden for non-admins.
+  const mainItems = useMemo(() => navItems.filter((nav) => !nav.adminOnly || isAdmin), [isAdmin]);
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -286,7 +294,7 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+      const items = menuType === "main" ? mainItems : othersItems;
       items.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
@@ -305,7 +313,7 @@ const AppSidebar: React.FC = () => {
     if (!submenuMatched) {
       setOpenSubmenu(null);
     }
-  }, [location, isActive]);
+  }, [location, isActive, mainItems]);
 
   useEffect(() => {
     if (openSubmenu !== null) {
@@ -521,7 +529,7 @@ const AppSidebar: React.FC = () => {
                   <Ellipsis className="size-6" />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(mainItems, "main")}
             </div>
             {/* <div className="">
               <h2
