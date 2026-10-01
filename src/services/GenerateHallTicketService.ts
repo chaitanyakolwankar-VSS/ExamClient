@@ -54,6 +54,8 @@ export interface StudentHallTicketData {
 export interface HallTicketCollege{
     logo:string;
     center:string;
+    /** College name for the header when there is no logo. */
+    collegeName?:string;
 }
  
 export const GenerateHallTicketService = {

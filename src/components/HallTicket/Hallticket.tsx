@@ -12,6 +12,8 @@ interface Subject {
 interface College {
   logo: string;
   center: string;
+  /** Shown as a text header when there is no logo (or it cannot be loaded). */
+  collegeName?: string;
   CourseNmae: string;
 }
 
@@ -56,12 +58,8 @@ const td: React.CSSProperties = {
   textAlign: "center"
 };
 
-const sign: React.CSSProperties = {
-  borderTop: "1px solid black",
-  width: "200px",
-  textAlign: "center",
-  paddingTop: "5px"
-};
+// Height reserved at the bottom of each card for the signature block (absolutely positioned).
+const SIGNATURE_BLOCK_HEIGHT_PX = 70;
 
 // ================= CARD =================
 const HallTicketCard = ({
@@ -71,23 +69,19 @@ const HallTicketCard = ({
   student: Student;
   college: College;
 }) => {
-  React.useEffect(() => {
-    setTimeout(() => {
-      window.print();
-    }, 500);
-  }, []);
-
   return (
     <div
+      className="hallticket-card"
       style={{
         border: "2px solid black",
         padding: "15px",
-        margin: "10px auto",
-        width: "210mm",
-        minHeight: "270mm",
+        // Reserve room for the absolutely positioned signature block so a long subject list
+        // (and the Note box) can never run underneath it.
+        paddingBottom: `${SIGNATURE_BLOCK_HEIGHT_PX}px`,
+        boxSizing: "border-box",
         fontFamily: "Arial, sans-serif",
         backgroundColor: "#fff",
-         position: "relative" 
+        position: "relative",
       }}
     >
       {/* HEADER */}
@@ -103,7 +97,22 @@ const HallTicketCard = ({
         <AuthImage
           src={college.logo}
           alt="logo"
-          style={{  objectFit: "contain" }}
+          style={{ maxWidth: "100%", maxHeight: "30mm", objectFit: "contain" }}
+          fallback={
+            college.collegeName ? (
+              <div
+                style={{
+                  fontSize: "22px",
+                  fontWeight: "bold",
+                  textAlign: "center",
+                  textTransform: "uppercase",
+                  padding: "6px 0",
+                }}
+              >
+                {college.collegeName}
+              </div>
+            ) : null
+          }
         />
       </div>
 
@@ -289,6 +298,29 @@ export default function HallTicketPage() {
 
   const data: Student[] = parsedData?.students || [];
 
+  // Print the whole set ONCE (not once per card). Logo and photos arrive asynchronously through
+  // AuthImage, so wait until every expected image is on the page and decoded, with a cap so a
+  // missing/failed image cannot block printing forever.
+  const expectedImages =
+    (college.logo ? 1 : 0) + data.filter((s) => s.photo).length;
+  React.useEffect(() => {
+    if (data.length === 0) return;
+    const startedAt = Date.now();
+    let timer: number | undefined;
+    const tick = () => {
+      const imgs = Array.from(document.querySelectorAll<HTMLImageElement>(".hallticket-card img"));
+      const ready = imgs.length >= expectedImages && imgs.every((i) => i.complete);
+      if (ready || Date.now() - startedAt > 8000) {
+        timer = window.setTimeout(() => window.print(), 300);
+      } else {
+        timer = window.setTimeout(tick, 250);
+      }
+    };
+    timer = window.setTimeout(tick, 300);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div>
       {data.map((student, index) => (
@@ -300,11 +332,34 @@ export default function HallTicketPage() {
       {/* PRINT STYLE */}
       <style>
         {`
+          @page { size: A4; margin: 10mm; }
+
+          /* On screen: one A4 sheet per card. */
+          .hallticket-card {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 10px auto;
+          }
+
           @media print {
             button { display: none; }
 
+            /* 297mm - 2 x 10mm @page margins = 277mm printable; stay just under so a card never
+               spills onto a second sheet. */
+            .hallticket-card {
+              width: 100%;
+              min-height: 276mm;
+              margin: 0;
+            }
+
             .page {
               page-break-after: always;
+              break-after: page;
+            }
+
+            .page:last-of-type {
+              page-break-after: auto;
+              break-after: auto;
             }
 
             body {
