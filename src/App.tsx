@@ -12,6 +12,11 @@ import AtktRevalExam from "./pages/Staff/ConductExam/AtktRevalExam.tsx"; // ATKT
 import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute component
 import AdminRoute from "./components/auth/AdminRoute"; // Admin-only screens (DEC-17)
 import ScreenRoute from "./components/auth/ScreenRoute"; // Per-role screen permissions (T-05)
+import PlatformRoute from "./components/auth/PlatformRoute"; // Platform (developer) console only
+import PlatformLayout from "./layouts/Platform/Layout";
+import PlatformColleges from "./pages/Platform/Colleges";
+import PlatformNewCollege from "./pages/Platform/NewCollege";
+import PlatformCollegeDetail from "./pages/Platform/CollegeDetail";
 import EnterEligibility from "./pages/Staff/MarksEntry/EnterEligibility.tsx";
 import GenerateHallTicket  from "./pages/Staff/Reports/GenerateHallTicket.tsx"; // Import GenerateHallTicket component
 import { ScrollToTop } from "./components/common/ScrollToTop";  
@@ -44,8 +49,21 @@ export default function App() {
         <ScrollToTop />
         <TopLoader />
         <Routes>
-          {/* STAFF PORTAL (Master Page 1) */}
+          {/* PLATFORM CONSOLE: the developer login has no college or academic year, so it gets its own layout */}
           <Route element={<ProtectedRoute />}>
+            <Route element={<PlatformRoute />}>
+              <Route path="/Platform" element={<PlatformLayout />}>
+                <Route index element={<PlatformColleges />} />
+                <Route path="colleges/new" element={<PlatformNewCollege />} />
+                <Route path="colleges/:id" element={<PlatformCollegeDetail />} />
+                {/* Shared permission catalog: only the platform admin edits it */}
+                <Route path="permissions" element={<AddPermission />} />
+              </Route>
+            </Route>
+          </Route>
+
+          {/* STAFF PORTAL (Master Page 1): a platform admin is sent to /Platform */}
+          <Route element={<ProtectedRoute redirectPlatformAdmin />}>
             {/* Permission guard (T-05): a screen not ticked for the user's role is redirected to the dashboard */}
             <Route element={<ScreenRoute />}>
             <Route path="/Staff" element={<StaffLayout />}>
