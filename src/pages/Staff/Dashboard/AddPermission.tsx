@@ -11,9 +11,13 @@ import Alert from "../../../components/ui/alert/Alert";
 import Swal from "sweetalert2";
 import DataTable from "../../../components/ui/table/DataTable";
 import { SCREENS, screenForFormName } from "../../../config/screens";
+import { useAuth } from "../../../context/AuthContext";
 // import GenericTable,{Column} from "../../../components/ui/table/GenericTable";
 
 const AddPermission = () => {
+  // The Permission catalog is shared by every college: only the platform admin adds, renames or deletes
+  // rows (the API enforces this). College admins see the list and tick screens per role in Role Master.
+  const { isPlatformAdmin } = useAuth();
   const [module, setModule] = useState("");
   const [permissionName, setPermissionName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -341,7 +345,15 @@ const tableColumns = [
   </div>
 )}
 
+      {!isPlatformAdmin && (
+        <p className="mb-4 text-sm text-gray-500">
+          The permission list is shared by all colleges and is managed by the platform administrator. Tick screens for
+          your roles in Role Master.
+        </p>
+      )}
+
       <Form onSubmit={handleSubmit} className="w-full">
+        {isPlatformAdmin && (
         <div className="flex flex-col sm:flex-row gap-4 w-full">
         
           <div className="w-full sm:w-1/4">
@@ -393,6 +405,7 @@ const tableColumns = [
 
 
         </div>
+        )}
         <div className="w-full">
             <div className="mt-6 overflow-x-auto">
 
@@ -444,7 +457,7 @@ const tableColumns = [
 
 <DataTable
   data={flatData}
-  columns={tableColumns}
+  columns={isPlatformAdmin ? tableColumns : tableColumns.filter((c) => c.key !== "edit" && c.key !== "delete")}
   searchKeys={["module", "form"]} 
   filters={{ module }}
   pageSizeOptions={[5, 10, 20]}
