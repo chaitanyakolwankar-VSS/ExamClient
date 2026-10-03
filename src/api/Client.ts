@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { queryClient } from '../data/queryClient';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.DEV ? 'https://localhost:7225/api' : '/ExamAPI/api',
@@ -36,6 +37,7 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('authUser');
       localStorage.removeItem('academicYear');
       localStorage.clear();
+      queryClient.clear(); // no cached lookup data may survive into the next session
 
       // Router basename is derived from Vite's base path in App.tsx; keep them in sync.
       const basename = import.meta.env.BASE_URL.replace(/\/$/, '');

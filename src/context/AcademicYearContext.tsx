@@ -1,108 +1,119 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import {
-  academicYearService,
-  AcademicYearResponse,
-} from "../services/academicYearService";
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { academicYearService } from "../services/academicYearService";
+import type { AcademicYearResponse } from "../services/academicYearService";
 import { useAuth } from "./AuthContext";
+import { useBootstrap, useCollegeId } from "../data/useBootstrap";
+import type { LookupAcademicYear } from "../data/lookupApi";
+import { lookupKeys } from "../data/queryKeys";
 
+/**
+ * The one place that knows which academic year is selected.
+ *
+ * Years come from the lookup bootstrap (one shared request). The selection lives here (React state) and is
+ * still mirrored to localStorage "AYID" / "academicYear" so screens that have not moved to the hooks yet keep
+ * working; remove that mirror when the last screen has been migrated (T-19 layer C).
+ *
+ * Every AY-dependent lookup query carries the ayid in its key (see data/queryKeys.ts), so changing the year
+ * refetches them automatically.
+ */
 interface AcademicYearContextType {
-  currentYear: string; // Display text (e.g. "2024-2025")
-  currentYearId: string | null; // Database ID (GUID)
+  // --- preferred names (use these in new code) ---
+  /** Selected academic year id (GUID), or null until the years have loaded. */
+  ayid: string | null;
+  /** Selected academic year, short text e.g. "24-25". "" until loaded. */
+  academicYear: string;
+  /** Select a year by its short text (e.g. "24-25"). */
   setAcademicYear: (yearString: string) => void;
-  availableYears: AcademicYearResponse[]; // Full objects
+  /** All academic years of the college. */
+  years: LookupAcademicYear[];
+  // --- original names, kept so existing screens compile unchanged ---
+  currentYear: string;
+  currentYearId: string | null;
+  availableYears: AcademicYearResponse[];
   isLoading: boolean;
 }
 
-const AcademicYearContext = createContext<AcademicYearContextType | undefined>(
-  undefined
-);
+const AcademicYearContext = createContext<AcademicYearContextType | undefined>(undefined);
 
-export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  // 1. Initialize State
-  const [currentYear, setCurrentYear] = useState<string>(
-    () => localStorage.getItem("academicYear") || ""
-  );
-  const [currentYearId, setCurrentYearId] = useState<string | null>(null);
-  const [availableYears, setAvailableYears] = useState<AcademicYearResponse[]>(
-    []
-  );
-  const [isLoading, setIsLoading] = useState(true);
+const NO_YEARS: LookupAcademicYear[] = [];
+
+export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const collegeId = useCollegeId();
+  const bootstrap = useBootstrap();
 
-  useEffect(() => {
-    if (user) {
-      const fetchYears = async () => {
-        try {
-          const data = await academicYearService.getAllYears();
-          setAvailableYears(data);
+  // Safety net: if the bootstrap endpoint fails, fall back to the old /AcademicYear list so the header picker
+  // and the un-migrated screens still get a year.
+  const legacy = useQuery({
+    queryKey: lookupKeys.legacyYears(collegeId ?? ""),
+    queryFn: academicYearService.getAllYears,
+    enabled: !!collegeId && bootstrap.isError,
+    staleTime: Infinity,
+  });
 
-          // 2. Smart Default Logic
-          const savedYearString = localStorage.getItem("academicYear");
-
-          // Find the saved year object in the fresh API data
-          const foundYear = data.find(
-            (y) => y.shortDuration === savedYearString
-          );
-
-          if (foundYear) {
-            // If saved year is valid, use it
-            setCurrentYear(foundYear.shortDuration);
-            setCurrentYearId(foundYear.ayid);
-          } else {
-            // If not found, look for the "Current" one from DB, or fallback to the last one
-            const defaultYear =
-              data.find((y) => y.isCurrent) || data[data.length - 1];
-
-            if (defaultYear) {
-              setCurrentYear(defaultYear.shortDuration);
-              setCurrentYearId(defaultYear.ayid);
-              localStorage.setItem("academicYear", defaultYear.shortDuration);
-              localStorage.setItem("AYID", defaultYear.ayid);
-            }
-          }
-        } catch (error) {
-          // console.error("Failed to fetch academic years:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchYears();
+  const years = useMemo<LookupAcademicYear[]>(() => {
+    if (bootstrap.data) return bootstrap.data.academicYears;
+    if (legacy.data) {
+      return legacy.data.map((y) => ({
+        ayid: y.ayid,
+        fullDuration: y.shortDuration,
+        shortDuration: y.shortDuration,
+        isCurrent: y.isCurrent,
+      }));
     }
+    return NO_YEARS;
+  }, [bootstrap.data, legacy.data]);
+
+  const [selected, setSelected] = useState<string>(() => localStorage.getItem("academicYear") || "");
+
+  // Forget the selection when the user signs out, so the next login starts from that college's current year.
+  const hadUser = useRef(false);
+  useEffect(() => {
+    if (hadUser.current && !user) setSelected("");
+    hadUser.current = !!user;
   }, [user]);
 
+  // Saved choice if it still exists, else the year flagged current, else the newest.
+  const resolved = useMemo(
+    () => years.find((y) => y.shortDuration === selected) ?? years.find((y) => y.isCurrent) ?? years[years.length - 1],
+    [years, selected],
+  );
+
+  // Mirror to localStorage during render (idempotent) rather than in an effect: child screens' effects run
+  // before a parent effect would, and un-migrated screens read localStorage "AYID" from theirs.
+  if (resolved && localStorage.getItem("AYID") !== resolved.ayid) {
+    localStorage.setItem("academicYear", resolved.shortDuration);
+    localStorage.setItem("AYID", resolved.ayid);
+  }
+
   const setAcademicYear = (yearString: string) => {
-    // When user selects "2025-2026", we find the ID and set both
-    const selected = availableYears.find((y) => y.shortDuration === yearString);
-    if (selected) {
-      setCurrentYear(selected.shortDuration);
-      setCurrentYearId(selected.ayid);
-      localStorage.setItem("academicYear", selected.shortDuration);
-      localStorage.setItem("AYID", selected.ayid);
-    }
+    const match = years.find((y) => y.shortDuration === yearString);
+    if (!match) return;
+    setSelected(match.shortDuration);
+    localStorage.setItem("academicYear", match.shortDuration);
+    localStorage.setItem("AYID", match.ayid);
   };
 
-  return (
-    <AcademicYearContext.Provider
-      value={{
-        currentYear,
-        currentYearId,
-        setAcademicYear,
-        availableYears,
-        isLoading,
-      }}
-    >
-      {children}
-    </AcademicYearContext.Provider>
-  );
+  const isLoading = !!collegeId && !resolved && (bootstrap.isPending || (bootstrap.isError && legacy.isPending));
+
+  const value: AcademicYearContextType = {
+    ayid: resolved?.ayid ?? null,
+    academicYear: resolved?.shortDuration ?? "",
+    setAcademicYear,
+    years,
+    currentYear: resolved?.shortDuration ?? "",
+    currentYearId: resolved?.ayid ?? null,
+    availableYears: years,
+    isLoading,
+  };
+
+  return <AcademicYearContext.Provider value={value}>{children}</AcademicYearContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAcademicYear = () => {
   const context = useContext(AcademicYearContext);
-  if (!context)
-    throw new Error(
-      "useAcademicYear must be used within an AcademicYearProvider"
-    );
+  if (!context) throw new Error("useAcademicYear must be used within an AcademicYearProvider");
   return context;
 };
