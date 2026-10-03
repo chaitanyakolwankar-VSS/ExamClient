@@ -199,7 +199,7 @@ const DeclareResult = () => {
         CourseId: courseId,
         Ayid: ayid,
         Semester: semester,
-        DeclareDate: row.declareDate,
+        DeclareDate: willDeclare ? row.declareDate : null,
         IsDeclare: willDeclare,
         Pattern: pattern,
       });
@@ -271,6 +271,16 @@ const DeclareResult = () => {
           onClick={() => !row.isDeclare && handleDateFieldClick(row.examId)}
           onChange={(e) => handleDateChange(row.examId, e.target.value)}
         />
+      ),
+    },
+    {
+      key: "isDeclare",
+      label: "Status",
+      sortable: false,
+      render: (row: ExamRow) => (
+        <span className={row.isDeclare ? "text-green-600" : "text-gray-500"}>
+          {row.isDeclare ? "Declared" : "Not declared"}
+        </span>
       ),
     },
     {

@@ -4,10 +4,6 @@ import DataTable from "../../../components/ui/table/DataTable";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useCourses, usePatterns, useSemesters, useAcademicYear, toCourseOptions, toPatternOptions, toSemesterOptions } from "../../../data";
 import {
-  DeclareExamApiResponse,
-  DeclareResultService,
-} from "../../../services/DeclareResultService.ts";
-import {
   DeclareHallTicketApiResponse,
   ReleaseHallticketService,
 } from "../../../services/ReleaseHallticketService.ts";
@@ -92,14 +88,12 @@ const ReleaseHallTicket = () => {
 
     try {
       setLoadingExamOptions(true);
-      const data: DeclareExamApiResponse[] = await DeclareResultService.GetExam(
-        {
-          CourseId: courseId,
-          Ayid: ayid,
-          Semester: semester,
-          pattern: pattern,
-        },
-      );
+      const data = await ReleaseHallticketService.GetExam({
+        CourseId: courseId,
+        Ayid: ayid,
+        Semester: semester,
+        pattern: pattern,
+      });
       setExamOptions(
         data.map((exam) => ({ value: exam.examId, label: exam.examname })),
       );
@@ -265,14 +259,19 @@ const ReleaseHallTicket = () => {
       headerClassName: "text-center",
       sortable: false,
       render: (row: DeclareHallTicketApiResponse) => (
-        <div className="flex justify-center items-center cursor-pointer">
+        <div className="flex justify-center items-center gap-2 cursor-pointer">
+          <span
+            className={`text-sm ${row.releaseHallTicket ? "text-green-600" : "text-gray-500"}`}
+          >
+            {row.releaseHallTicket ? "Released" : "Not released"}
+          </span>
           <button
             onClick={() => handleToggleRelease(row)}
             className="flex items-center justify-center"
             title={
               row.releaseHallTicket
-                ? "Declared (Click to Undeclare)"
-                : "Undeclared (Click to Declare)"
+                ? "Released (click to revoke)"
+                : "Not released (click to release)"
             }
           >
             {row.releaseHallTicket ? (

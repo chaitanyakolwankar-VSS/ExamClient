@@ -22,6 +22,8 @@ export interface DeclareExamApiResponse {
   isDeclare: boolean;
   declareDate?: string | null;
   pattern: string;
+  /** False when no DeclareResult row exists yet (the result is "not declared"). */
+  hasRecord?: boolean;
 }
 
 export interface SaveDeclareExam {
@@ -45,7 +47,7 @@ export interface ToggleDeclareResult {
   Ayid: string;
   Semester: string;
   Pattern: string;
-  DeclareDate: string;
+  DeclareDate: string | null;
   IsDeclare: boolean;
 }
 
