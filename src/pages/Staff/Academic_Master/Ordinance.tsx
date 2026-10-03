@@ -18,6 +18,7 @@ import {
   GradeMaster,
   GradeThreshold,
 } from "../../../services/OrdinanceService";
+import { invalidateBootstrap } from "../../../data";
 import Alert from "../../../components/ui/alert/Alert";
 // import Checkbox from "../../../components/form/input/Checkbox";
 import Switch from "../../../components/form/switch/Switch"; // Import Switch
@@ -343,6 +344,7 @@ export default function Ordinance() {
       const response = await OrdinanceService.saveGradeMaster(currentGradeMaster);
       if (response.success) {
         setGradeModalAlert({ variant: "success", title: "Success", message: "Grading System created." });
+        invalidateBootstrap(); // grade scales are part of the shared lookup
         await fetchGradeMasters();
         setTimeout(() => setIsGradeModalOpen(false), 1000);
       } else {
@@ -486,6 +488,7 @@ export default function Ordinance() {
           message: response.message,
         });
         resetPatternForm();
+        invalidateBootstrap(); // other screens' pattern drop-downs
         await fetchPatterns(true);
       } else {
         setPatternModalAlert({
@@ -524,6 +527,7 @@ export default function Ordinance() {
               title: "Deleted!",
               message: response.message,
             });
+            invalidateBootstrap(); // other screens' pattern drop-downs
             fetchPatterns(true);
           } else {
             setPatternModalAlert({

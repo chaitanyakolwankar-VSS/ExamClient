@@ -1,11 +1,5 @@
 import apiClient from "../api/Client";
 import { Response } from "./Response";
-import { ExamApiResponse } from "./RegularExamService";
-export interface ExamApiRequest {
-    Courseid: string;
-    Ayid: string;
-    Semester:string;
-}
 export interface GetStudentsRequest {
     Courseid: string;
     Ayid: string;
@@ -33,12 +27,6 @@ export interface SaveSeatNo {
 }
 
 export const AssignSeatNoService = {
-    async getExam(params: ExamApiRequest): Promise<ExamApiResponse[]> {
-        const response = await apiClient.get<ExamApiResponse[]>(
-            "/AssignSeatNo/get-exam", { params }
-        );
-        return response.data;
-    },
     async getAssignSeatNoStudent(params: GetStudentsRequest): Promise<GetStudentsResponse[]> {
         const response = await apiClient.get<GetStudentsResponse[]>(
             "/AssignSeatNo/get-assignseatnostudents", { params }

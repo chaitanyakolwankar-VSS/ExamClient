@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useMemo, ReactNo
 import { permissionService } from "../services/permissionService";
 import { screenKeysFromForms, canAccessScreen } from "../config/screens";
 import type { Screen } from "../config/screens";
+import { prefetchBootstrap, clearLookupCache } from "../data/bootstrapQuery";
+import { readCollegeId, readIsPlatformAdmin } from "../data/session";
 
 // Define the shape of your User object (adjust based on your API response)
 interface User {
@@ -10,6 +12,8 @@ interface User {
   email: string;
   role: string;
   avatar?: string;
+  /** Set at login (SignInForm); the JWT "CollegeId" claim is the source of truth (see data/session.ts). */
+  CollegeId?: string;
 }
 
 interface AuthContextType {
@@ -86,7 +90,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(newUser);
     localStorage.setItem("authToken", newToken);
     localStorage.setItem("authUser", JSON.stringify(newUser));
+    // Warm the lookup cache now so the first screen opens instantly (after the token is stored: the axios
+    // interceptor reads it from localStorage). Platform admin has no college: skip.
+    const collegeId = readCollegeId(newToken, newUser);
+    if (collegeId && !readIsPlatformAdmin(newToken)) void prefetchBootstrap(collegeId);
   };
+
+  // Also warm it when the session is restored from localStorage (page reload). prefetchQuery is a no-op while
+  // the cached copy is fresh, so this does not repeat the request made in login().
+  useEffect(() => {
+    if (!token) return;
+    const collegeId = readCollegeId(token, user);
+    if (collegeId && !readIsPlatformAdmin(token)) void prefetchBootstrap(collegeId);
+  }, [token, user]);
 
   const isPlatformAdmin = useMemo(
     () => String(readClaims(token)["IsPlatformAdmin"]).toLowerCase() === "true",
@@ -129,6 +145,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 
   const logout = () => {
+    clearLookupCache();
     setToken(null);
     setUser(null);
     localStorage.removeItem("authToken");

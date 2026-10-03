@@ -6,8 +6,8 @@ import { PatternApiResponse, PatternService } from "../../../services/Pattern";
 import {
   ExamApiRequest,
   ExamApiResponse,
-} from "../../../services/GenerateHallTicketService";
-import { RegularExamService } from "../../../services/RegularExamService";
+  RegularExamService,
+} from "../../../services/RegularExamService";
 import Swal from "sweetalert2";
 
 interface Option {

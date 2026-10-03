@@ -3,10 +3,17 @@ import { useState, useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
-import { PatternService, PatternApiResponse } from "../../../services/Pattern";
-import { CourseService, CourseApiResponse } from "../../../services/Course";
 import Swal from "sweetalert2";
-import { ExamApiRequest ,ExamApiResponse} from "../../../services/RegularExamService";
+import {
+  useAcademicYear,
+  useCourses,
+  usePatterns,
+  useSemesters,
+  useExams,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+} from "../../../data";
 import { GenerateHallTicketService,HallticketSubjects, HallticketSubjectsRequest,SaveTimeTable,StudentHallTicketDataRequest ,StudentHallTicketData} from "../../../services/GenerateHallTicketService";
 import DataTable from "../../../components/ui/table/DataTable";
 import Input from "../../../components/form/input/InputField";
@@ -14,11 +21,6 @@ import { Save, Printer, Loader2 } from "lucide-react";
 import Switch from "../../../components/form/switch/Switch";
 import Alert from "../../../components/ui/alert/Alert";
 import Button from "../../../components/ui/button/Button";
-
-interface Option {
-  value: string;
-  label: string;
-}
 
 export type RenderResult = {
   content?: React.ReactNode;
@@ -73,30 +75,30 @@ export default function GenerateHallTicket() {
   // Alert (Auto-clearing)
   const [alert, setAlert] = useState<AlertState | null>(null);
 
+  const { ayid } = useAcademicYear();
+
   // 🔹 Course
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
   const [courseId, setCourseId] = useState("");
+  const courses = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
 
   // 🔹 Pattern
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
   const [pattern, setPattern] = useState("");
+  const patterns = usePatterns();
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
 
-  // 🔹 Semester (hard coded)
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  // 🔹 Semester
   const [semester, setSemester] = useState("");
+  const semesters = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
 
-  // 🔹 Exam
-  const [ExamOptions, setExamOptions] = useState<Option[]>([]);
+  // 🔹 Exam (active, non-revaluation); labelled "Name ( ExamType )" as the old endpoint did
   const [Exam, setExam] = useState("");
+  const exams = useExams({ courseId, purpose: "hallTicket" });
+  const ExamOptions = useMemo(
+    () => (exams.data ?? []).map((e) => ({ value: e.examId, label: `${e.name} ( ${e.examType ?? ""} )` })),
+    [exams.data]
+  );
 
   // HallTicket Subjects
   const [Subjects, setSubjects] = useState<HallticketSubjects[]>([]);
@@ -212,19 +214,8 @@ export default function GenerateHallTicket() {
   }, [alert]);
 
   useEffect(() => {
-    fetchCourses();
-  }, []);
-
-  useEffect(() => {
-    if (courseId) {
-      fetchPatterns(courseId);
-    } 
-  }, [courseId]);
-
-  useEffect(() => {
     if (semester) {
       setExam("");
-      fetchexam();
     } 
   }, [semester]);
 
@@ -288,59 +279,8 @@ export default function GenerateHallTicket() {
   };
 
   // ================= API CALLS =================
-  const fetchCourses = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-      setCourseOptions(
-        data.map((c) => ({
-          value: c.courseid,
-          label: c.coursename,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch courses", error);
-    }
-  };
-
-  const fetchPatterns = async (courseId: string) => {
-    try {
-      const data: PatternApiResponse[] = await PatternService.getpattern();
-      setPatternOptions(
-        data.map((p) => ({
-          value: p.patternName,
-          label: p.patternName,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch patterns", error);
-    }
-  };
-
-  const fetchexam = async () => {
-    try {
-      const ayid = localStorage.getItem("AYID");
-      if (!ayid) {
-        return Swal.fire("Error", "Academic Year is missing", "error");
-      }
-
-      const parameter: ExamApiRequest = {
-        Courseid: courseId,
-        Ayid: ayid
-      };
-      const data: ExamApiResponse[] = await GenerateHallTicketService.getExam(parameter);
-      const mappedData = data.map((e) => ({
-        value: e.examId,
-        label: e.examname
-      }));
-      setExamOptions(mappedData);
-    } catch (error) {
-      console.error("Failed to fetch exam", error);
-    }
-  };
-
   const fetchsubjects = async () => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year is missing", "error");
       }
@@ -368,7 +308,6 @@ export default function GenerateHallTicket() {
 
   const handleSave = async () => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year missing", "error");
       }
@@ -406,7 +345,6 @@ export default function GenerateHallTicket() {
   };
 
   const HallTicket = async () => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) {
       return Swal.fire("Error", "Academic Year missing", "error");
     }
@@ -445,7 +383,7 @@ export default function GenerateHallTicket() {
     }
     
     localStorage.setItem("hallTicketData", JSON.stringify(hallTicketData));
-    window.open("/hallticket", "_blank");
+    window.open(`${import.meta.env.BASE_URL}hallticket`, "_blank");
   };
 
   return (

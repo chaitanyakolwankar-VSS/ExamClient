@@ -2,9 +2,8 @@
 import PageMeta from "../../../components/common/PageMeta";
 import { useEffect, useState, useMemo } from "react";
 import Select from "../../../components/form/Select";
-import { CourseService, CourseApiResponse } from "../../../services/Course";
-import { academicYearService } from "../../../services/academicYearService";
-import { ExamService, Saveexam, Exams, GetExams, UpdateExams, DeleteExams } from "../../../services/ExamService";
+import { ExamService, Saveexam, Exams, UpdateExams, DeleteExams } from "../../../services/ExamService";
+import { useCourses, useExams, useAcademicYear, useAcademicYears, toCourseOptions, invalidateExams } from "../../../data";
 import { Trash2, Save, RefreshCcw } from "lucide-react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Switch from "../../../components/form/switch/Switch";
@@ -47,12 +46,16 @@ export default function ExamDashboard() {
     //Alert
       const [alert, setAlert] = useState<AlertState | null>(null);
 
-    // 🔹 Course
-    const [courseOptions, setCourseOptions] = useState<Option[]>([]);
+    // 🔹 Course (shared lookup cache)
+    const { data: courses } = useCourses();
+    const courseOptions = useMemo(() => toCourseOptions(courses), [courses]);
     const [courseId, setCourseId] = useState("");
 
+    // 🔹 Academic year (header picker) and the list of years
+    const { ayid } = useAcademicYear();
+    const { data: academicYears } = useAcademicYears();
+
     // 🔹 Year
-    const [YearOptions, setYearOptions] = useState<Option[]>([]);
     const [YearOption, setYearOption] = useState("");
     const [Year, setYear] = useState("");
 
@@ -68,9 +71,6 @@ export default function ExamDashboard() {
 
     // 🔹 RevalType
     const [RevalExam, setRevalExam] = useState(false);
-
-    //     ExamData
-    const [examData, setExamData] = useState<Exams[]>([]);
 
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -93,7 +93,26 @@ export default function ExamDashboard() {
             setSelectedIds([]);
         }
     };
-    // 🔹 Load courses on page load
+    // The two calendar years of the selected academic year, e.g. "24-25" -> 24 / 25.
+    const YearOptions = useMemo<Option[]>(() => {
+        if (!ayid) return [];
+        const currentYear = academicYears?.find((y) => y.ayid === ayid);
+        if (!currentYear || !currentYear.shortDuration) return [];
+        const [start, end] = currentYear.shortDuration.replace(/s/g, "").split("-");
+        if (!start || !end) return [];
+        return [
+            { value: "1", label: start },
+            { value: "2", label: end },
+        ];
+    }, [ayid, academicYears]);
+
+    // Exams of the chosen course in the selected academic year (all exams, for the Exam Master list)
+    const { data: exams } = useExams({ courseId, purpose: "master" });
+    // Local copy so the Active switch and Delete can update the list instantly; re-synced whenever the query changes.
+    const [examData, setExamData] = useState<Exams[]>([]);
+    useEffect(() => {
+        setExamData((exams ?? []).map((e) => ({ examId: e.examId, name: e.name, examType: e.examType ?? "", isActive: e.isActive })));
+    }, [exams]);
 
     const filters = useMemo(() => ({}), []);
 
@@ -147,13 +166,6 @@ export default function ExamDashboard() {
   }, [alert]);
 
     useEffect(() => {
-        fetchCourses();
-    }, []);
-
-    useEffect(() => {
-        if (courseId) {
-            GetExams();
-        }
         setYear("");
         setYearOption("");
         setMonth("");
@@ -179,35 +191,6 @@ export default function ExamDashboard() {
             SearchExam();
         }
     }, [ExamType]);
-
-    // 🔹 Load Year when course changes
-    useEffect(() => {
-        const loadYears = async () => {
-            const ayid = localStorage.getItem("AYID");
-            if (!ayid) return;
-
-            const years = await academicYearService.loadPreviousAcademicYears();
-
-            const currentYear = years.find(y => y.ayid === ayid);
-            if (!currentYear || !currentYear.shortDuration) return;
-
-            // example: "2025-2026"
-            const [start, end] = currentYear.shortDuration
-                .replace(/\s/g, "")
-                .split("-");
-
-            if (!start || !end) return;
-
-            const options = [
-                { value: "1", label: start },
-                { value: "2", label: end },
-            ];
-
-            setYearOptions(options);
-        };
-
-        loadYears();
-    }, [courseId]);
 
     // 🔹 Load Months when Year changes
     useEffect(() => {
@@ -239,22 +222,7 @@ export default function ExamDashboard() {
 
     // ================= API CALLS =================
 
-    const fetchCourses = async () => {
-        try {
-            const data: CourseApiResponse[] = await CourseService.getCourse();
-
-            setCourseOptions(
-                data.map((c) => ({
-                    value: c.courseid,
-                    label: c.coursename,
-                }))
-            );
-        } catch (error) {
-            console.error("Failed to fetch courses", error);
-        }
-    };
     const SaveExam = async () => {
-        const ayid = localStorage.getItem("AYID");
         if (!ayid) return;
         const payload: Saveexam = {
             Courseid: courseId,
@@ -273,14 +241,13 @@ export default function ExamDashboard() {
                 showConfirmButton: false, // ❌ OK button removed
                 timer: 1000,
             });
-            GetExams();
+            invalidateExams();
         }
         else {
             await Swal.fire("Failed!", res.message, "error");
         }
     }
     const SearchExam = async () => {
-        const ayid = localStorage.getItem("AYID");
         if (!ayid) return;
         const payload: Saveexam = {
             Courseid: courseId,
@@ -298,21 +265,6 @@ export default function ExamDashboard() {
             setExamexist(false);
         }
     }
-    const GetExams = async () => {
-        try {
-            const ayid = localStorage.getItem("AYID");
-            if (!ayid) return;
-            const payload: GetExams = {
-                Courseid: courseId,
-                Ayid: ayid,
-            };
-
-            const res = await ExamService.GetExam(payload);
-            setExamData(res);
-        } catch (error) {
-            console.error("Failed to fetch courses", error);
-        }
-    };
     const UpdateExam = async (examId: string, checked: boolean) => {
         setExamData((prev) =>
             prev.map((exam) =>
@@ -337,8 +289,14 @@ export default function ExamDashboard() {
         }
         else {
             await Swal.fire("Deactivated!", res.message, "error");
+            // Put the switch back (the refetch below may return unchanged data, which would not re-sync the list).
+            setExamData((prev) =>
+                prev.map((exam) =>
+                    exam.examId === examId ? { ...exam, isActive: !checked } : exam
+                )
+            );
         }
-        GetExams();
+        invalidateExams();
     };
     const DeleteExam = async (examId: string) => {
         const result = await Swal.fire({
@@ -360,6 +318,7 @@ export default function ExamDashboard() {
         const res = await ExamService.DeleteExam(payload);
         if (res.success) {
             setExamData(prev => prev.filter(x => x.examId !== examId));
+            invalidateExams();
         }
         else {
             await Swal.fire("Failed!", res.message, "error");

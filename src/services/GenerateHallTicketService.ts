@@ -1,14 +1,6 @@
 import apiClient from "../api/Client";
 import { Response } from "./Response";
 
-export interface ExamApiResponse {
-    examId: string;
-    examname: string;
-}
-export interface ExamApiRequest {
-    Courseid: string;
-    Ayid: string;
-}
 export interface HallticketSubjects {
     subjectId: string;
     subjectCode: string;
@@ -60,18 +52,6 @@ export interface HallTicketCollege{
 }
  
 export const GenerateHallTicketService = {
-    // async getExam(params: ExamApiRequest): Promise<ExamApiResponse[]> {
-    //     const response = await apiClient.get<ExamApiResponse[]>(
-    //         "/RegularExam/get-exam", { params }
-    //     );
-    //     return response.data;
-    // },
-    async getExam(params: ExamApiRequest): Promise<ExamApiResponse[]> {
-        const response = await apiClient.get<ExamApiResponse[]>(
-            "/GenerateHallTicket/get-exam", { params }
-        );
-        return response.data;
-    },
 async getHallTicketSubjects(params: HallticketSubjectsRequest): Promise<HallticketSubjects[]> {
         const response = await apiClient.get<HallticketSubjects[]>(
             "/GenerateHallTicket/get-halltickectsubjects", { params }
