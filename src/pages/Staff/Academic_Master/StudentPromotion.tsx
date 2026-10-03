@@ -4,14 +4,12 @@ import { useEffect, useState, useMemo } from "react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
 import Alert from "../../../components/ui/alert/Alert";
-import { CourseApiResponse ,CourseService} from "../../../services/Course";
-import { academicYearService } from "../../../services/academicYearService";
+import { useCourses, usePatterns, useSemesters, useAcademicYear, toCourseOptions, toPatternOptions, toSemesterOptions } from "../../../data";
 import { EligibilityAssignedStudent ,StudentPromotionService,UpdateEligibilityRequest,StudentData,EligibilityUnAssignedStudent} from "../../../services/StudentPromotionService";
 import DataTable from "../../../components/ui/table/DataTable";
 import Swal from "sweetalert2";
 import Switch from "../../../components/form/switch/Switch";
 import { Plus, Trash2, Edit, X, Pencil, Save, RefreshCcw, CheckCircle, Eye, Copy, Delete,Loader2 } from "lucide-react";
-import { PatternApiResponse,PatternService } from "../../../services/Pattern";
 import { number } from "framer-motion";
 import { FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
@@ -41,19 +39,31 @@ export default function StudentPromotion() {
       const [alert, setAlert] = useState<AlertState | null>(null);
   
     // 🔹 Course
-    const [courseOptions, setCourseOptions] = useState<Option[]>([]);
+    const { ayid, years } = useAcademicYear();
+    const courses = useCourses();
+    const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
     const [courseId, setCourseId] = useState("");
-  const [PreviousYearOptions, setPreviousYearOptions] = useState<Option[]>([]);
    const [PreviousYear, setPreviousYear] = useState("");
-   // 🔹 Semester (hard coded)
-    const semesterOptions: Option[] = [
-        { value: "Sem-3", label: "Semester III" },
-        { value: "Sem-5", label: "Semester V" },
-        { value: "Sem-7", label: "Semester VII" },
-    ];
+   // 🔹 Earlier academic years than the selected one, newest first (from the shared year list)
+   const PreviousYearOptions = useMemo<Option[]>(() => {
+     const currentYear = years.find(y => y.ayid === ayid);
+     if (!currentYear) return [];
+     const currentStartYear = Number(currentYear.shortDuration.split("-")[0]);
+     return years
+       .filter(y => Number(y.shortDuration.split("-")[0]) < currentStartYear)
+       .sort((a, b) => Number(b.shortDuration.split("-")[0]) - Number(a.shortDuration.split("-")[0])) // 🔽 DESC
+       .map(y => ({ value: y.ayid, label: y.shortDuration }));
+   }, [years, ayid]);
+   // 🔹 Semester: only the semesters a student can be promoted into (3, 5, 7) out of the shared semester list
+    const semesters = useSemesters();
+    const semesterOptions = useMemo<Option[]>(
+        () => toSemesterOptions(semesters.data).filter(s => ["Sem-3", "Sem-5", "Sem-7"].includes(s.value)),
+        [semesters.data]
+    );
 
        // 🔹 Pattern
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
+  const patterns = usePatterns();
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
   const [pattern, setPattern] = useState("");
     const [SemId, setSemId] = useState("");
 
@@ -81,45 +91,6 @@ useEffect(() => {
 
 
 
-        useEffect(() => {
-PreviousYearLoad()
- 
-
-        fetchCourses();
-    }, []);
-
-    const PreviousYearLoad = async()=>{
- const years = await academicYearService.loadPreviousAcademicYears();
-
-
-
-    const currentAyid = localStorage.getItem("AYID");
-
-    const currentYear = years.find(y => y.ayid === currentAyid);
-
-
-    const previousYearsFiltered = years
-      .filter(y => {
-        if (!currentYear) return false;
-
-        const currentStartYear = Number(currentYear.shortDuration.split("-")[0]);
-        const yearStart = Number(y.shortDuration.split("-")[0]);
-
-        return yearStart < currentStartYear;
-      })
-      .sort((a, b) => {
-        const aYear = Number(a.shortDuration.split("-")[0]);
-        const bYear = Number(b.shortDuration.split("-")[0]);
-        return bYear - aYear; // 🔽 DESC
-      });
-
-    const options: Option[] = previousYearsFiltered.map(y => ({
-      value: y.ayid,
-      label: y.shortDuration,
-    }));
-
-    setPreviousYearOptions(options);
-    }
 const columns = useMemo(() => [
     {
         key: "srNo",
@@ -402,37 +373,6 @@ const ExportAssignedStudentsToExcel = () => {
 
     // ================= API CALLS =================
 
-      //Call Pattern
-  const fetchPatterns = async (courseId: string) => {
-    try {
-      const data: PatternApiResponse[] = await PatternService.getpattern();
-
-      setPatternOptions(
-        data.map((p) => ({
-          value: p.patternName,
-          label: p.patternName,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch patterns", error);
-    }
-  };
-
-    
-        const fetchCourses = async () => {
-            try {
-                const data: CourseApiResponse[] = await CourseService.getCourse();
-    
-                setCourseOptions(
-                    data.map((c) => ({
-                        value: c.courseid,
-                        label: c.coursename,
-                    }))
-                );
-            } catch (error) {
-                console.error("Failed to fetch courses", error);
-            }
-        };
 const LoadStudents = async () => {
     try {
 
@@ -441,7 +381,6 @@ const LoadStudents = async () => {
         if (!courseId || !PreviousYear || !SemId ) {
             return;
         }
-const ayid = localStorage.getItem("AYID");
 
 if (!ayid) {
     return Swal.fire("Error", "Academic Year is missing", "error");
@@ -510,7 +449,6 @@ const SaveStudents = async () => {
     setLoading(true);
     try {
 
-        const ayid = localStorage.getItem("AYID");
 
         if (!ayid) {
             Swal.fire("Error", "Academic Year not found.", "error");
@@ -554,7 +492,6 @@ const UpdateEligibility = async () => {
      setLoading(true);
     try {
         
-        const ayid = localStorage.getItem("AYID");
 
         if (!ayid) {
             Swal.fire("Error", "Academic Year not found.", "error");
@@ -628,7 +565,7 @@ const UpdateEligibility = async () => {
                         value={courseId}
                         onChange={(value) => {
                             setCourseId(value);
-                            fetchPatterns(value);  setPattern("");setSemId("");setAssignedStudents([]);setUnassignedStudents([]);setIsEditMode(false);
+setPattern("");setSemId("");setAssignedStudents([]);setUnassignedStudents([]);setIsEditMode(false);
                         }}
                     />
               )}

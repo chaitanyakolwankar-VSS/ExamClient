@@ -1,9 +1,8 @@
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
 import { Eye, EyeOff } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { CourseApiResponse, CourseService } from "../../../services/Course";
-import { PatternApiResponse, PatternService } from "../../../services/Pattern";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useCourses, usePatterns, useSemesters, useAcademicYear, toCourseOptions, toPatternOptions, toSemesterOptions } from "../../../data";
 import {
   DeclareExamApiResponse,
   DeclareResultService,
@@ -25,22 +24,17 @@ interface ExamRow {
 }
 
 const DeclareResult = () => {
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
+  const { ayid } = useAcademicYear();
+  const courses = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
   const [courseId, setCourseId] = useState("");
 
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
+  const patterns = usePatterns();
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
   const [pattern, setPattern] = useState("");
 
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  const semesters = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
   const [semester, setSemester] = useState("");
 
   const [examOptions, setExamOptions] = useState<Option[]>([]);
@@ -52,43 +46,9 @@ const DeclareResult = () => {
 
   const dateInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const fetchCourse = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-      setCourseOptions(
-        data.map((course) => ({
-          value: course.courseid,
-          label: course.coursename,
-        })),
-      );
-    } catch (error) {
-      console.error("Error fetching courses:", error);
-    }
-  };
-
-  const fetchPatterns = async (courseId: string) => {
-    try {
-      const data: PatternApiResponse[] = await PatternService.getpattern();
-      setPatternOptions(
-        data.map((p) => ({
-          value: p.patternName,
-          label: p.patternName,
-        })),
-      );
-    } catch (error) {
-      console.error("Failed to fetch patterns", error);
-    }
-  };
 
   useEffect(() => {
-    fetchCourse();
-  }, []);
-
-  useEffect(() => {
-    if (courseId) {
-      fetchPatterns(courseId);
-    } else {
-      setPatternOptions([]);
+    if (!courseId) {
       setPattern("");
       setSemester("");
       setExamOptions([]);
@@ -115,7 +75,6 @@ const DeclareResult = () => {
   }, [semester]);
 
   const fetchExamOptions = async () => {
-    const ayid = localStorage.getItem("AYID");
     if (!courseId || !semester || !ayid) return;
 
     try {
@@ -153,7 +112,6 @@ const DeclareResult = () => {
   }, [courseId, pattern, semester]);
 
   const fetchTableRow = async () => {
-    const ayid = localStorage.getItem("AYID");
     if (!courseId || !semester || !ayid || !examId) {
       setTableRow(null);
       return;
@@ -212,7 +170,6 @@ const DeclareResult = () => {
   };
 
   const handleToggleDeclare = async (row: ExamRow) => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) return;
 
     const willDeclare = !row.isDeclare;

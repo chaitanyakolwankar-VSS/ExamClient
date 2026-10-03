@@ -1,53 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
-import { CourseApiResponse, CourseService } from "../../../services/Course";
-import { PatternApiResponse, PatternService } from "../../../services/Pattern";
 import {
-  ExamApiRequest,
-  ExamApiResponse,
-  RegularExamService,
-} from "../../../services/RegularExamService";
-import Swal from "sweetalert2";
-
-interface Option {
-  value: string;
-  label: string;
-}
+  useCourses,
+  usePatterns,
+  useSemesters,
+  useExams,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+  toExamOptions,
+} from "../../../data";
 
 const StudentAssignReport = () => {
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
   const [courseId, setCourseId] = useState("");
+  const courses = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
 
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
   const [pattern, setPattern] = useState("");
+  const patterns = usePatterns();
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
 
-  const [ExamOptions, setExamOptions] = useState<Option[]>([]);
-  const [Exam, setExam] = useState("");
-  // ===== OPTIONS =====
-  const CourseOption: Option[] = [];
-
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
   const [semester, setSemester] = useState("");
+  const semesters = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
+
+  // Regular exams of the course for the selected academic year (what /RegularExam/get-exam returned).
+  const [Exam, setExam] = useState("");
+  const exams = useExams({ courseId, purpose: "regular" });
+  const ExamOptions = useMemo(() => toExamOptions(exams.data), [exams.data]);
 
   useEffect(() => {
-    fetchCourses();
-  }, []);
-
-  useEffect(() => {
-    if (courseId) {
-      fetchPatterns(courseId);
-    } else {
-      setPatternOptions([]);
+    if (!courseId) {
       setPattern("");
       setSemester("");
       setExam("");
@@ -57,64 +41,8 @@ const StudentAssignReport = () => {
   useEffect(() => {
     if (semester) {
       setExam("");
-      fetchexam();
     }
   }, [semester]);
-
-  const fetchCourses = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-
-      setCourseOptions(
-        data.map((c) => ({
-          value: c.courseid,
-          label: c.coursename,
-        })),
-      );
-    } catch (error) {
-      console.error("Failed to fetch courses", error);
-    }
-  };
-
-  const fetchPatterns = async (courseId: string) => {
-    try {
-      const data: PatternApiResponse[] = await PatternService.getpattern();
-
-      setPatternOptions(
-        data.map((p) => ({
-          value: p.patternName,
-          label: p.patternName,
-        })),
-      );
-    } catch (error) {
-      console.error("Failed to fetch patterns", error);
-    }
-  };
-
-  const fetchexam = async () => {
-    try {
-      const ayid = localStorage.getItem("AYID");
-      if (!ayid) {
-        return Swal.fire("Error", "Academic Year is missing", "error");
-      }
-
-      const parameter: ExamApiRequest = {
-        Courseid: courseId,
-        Ayid: ayid,
-      };
-      const data: ExamApiResponse[] =
-        await RegularExamService.getExam(parameter);
-      console.log("EXAM API RAW RESPONSE 👉", data);
-      const mappedData = data.map((e) => ({
-        value: e.examId,
-        label: e.examname,
-      }));
-
-      setExamOptions(mappedData); // ✅ update state
-    } catch (error) {
-      console.error("Failed to fetch exam", error);
-    }
-  };
 
   return (
     <ComponentCard title="Students Assign Report">

@@ -167,6 +167,7 @@ import {
 import PageMeta from "../../../components/common/PageMeta";
 import Alert from "../../../components/ui/alert/Alert";
 import apiClient from "../../../api/Client";
+import { useAcademicYear } from "../../../data";
 import {
   DashboardService,
   CourseStudentCountApiResponse,
@@ -235,20 +236,9 @@ export default function ExamDashboard() {
     }
   };
 
-  const getAcademicYearId = (): string => {
-    try {
-      return (
-        localStorage.getItem("AYID") ||
-        localStorage.getItem("academicYear") ||
-        ""
-      );
-    } catch {
-      return "";
-    }
-  };
-
   const collegeId = getCollegeId();
-  const ayid = getAcademicYearId();
+  const { ayid: selectedAyid } = useAcademicYear();
+  const ayid = selectedAyid ?? "";
 
   // ---- state ----
   const [courses, setCourses] = useState<CourseStudentCountApiResponse[]>([]);

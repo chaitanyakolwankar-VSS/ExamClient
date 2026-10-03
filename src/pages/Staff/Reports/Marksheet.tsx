@@ -7,6 +7,7 @@ import Input from "../../../components/form/input/InputField";
 import { Download, Settings2, Loader2 } from "lucide-react";
 import { ReportService } from "../../../services/ReportService";
 import {
+  useAcademicYear,
   useCourses,
   usePatterns,
   useSemesters,
@@ -32,6 +33,7 @@ export default function Marksheet() {
   const patterns = usePatterns();
   const semesters = useSemesters();
   const exams = useExams({ courseId: selectedCourse, purpose: "all" });
+  const { ayid } = useAcademicYear();
 
   const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
   const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
@@ -123,7 +125,7 @@ export default function Marksheet() {
           semId: semester,
           pattern: pattern,
           courseId: selectedCourse,
-          ayid: localStorage.getItem("AYID") || "",
+          ayid: ayid || "",
           generationType: generationType,
           includeHistory: includeHistory,
           resultDate: resultDate || undefined,

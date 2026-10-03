@@ -2,8 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import PageMeta from "../../../components/common/PageMeta"; 
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
-import { CourseApiResponse,CourseService } from "../../../services/Course";
-import { PatternApiResponse,PatternService } from "../../../services/Pattern";
+import { useCourses, usePatterns, useSemesters, useAcademicYear, toCourseOptions, toPatternOptions, toSemesterOptions } from "../../../data";
 import Swal from "sweetalert2";
 import { ExamApiRequest ,ExamApiResponse} from "../../../services/RegularExamService";
 import { ATKTCommulativeReportService,HeadTypeRequest,HeadTypeResponse ,AtktReportRequest,AtktReportResponse} from "../../../services/ATKTCommulativeReportService";
@@ -18,15 +17,19 @@ interface Option {
 }
 
 export default function ATKTCommulativeReport() {
+  const { ayid } = useAcademicYear();
+
   // 🔹 Course
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
+  const courses = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
   const [courseId, setCourseId] = useState("");
 
   // 🔹 Pattern
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
+  const patterns = usePatterns();
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
   const [pattern, setPattern] = useState("");
 
-  // 🔹 Exam
+  // 🔹 Exam (ATKT-eligible exams come from the report's own endpoint)
   const [ExamOptions, setExamOptions] = useState<Option[]>([]);
   const [Exam, setExam] = useState("");
 
@@ -34,56 +37,15 @@ export default function ATKTCommulativeReport() {
   const [HeadTypeOptions, setHeadTypeOptions] = useState<Option[]>([]);
   const [HeadType, setHeadType] = useState("");
 
-  // 🔹 Semester (hard coded)
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  // 🔹 Semester (shared list)
+  const semesters = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
   const [semester, setSemester] = useState("");
-  useEffect(() => {
-    fetchCourses();
-  }, []);
   
   // ================= API CALLS =================
 
-  const fetchCourses = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-
-      setCourseOptions(
-        data.map((c) => ({
-          value: c.courseid,
-          label: c.coursename,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch courses", error);
-    }
-  };
-  
-    const fetchPatterns = async (courseId: string) => {
-      try {
-        const data: PatternApiResponse[] = await PatternService.getpattern();
-  
-        setPatternOptions(
-          data.map((p) => ({
-            value: p.patternName,
-            label: p.patternName,
-          }))
-        );
-      } catch (error) {
-        console.error("Failed to fetch patterns", error);
-      }
-    };
      const fetchexam = async () => {
         try {
-          const ayid = localStorage.getItem("AYID");
           if (!ayid) {
             return Swal.fire("Error", "Academic Year is missing", "error");
           }
@@ -107,7 +69,6 @@ export default function ATKTCommulativeReport() {
       };
        const fetchheadtype = async (examId: string) => {
     try {
-        const ayid = localStorage.getItem("AYID");
 
         if (!ayid) {
             return Swal.fire("Error", "Academic Year is missing", "error");
@@ -135,7 +96,6 @@ export default function ATKTCommulativeReport() {
     }
 };
 const exportToExcel = async () => {
-    const ayid = localStorage.getItem("AYID");
 
     if (!ayid) {
         return Swal.fire(
@@ -602,7 +562,6 @@ const [atktReportData, setAtktReportData] =
 
 const getAtktReportData = async (selectedHeadType: string) => {
 
-  const ayid = localStorage.getItem("AYID");
 
   if (!ayid) {
     Swal.fire(
@@ -762,7 +721,6 @@ const columns = [
               setPattern("");
                setSemester("");
                 setExam("");
-                fetchPatterns(value);
                 setAtktReportData([]);
                 setHeadType("");
             }}
