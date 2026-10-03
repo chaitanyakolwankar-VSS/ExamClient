@@ -1,5 +1,5 @@
 import PageMeta from "../../../components/common/PageMeta";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Select from "../../../components/form/Select";
 import { Plus, Trash2, Pencil, Save, CheckCircle, Eye, Copy } from "lucide-react";
 import Button from "../../../components/ui/button/Button";
@@ -7,12 +7,12 @@ import Checkbox from "../../../components/form/input/Checkbox";
 import { Table, TableBody, TableRow, TableCell, } from "../../../components/ui/table";
 import Swal from "sweetalert2";
 import { Modal } from "../../../components/ui/modal";
-import { CourseService, CourseApiResponse } from "../../../services/Course";
-import { PatternService, PatternApiResponse } from "../../../services/Pattern";
-import { GetSubject, SubjectApiResponse } from "../../../services/GetSubject";
 import Switch from "../../../components/form/switch/Switch";
 import { Subject, SubjectService, SaveCreditsPayload, GetCredits, PreviousCredits, DeleteCredits, DeleteSubject, PassingStrategy } from "../../../services/SubjectService";
-import { academicYearService } from "../../../services/academicYearService";
+import {
+  useCourses, usePatterns, useSemesters, useSubjects, useAcademicYear, useAcademicYears,
+  toCourseOptions, toPatternOptions, toSemesterOptions, invalidateSubjects,
+} from "../../../data";
 import Alert from "../../../components/ui/alert/Alert";
 import Input from "../../../components/form/input/InputField";
 import ComponentCard from "../../../components/common/ComponentCard";
@@ -57,32 +57,34 @@ export default function SubjectMaster() {
 
 
   const [isPreviousYear, setIsPreviousYear] = useState(false);
+  const { ayid } = useAcademicYear();
+  const { data: academicYears } = useAcademicYears();
   const [PreviousYearOptions, setPreviousYearOptions] = useState<Option[]>([]);
   const [PreviousYear, setPreviousYear] = useState("");
   const [PreviousCreditExist, setPreviousCreditExist] = useState(false);
   // 🔹 Course
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
+  const { data: courses } = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses), [courses]);
   const [courseId, setCourseId] = useState("");
 
   // 🔹 Pattern
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
+  const { data: patterns } = usePatterns();
+  // value = pattern NAME (what SubjectMaster.Pattern stores)
+  const patternOptions = useMemo(() => toPatternOptions(patterns, "name"), [patterns]);
   const [pattern, setPattern] = useState("");
 
-  // 🔹 Semester (hard coded)
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  // 🔹 Semester (shared list; value "Sem-N")
+  const { data: semesters } = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters), [semesters]);
   const [semester, setSemester] = useState("");
 
   // 🔹 Subject
-  const [subjectOptions, setSubjectOptions] = useState<Option[]>([]);
+  const { data: subjectList } = useSubjects({ courseId, pattern, semester });
+  // Label is the subject name only (as before); toSubjectOptions would prefix the code.
+  const subjectOptions = useMemo<Option[]>(
+    () => (subjectList ?? []).map((s) => ({ value: s.subjectId, label: s.name })),
+    [subjectList]
+  );
   const [subject, setSubject] = useState("");
 
   const [subjectName, setSubjectName] = useState("");
@@ -157,85 +159,23 @@ export default function SubjectMaster() {
   }, [credits, isEditMode, IsViewMode]);
 
 
-  // 🔹 Load courses on page load
+  // 🔹 Reset dependent selections when the course is cleared
   useEffect(() => {
-    fetchCourses();
-  }, [PreviousYear, isPreviousYear]);
-
-
-  // 🔹 Load patterns when course changes
-  useEffect(() => {
-    if (courseId) {
-      fetchPatterns(courseId);
-    } else {
-      setPatternOptions([]);
+    if (!courseId) {
       setPattern("");
       setSemester("");
       setSubject("");
-      setSubjectOptions([]);
     }
   }, [courseId]);
 
-  // 🔹 Load subjects when semester changes
+  // 🔹 Clear the subject when the semester (or its parents) is cleared
   useEffect(() => {
-    if (courseId && pattern && semester) {
-      fetchSubjects(courseId, pattern, semester);
-    } else {
-      setSubjectOptions([]);
+    if (!(courseId && pattern && semester)) {
       setSubject("");
     }
   }, [semester]);
 
   // ================= API CALLS =================
-
-  const fetchCourses = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-
-      setCourseOptions(
-        data.map((c) => ({
-          value: c.courseid,
-          label: c.coursename,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch courses", error);
-    }
-  };
-
-  const fetchPatterns = async (courseId: string) => {
-    try {
-      const data: PatternApiResponse[] = await PatternService.getpattern();
-
-      setPatternOptions(
-        data.map((p) => ({
-          value: p.patternName,
-          label: p.patternName,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch patterns", error);
-    }
-  };
-
-  const fetchSubjects = async (
-    courseId: string,
-    pattern: string,
-    semester: string
-  ) => {
-    try {
-      const data: SubjectApiResponse[] = await GetSubject.getSubject({ courseId, pattern, semester });
-
-      setSubjectOptions(
-        data.map((s) => ({
-          value: s.subjectId,
-          label: s.subjectName,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch subjects", error);
-    }
-  };
 
   const handleSave = async () => {
     if (!subjectName || !subjectCode) {
@@ -271,7 +211,7 @@ export default function SubjectMaster() {
         });
 
         setIsModalOpen(false);
-        fetchSubjects(courseId, pattern, semester);
+        invalidateSubjects();
       }
       else {
         await Swal.fire("Failed!", res.message, "error");
@@ -301,7 +241,6 @@ export default function SubjectMaster() {
 
   const handleSaveCredits = async () => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return setAlert({
           variant: "error",
@@ -385,7 +324,6 @@ export default function SubjectMaster() {
 
   const handleUpdateCredits = async () => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return setAlert({
           variant: "error",
@@ -540,7 +478,6 @@ export default function SubjectMaster() {
       if (!result.isConfirmed) return;
 
 
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return setAlert({
           variant: "error",
@@ -609,7 +546,6 @@ export default function SubjectMaster() {
       // ❌ Cancel clicked
       if (!result.isConfirmed) return;
 
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year is missing", "error");
       }
@@ -632,7 +568,7 @@ export default function SubjectMaster() {
           timerProgressBar: true,
         });
 
-        fetchSubjects(courseId, pattern, semester);
+        invalidateSubjects();
         setSubject("");
       } else {
         Swal.fire({
@@ -671,12 +607,9 @@ export default function SubjectMaster() {
     }
 
     // 🔹 Toggle ON
-    const years = await academicYearService.loadPreviousAcademicYears();
+    const years = academicYears ?? [];
 
-
-    const currentAyid = localStorage.getItem("AYID");
-
-    const currentYear = years.find(y => y.ayid === currentAyid);
+    const currentYear = years.find(y => y.ayid === ayid);
 
 
     const previousYearsFiltered = years
@@ -713,7 +646,6 @@ export default function SubjectMaster() {
       return;
     }
 
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) {
       return setAlert({
         variant: "error",
@@ -764,7 +696,6 @@ export default function SubjectMaster() {
     }
   };
   const CheckCredits = async (subjectId: string) => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) return;
 
     const payload: GetCredits = {
@@ -786,7 +717,6 @@ export default function SubjectMaster() {
   };
   
   const loadCredits = async (subjectId: string, mode: "view" | "edit") => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) return;
 
     const payload: GetCredits = {
@@ -832,7 +762,6 @@ export default function SubjectMaster() {
     }
   };
   const loadPreviousCredits = async (subjectId: string) => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) return;
 
     const payload: PreviousCredits = {

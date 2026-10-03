@@ -5,17 +5,19 @@ import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
 import Alert from "../../../components/ui/alert/Alert";
 import Button from "../../../components/ui/button/Button";
-import { CourseService } from "../../../services/Course";
-import { PatternService } from "../../../services/Pattern";
-import { RegularExamService } from "../../../services/RegularExamService";
+import {
+  useAcademicYear,
+  useCourses,
+  usePatterns,
+  useSemesters,
+  useExams,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+  toExamOptions,
+} from "../../../data";
 import { StatisticalReport, StatisticalReportService } from "../../../services/StatisticalReportService";
 
-const semesterOptions = Array.from({ length: 10 }, (_, index) => ({
-  value: `Sem-${index + 1}`,
-  label: `Semester ${index + 1}`,
-}));
-
-type Option = { value: string; label: string };
 type AlertState = {
   variant: "success" | "error" | "warning";
   title: string;
@@ -30,9 +32,6 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 export default function StatisticalReportPage() {
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
-  const [examOptions, setExamOptions] = useState<Option[]>([]);
   const [courseId, setCourseId] = useState("");
   const [semesterId, setSemesterId] = useState("");
   const [pattern, setPattern] = useState("");
@@ -42,51 +41,40 @@ export default function StatisticalReportPage() {
   const [report, setReport] = useState<StatisticalReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [loadingExams, setLoadingExams] = useState(false);
   const [alert, setAlert] = useState<AlertState | null>(null);
 
-  const academicYearId = localStorage.getItem("AYID") || "";
+  const { ayid } = useAcademicYear();
+  const academicYearId = ayid ?? "";
+
+  // Lookup data comes from the shared cached hooks (src/data); useExams reads the academic year from context.
+  const courses = useCourses();
+  const patterns = usePatterns();
+  const semesters = useSemesters();
+  const exams = useExams({ courseId, purpose: "all" });
+  const loadingExams = exams.isLoading;
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
+  const examOptions = useMemo(() => toExamOptions(exams.data), [exams.data]);
   const busy = loading || exporting;
   const canRequest = Boolean(courseId && semesterId && pattern && examId && academicYearId
     && (!mergeExam || (mergedExamId && mergedExamId !== examId)));
 
+  const filtersFailed = courses.isError || patterns.isError || semesters.isError;
   useEffect(() => {
-    let active = true;
-    const loadOptions = async () => {
-      try {
-        const [courses, patterns] = await Promise.all([CourseService.getCourse(), PatternService.getpattern()]);
-        if (!active) return;
-        setCourseOptions(courses.map(course => ({ value: course.courseid, label: course.coursename })));
-        setPatternOptions(patterns.map(item => ({ value: item.patternName, label: item.patternName })));
-      } catch {
-        if (active) setAlert({ variant: "error", title: "Filters unavailable", message: "Reload the page to try again." });
-      }
-    };
-    void loadOptions();
-    return () => { active = false; };
-  }, []);
+    if (filtersFailed) setAlert({ variant: "error", title: "Filters unavailable", message: "Reload the page to try again." });
+  }, [filtersFailed]);
 
+  // A new branch or academic year starts the exam choice (and any report) over.
   useEffect(() => {
-    let active = true;
     setExamId("");
     setMergedExamId("");
-    setExamOptions([]);
     setReport(null);
-    setLoadingExams(Boolean(courseId && academicYearId));
-    const loadExams = async () => {
-      if (!courseId || !academicYearId) return;
-      try {
-        const exams = await RegularExamService.getAllExams({ Courseid: courseId, Ayid: academicYearId });
-        if (active) setExamOptions(exams.map(exam => ({ value: exam.examId, label: exam.examname })));
-      } catch {
-        if (active) setAlert({ variant: "error", title: "Exams unavailable", message: "Select the branch again to retry." });
-      } finally {
-        if (active) setLoadingExams(false);
-      }
-    };
-    void loadExams();
-    return () => { active = false; };
   }, [courseId, academicYearId]);
+
+  useEffect(() => {
+    if (exams.isError) setAlert({ variant: "error", title: "Exams unavailable", message: "Select the branch again to retry." });
+  }, [exams.isError]);
 
   // Keep actionable errors visible; only the download confirmation disappears automatically.
   useEffect(() => {

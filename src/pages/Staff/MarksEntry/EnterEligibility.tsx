@@ -2,7 +2,7 @@ import PageMeta from "../../../components/common/PageMeta";
 import { useState, useEffect, useMemo, useRef } from "react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
-import { CourseService, CourseApiResponse } from "../../../services/Course";
+import { useCourses, useSemesters, useAcademicYear, toCourseOptions, toSemesterOptions } from "../../../data";
 import Switch from "../../../components/form/switch/Switch";
 import { Plus, Trash2, Edit, X, Pencil, Save, RefreshCcw, CheckCircle, Eye, Copy, Delete } from "lucide-react";
 import Checkbox from "../../../components/form/input/Checkbox";
@@ -15,10 +15,6 @@ import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
-interface Option {
-  value: string;
-  label: string;
-}
 export type RenderResult = {
   content?: React.ReactNode;
   rowSpan?: number;
@@ -46,24 +42,18 @@ export default function EnterEligibility() {
 
 
   // 🔹 Course
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
+  const { data: courses } = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses), [courses]);
+  const { ayid } = useAcademicYear();
   const [courseId, setCourseId] = useState("");
   const [courseName, setCourseName] = useState("");
 
   //Eligibility Students
   const [EligibilityStudents, setEligibilityStudents] = useState<EligibilityStudents[]>([]);
 
-  // 🔹 Semester (hard coded)
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  // 🔹 Semester (shared list; value "Sem-N")
+  const { data: semesters } = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters), [semesters]);
   const [semester, setSemester] = useState("");
   const [semesterName,setsemesterName]=useState("");
 
@@ -277,10 +267,6 @@ setEligibilityStudents([]);
 
 
   useEffect(() => {
-    fetchCourses();
-
-  }, []);
-  useEffect(() => {
     setEligibilityStudents([]);
     setSemester("");
   }, [courseId]);
@@ -489,22 +475,7 @@ const exportToCSV = async () => {
   };
   // ================= API CALLS =================
 
-  const fetchCourses = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-
-      setCourseOptions(
-        data.map((c) => ({
-          value: c.courseid,
-          label: c.coursename,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch courses", error);
-    }
-  };
   const GeStudentData = async () => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) {
       return Swal.fire("Error", "Academic Year is missing", "error");
     }

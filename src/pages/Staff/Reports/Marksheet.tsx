@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
@@ -6,69 +6,38 @@ import Button from "../../../components/ui/button/Button";
 import Input from "../../../components/form/input/InputField";
 import { Download, Settings2, Loader2 } from "lucide-react";
 import { ReportService } from "../../../services/ReportService";
-import { CourseService } from "../../../services/Course";
-import { PatternService } from "../../../services/Pattern";
-import { RegularExamService } from "../../../services/RegularExamService";
+import {
+  useCourses,
+  usePatterns,
+  useSemesters,
+  useExams,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+  toExamOptions,
+} from "../../../data";
 import Alert from "../../../components/ui/alert/Alert";
 
 export default function Marksheet() {
-  const [courseOptions, setCourseOptions] = useState<{ value: string; label: string }[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   
-  const [patternOptions, setPatternOptions] = useState<{ value: string; label: string }[]>([]);
   const [pattern, setPattern] = useState("");
   
   const [semester, setSemester] = useState("");
   
-  const [examOptions, setExamOptions] = useState<{ value: string; label: string }[]>([]);
   const [exam, setExam] = useState("");
 
-  const semesterOptions = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  // Lookup data comes from the shared cached hooks (src/data); useExams reads the academic year from context.
+  const courses = useCourses();
+  const patterns = usePatterns();
+  const semesters = useSemesters();
+  const exams = useExams({ courseId: selectedCourse, purpose: "all" });
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
+  const examOptions = useMemo(() => toExamOptions(exams.data), [exams.data]);
 
-  const fetchInitialData = async () => {
-    try {
-      const courses = await CourseService.getCourse();
-      setCourseOptions(courses.map((c: any) => ({ value: c.courseid, label: c.coursename })));
-      const patterns = await PatternService.getpattern();
-      setPatternOptions(patterns.map((p: any) => ({ value: p.patternName, label: p.patternName })));
-    } catch (error) {
-      console.error("Fetch error:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedCourse && semester && pattern) {
-        fetchExams();
-    }
-  }, [selectedCourse, semester, pattern]);
-
-  const fetchExams = async () => {
-    try {
-        const ayid = localStorage.getItem("AYID");
-        if (!ayid) {
-          setExamOptions([]);
-          return;
-        }
-        const exams = await RegularExamService.getAllExams({ Courseid: selectedCourse, Ayid: ayid });
-        setExamOptions(exams.map((e: any) => ({ value: e.examId, label: e.examname })));
-    } catch (error) {
-        console.error("Fetch exams error:", error);
-    }
-  };
-  
   // Cascading Reset Handlers
   const handleCourseChange = (value: string) => {
     setSelectedCourse(value);

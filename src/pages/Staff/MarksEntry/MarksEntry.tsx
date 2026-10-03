@@ -6,10 +6,17 @@ import Button from "../../../components/ui/button/Button";
 import Input from "../../../components/form/input/InputField";
 import DataTable from "../../../components/ui/table/DataTable";
 import Alert from "../../../components/ui/alert/Alert";
-import { CourseService } from "../../../services/Course";
-import { PatternService } from "../../../services/Pattern";
-import { GetSubject } from "../../../services/GetSubject";
-import { RegularExamService } from "../../../services/RegularExamService";
+import {
+  useCourses,
+  usePatterns,
+  useSemesters,
+  useExams,
+  useSubjects,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+  toExamOptions,
+} from "../../../data";
 import { MarksEntryService, MarksEntryData, StudentHeadMarks, ResolutionConfig } from "../../../services/MarksEntryService";
 import ResolutionConfigModal from "./ResolutionConfigModal";
 import { Loader2, Save, Search, Download, Upload, RefreshCcw } from "lucide-react";
@@ -17,14 +24,10 @@ import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function MarksEntry() {
-  const [courseOptions, setCourseOptions] = useState<{ value: string; label: string }[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
-  const [patternOptions, setPatternOptions] = useState<{ value: string; label: string }[]>([]);
   const [selectedPattern, setSelectedPattern] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("");
-  const [examOptions, setExamOptions] = useState<{ value: string; label: string }[]>([]);
   const [selectedExam, setSelectedExam] = useState("");
-  const [subjectOptions, setSubjectOptions] = useState<{ value: string; label: string }[]>([]);
   const [selectedSubject, setSelectedSubject] = useState("");
   const [studentId, setStudentId] = useState("");
   const [showStudentIdSearch, setShowStudentIdSearch] = useState(false);
@@ -96,61 +99,22 @@ export default function MarksEntry() {
     setPageAlert(null);
   };
 
-  const semesterOptions = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  // Lookup data comes from the shared cached hooks (src/data); useExams reads the academic year from context.
+  const courses = useCourses();
+  const patterns = usePatterns();
+  const semesters = useSemesters();
+  const exams = useExams({ courseId: selectedCourse, purpose: "all" });
+  const subjects = useSubjects({ courseId: selectedCourse, pattern: selectedPattern, semester: selectedSemester });
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  const fetchInitialData = async () => {
-    try {
-      const courses = await CourseService.getCourse();
-      setCourseOptions(courses.map(c => ({ value: c.courseid, label: c.coursename })));
-      const patterns = await PatternService.getpattern();
-      setPatternOptions(patterns.map(p => ({ value: p.patternName, label: p.patternName })));
-    } catch (error) {
-      console.error("Fetch error:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedCourse && selectedSemester && selectedPattern) {
-        fetchExams();
-    }
-  }, [selectedCourse, selectedSemester, selectedPattern]);
-
-  const fetchExams = async () => {
-    try {
-        const ayid = localStorage.getItem("AYID");
-        const exams = await RegularExamService.getAllExams({ Courseid: selectedCourse, Ayid: ayid || "" });
-        setExamOptions(exams.map(e => ({ value: e.examId, label: e.examname })));
-    } catch (error) {
-        console.error("Fetch exams error:", error);
-    }
-  };
-  useEffect(() => {
-    if (selectedCourse && selectedSemester && selectedPattern) {
-        fetchSubjects();
-    }
-  }, [selectedCourse, selectedSemester, selectedPattern]);
-
-  const fetchSubjects = async () => {
-    try {
-        const subjects = await GetSubject.getSubject({ courseId: selectedCourse, pattern: selectedPattern, semester: selectedSemester });
-        setSubjectOptions(subjects.map(s => ({ value: s.subjectId, label: s.subjectName })));
-    } catch (error) {
-        console.error("Fetch subjects error:", error);
-    }
-  };
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
+  const examOptions = useMemo(() => toExamOptions(exams.data), [exams.data]);
+  // Label is the subject name only (as before); toSubjectOptions would prefix the code.
+  const subjectOptions = useMemo(
+    () => (subjects.data ?? []).map((s) => ({ value: s.subjectId, label: s.name })),
+    [subjects.data],
+  );
 
   /** Loads the resolution config for the current exam context. Never blocks marks entry. */
   const fetchResolutionConfig = async () => {

@@ -8,6 +8,7 @@ import Button from "../../../components/ui/button/Button";
 import Alert from "../../../components/ui/alert/Alert";
 import collegedetailService from "../../../services/collegedetailService";
 import { Modal } from "../../../components/ui/modal";
+import { invalidateBootstrap } from "../../../data";
 
 const CollegeDetail = () => {
   const [showLogo, setShowLogo] = useState(true);
@@ -160,6 +161,7 @@ const CollegeDetail = () => {
         setSavedBanner(bannerFile);
         showAlert("info", "Updated", "College updated successfully");
       }
+      invalidateBootstrap(); // college record is part of the shared lookup
       setIsSaved(true);
       setIsEditting(false);
     } catch (err) {

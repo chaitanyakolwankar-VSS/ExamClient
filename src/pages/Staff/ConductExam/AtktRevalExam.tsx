@@ -7,8 +7,16 @@ import Switch from "../../../components/form/switch/Switch";
 import Button from "../../../components/ui/button/Button";
 import DataTable from "../../../components/ui/table/DataTable";
 import Alert from "../../../components/ui/alert/Alert";
-import { CourseService, CourseApiResponse } from "../../../services/Course";
-import { PatternService, PatternApiResponse } from "../../../services/Pattern";
+import {
+  useAcademicYear,
+  useCourses,
+  usePatterns,
+  useSemesters,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+  invalidateExams,
+} from "../../../data";
 import {
   AtktRevalExamService,
   AtktExamOption,
@@ -200,26 +208,22 @@ export default function AtktRevalExam() {
   // 🔹 New / Edit
   const [editMode, setEditMode] = useState(false);
 
+  const { ayid } = useAcademicYear();
+
   // 🔹 Course
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
   const [courseId, setCourseId] = useState("");
+  const courses = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
 
   // 🔹 Pattern
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
   const [pattern, setPattern] = useState("");
+  const patterns = usePatterns();
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
 
-  // 🔹 Semester (hard coded)
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  // 🔹 Semester
   const [semester, setSemester] = useState("");
+  const semesters = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
 
   // 🔹 Source Exam (revaluation only)
   const [sourceExamOptions, setSourceExamOptions] = useState<Option[]>([]);
@@ -252,16 +256,9 @@ export default function AtktRevalExam() {
     }
   }, [alert]);
 
+  // 🔹 Clear the dependent selections when the course is cleared
   useEffect(() => {
-    fetchCourses();
-  }, []);
-
-  // 🔹 Load patterns when course changes
-  useEffect(() => {
-    if (courseId) {
-      fetchPatterns();
-    } else {
-      setPatternOptions([]);
+    if (!courseId) {
       setPattern("");
       setSemester("");
     }
@@ -311,7 +308,6 @@ export default function AtktRevalExam() {
   };
 
   const buildFilter = (): AtktMatrixRequest | null => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) {
       Swal.fire("Error", "Academic Year is missing", "error");
       return null;
@@ -610,39 +606,8 @@ export default function AtktRevalExam() {
 
   // ================= API CALLS =================
 
-  const fetchCourses = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-
-      setCourseOptions(
-        data.map((c) => ({
-          value: c.courseid,
-          label: c.coursename,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch courses", error);
-    }
-  };
-
-  const fetchPatterns = async () => {
-    try {
-      const data: PatternApiResponse[] = await PatternService.getpattern();
-
-      setPatternOptions(
-        data.map((p) => ({
-          value: p.patternName,
-          label: p.patternName,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch patterns", error);
-    }
-  };
-
   const fetchSourceExams = async () => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year is missing", "error");
       }
@@ -668,7 +633,6 @@ export default function AtktRevalExam() {
 
   const fetchTargetExams = async (source: string) => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year is missing", "error");
       }
@@ -760,6 +724,7 @@ export default function AtktRevalExam() {
       const res = await AtktRevalExamService.save({ filter: appliedFilter, students });
 
       if (res.success) {
+        invalidateExams(); // seat-no / hall-ticket exam lists derive from the assignments
         setAlert({ variant: "success", title: editMode ? "Updated" : "Saved", message: res.message });
         await loadMatrix(appliedFilter);
       } else {
@@ -796,6 +761,7 @@ export default function AtktRevalExam() {
       });
 
       if (res.success) {
+        invalidateExams();
         setAlert({ variant: "success", title: "Deleted", message: res.message });
         await loadMatrix(appliedFilter);
       } else {

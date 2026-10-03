@@ -12,13 +12,16 @@ import {
   OverallMarksService,
   ResultData,
 } from "../../../services/OverallMarksService";
-import { CourseService } from "../../../services/Course";
-import { OrdinanceService } from "../../../services/OrdinanceService";
-
-interface Option {
-  value: string;
-  label: string;
-}
+import {
+  useCourses,
+  usePatterns,
+  useSemesters,
+  useExams,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+  toExamOptions,
+} from "../../../data";
 
 type AlertInfo = {
   variant: "success" | "warning" | "error" | "info";
@@ -28,16 +31,12 @@ type AlertInfo = {
 
 export default function OverallMarksEntry() {
   // Filter States
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
 
-  const [semesterOptions, setSemesterOptions] = useState<Option[]>([]);
   const [selectedSemester, setSelectedSemester] = useState("");
 
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
   const [selectedPattern, setSelectedPattern] = useState("");
 
-  const [examOptions, setExamOptions] = useState<Option[]>([]);
   const [selectedExam, setSelectedExam] = useState("");
 
   const [isSingleStudent, setIsSingleStudent] = useState(false);
@@ -51,25 +50,24 @@ export default function OverallMarksEntry() {
   const [searchQuery, setSearchQuery] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
 
-  // Initial Data Load
+  // Lookup data comes from the shared cached hooks (src/data); useExams reads the academic year from context.
+  const courses = useCourses();
+  const patterns = usePatterns();
+  const semesters = useSemesters();
+  const exams = useExams({ courseId: selectedCourse, purpose: "process" });
+
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
+  // Value is the pattern name, which is what the process/results calls take as `pattern`.
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
+  const examOptions = useMemo(() => toExamOptions(exams.data), [exams.data]);
+
+  const initialDataFailed = courses.isError || patterns.isError || semesters.isError;
   useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const [courseData, patternData, semData] = await Promise.all([
-          CourseService.getCourse(),
-          OrdinanceService.getPatterns(),
-          OverallMarksService.getSemesters(),
-        ]);
-        setCourseOptions(courseData.map(c => ({ value: c.courseid, label: c.coursename })));
-        setPatternOptions(patternData.map(p => ({ value: p.patternName, label: p.patternName })));
-        setSemesterOptions(semData.map(s => ({ value: s.value, label: s.label })));
-      } catch (error) {
-        console.error("Error fetching initial data:", error);
-        setPageAlert({ variant: "error", title: "Error", message: "Failed to load initial data." });
-      }
-    };
-    fetchInitialData();
-  }, []);
+    if (initialDataFailed) {
+      setPageAlert({ variant: "error", title: "Error", message: "Failed to load initial data." });
+    }
+  }, [initialDataFailed]);
 
   // Auto-clear alert timer
   useEffect(() => {
@@ -115,24 +113,6 @@ export default function OverallMarksEntry() {
     setSearchQuery("");
     setPageAlert(null);
   };
-
-  // Cascading Filters
-  useEffect(() => {
-    if (selectedCourse && selectedSemester && selectedPattern) {
-      const fetchExams = async () => {
-        try {
-          const ayid = localStorage.getItem("AYID");
-          const examData = await OverallMarksService.getExams(selectedCourse, selectedSemester, selectedPattern, ayid || undefined);
-          setExamOptions(examData.map(e => ({ value: e.examId, label: e.examName })));
-        } catch (error) {
-          console.error("Error fetching exams:", error);
-        }
-      };
-      fetchExams();
-    } else {
-      setExamOptions([]);
-    }
-  }, [selectedCourse, selectedSemester, selectedPattern]);
 
   // Handlers
   const handleInsert = async () => {

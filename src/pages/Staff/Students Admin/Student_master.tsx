@@ -419,6 +419,7 @@ import { useEffect, useState, useMemo } from "react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
 import { StudentMasterService } from "../../../services/Student_MasterService";
+import { useCourses, useSemesters, useAcademicYear, toCourseOptions, toSemesterOptions } from "../../../data";
 import Input from "../../../components/form/input/InputField";
 import Radio from "../../../components/form/input/Radio";
 import Switch from "../../../components/form/switch/Switch";
@@ -447,7 +448,10 @@ interface FetchData {
 export default function StudentMaster() {
   const [loading, setLoading] = useState(false);
   //save card
-  const [courseOptions, setCourseOptions] = useState<SelectOption[]>([]);
+  const { data: courses, isLoading: coursesLoading } = useCourses();
+  const courseOptions = useMemo<SelectOption[]>(() => toCourseOptions(courses), [courses]);
+  const { ayid: currentAyid } = useAcademicYear();
+  const ayid = currentAyid ?? "";
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("");
   const [firstname, setFirstName] = useState("");
@@ -519,27 +523,11 @@ export default function StudentMaster() {
   // toggle switch
   const [mode, setMode] = useState<"new" | "search">("new");
 
-  const semesterOptions: SelectOption[] = [
-    { value: "Semester I", label: "Semester I" },
-    { value: "Semester II", label: "Semester II" },
-    { value: "Semester III", label: "Semester III" },
-    { value: "Semester IV", label: "Semester IV" },
-  ];
-
-  const fetchCourses = async () => {
-    setLoading(true);
-    try {
-      const data = await StudentMasterService.GetData();
-      const formatted = (data ?? []).map((c) => ({
-        value: c.courseId,
-        label: c.name,
-      }));
-
-      setCourseOptions(formatted);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Shared semester list: the value is the "Sem-N" id every other screen and the eligibility filters use.
+  // (This screen used to save the label text "Semester I" into StudentEligibility.SemesterId, which no
+  // exam filter matched; no such rows exist on the demo DB.)
+  const { data: semesters } = useSemesters();
+  const semesterOptions = useMemo<SelectOption[]>(() => toSemesterOptions(semesters), [semesters]);
 
   //fiter
   const filters = useMemo(() => ({}), []);
@@ -568,7 +556,6 @@ export default function StudentMaster() {
       });
       return;
     }
-    const ayid = localStorage.getItem("AYID") ?? "";
     const payload = {
       courseId: selectedCourse,
       semesterId: selectedSemester,
@@ -607,10 +594,6 @@ export default function StudentMaster() {
     }
 
   };
-
-  useEffect(() => {
-    fetchCourses();
-  }, []);
 
   //searchbycourse
   const [dataList, setDataList] = useState<FetchData[]>([]);
@@ -687,7 +670,7 @@ export default function StudentMaster() {
       // ✅ CASE 1: Branch selected → use existing API
       if (searchCourse) {
 
-        data = await StudentMasterService.GetByCourse(searchCourse);
+        data = await StudentMasterService.GetByCourse(searchCourse, ayid);
 
       }
       // ✅ CASE 2: Search using fields
@@ -700,7 +683,7 @@ export default function StudentMaster() {
           lastName: Lname,
           studentPRN: searchPrn,
 
-        });
+        }, ayid);
 
       }
 
@@ -936,7 +919,7 @@ export default function StudentMaster() {
               placeholder="Select Branch"
               value={searchCourse}
               onChange={setSearchCourse}
-              disabled={loading}
+              disabled={loading || coursesLoading}
             />
 
             <Input

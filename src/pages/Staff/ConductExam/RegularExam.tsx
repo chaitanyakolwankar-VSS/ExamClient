@@ -2,11 +2,20 @@ import { useState, useEffect, useMemo } from "react";
 import PageMeta from "../../../components/common/PageMeta";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
-import { CourseService, CourseApiResponse } from "../../../services/Course";
-import { PatternService, PatternApiResponse } from "../../../services/Pattern";
-import { GetSubject, SubjectApiResponse } from "../../../services/GetSubject";
-import { GetCredits } from "../../../services/SubjectService";
-import { ExamApiRequest, ExamApiResponse, RegularExamService, RegularStudents, GetStudents, RegularCredits } from "../../../services/RegularExamService";
+import { RegularExamService, RegularStudents, GetStudents, RegularCredits } from "../../../services/RegularExamService";
+import {
+  useAcademicYear,
+  useCourses,
+  usePatterns,
+  useSemesters,
+  useExams,
+  useSubjects,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+  toExamOptions,
+  invalidateExams,
+} from "../../../data";
 import Swal from "sweetalert2";
 import { Plus, Trash2, Edit, X, Pencil, Save, RefreshCcw, CheckCircle, Eye, Copy, Delete } from "lucide-react";
 import DataTable from "../../../components/ui/table/DataTable";
@@ -40,34 +49,35 @@ interface AlertState {
 
 export default function RegularExam() {
 
+  const { ayid } = useAcademicYear();
+
   // 🔹 Course
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
   const [courseId, setCourseId] = useState("");
+  const courses = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
 
   // 🔹 Pattern
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
   const [pattern, setPattern] = useState("");
+  const patterns = usePatterns();
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
 
-  // 🔹 Exam
-  const [ExamOptions, setExamOptions] = useState<Option[]>([]);
-  const [Exam, setExam] = useState("");
-
-  // 🔹 Semester (hard coded)
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  // 🔹 Semester
   const [semester, setSemester] = useState("");
+  const semesters = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
+
+  // 🔹 Exam (regular exams of the course; the list ignores semester, as the old endpoint did)
+  const [Exam, setExam] = useState("");
+  const exams = useExams({ courseId, purpose: "regular" });
+  const ExamOptions = useMemo(() => toExamOptions(exams.data), [exams.data]);
 
   // 🔹 Subject
-  const [subjectOptions, setSubjectOptions] = useState<Option[]>([]);
   const [subject, setSubject] = useState("");
+  const subjects = useSubjects({ courseId, pattern, semester });
+  const subjectOptions: Option[] = useMemo(
+    () => (subjects.data ?? []).map((s) => ({ value: s.subjectId, label: s.name })),
+    [subjects.data]
+  );
 
   //     Regular Students
   const [unassignedStudents, setUnassignedStudents] = useState<RegularStudents[]>([]);
@@ -146,20 +156,13 @@ export default function RegularExam() {
     }
   }, [alert]);
 
+  // 🔹 Clear the dependent selections when the course is cleared
   useEffect(() => {
-    fetchCourses();
-  }, []);
-  // 🔹 Load patterns when course changes
-  useEffect(() => {
-    if (courseId) {
-      fetchPatterns(courseId);
-    } else {
-      setPatternOptions([]);
+    if (!courseId) {
       setPattern("");
       setSemester("");
       setExam("");
       setSubject("");
-      setSubjectOptions([]);
       reset();
     }
   }, [courseId]);
@@ -167,15 +170,10 @@ export default function RegularExam() {
   useEffect(() => {
     if (semester) {
       setExam("");
-      fetchexam();
     } 
     reset();
   }, [semester]);
   useEffect(() => {
-    if (Exam) {
-      fetchSubjects(courseId, pattern, semester);
-    }
-
     Assignallsubjects(false);
 
   }, [Exam]);
@@ -210,80 +208,8 @@ export default function RegularExam() {
   }
   // ================= API CALLS =================
 
-  const fetchCourses = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-
-      setCourseOptions(
-        data.map((c) => ({
-          value: c.courseid,
-          label: c.coursename,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch courses", error);
-    }
-  };
-  const fetchexam = async () => {
-    try {
-      const ayid = localStorage.getItem("AYID");
-      if (!ayid) {
-        return Swal.fire("Error", "Academic Year is missing", "error");
-      }
-
-
-      const parameter: ExamApiRequest = {
-        Courseid: courseId,
-        Ayid: ayid
-      }
-      const data: ExamApiResponse[] = await RegularExamService.getExam(parameter);
-      console.log("EXAM API RAW RESPONSE 👉", data);
-      const mappedData = data.map((e) => ({
-        value: e.examId,
-        label: e.examname
-      }));
-
-      setExamOptions(mappedData); // ✅ update state
-    } catch (error) {
-      console.error("Failed to fetch exam", error);
-    }
-  };
-
-  const fetchPatterns = async (courseId: string) => {
-    try {
-      const data: PatternApiResponse[] = await PatternService.getpattern();
-
-      setPatternOptions(
-        data.map((p) => ({
-          value: p.patternName,
-          label: p.patternName,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch patterns", error);
-    }
-  };
-  const fetchSubjects = async (
-    courseId: string,
-    pattern: string,
-    semester: string
-  ) => {
-    try {
-      const data: SubjectApiResponse[] = await GetSubject.getSubject({ courseId, pattern, semester });
-
-      setSubjectOptions(
-        data.map((s) => ({
-          value: s.subjectId,
-          label: s.subjectName,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch subjects", error);
-    }
-  };
   const CheckCredits = async (isAll: boolean = Isallsubjects) => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year is missing", "error");
       }
@@ -355,7 +281,6 @@ export default function RegularExam() {
 
   const handleSave = async () => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year missing", "error");
       }
@@ -400,6 +325,7 @@ export default function RegularExam() {
           examId: Exam,
         }
         const students = await RegularExamService.getRegularStudents(parameter);
+        invalidateExams(); // seat-no / ATKT exam lists derive from MarksMaster rows
         setUnassignedStudents(students.unassignedStudents);
         setAssignedStudents(students.assignedStudents)
                setSelectAll(false);
@@ -436,7 +362,6 @@ export default function RegularExam() {
       if (!result.isConfirmed) return;
 
 
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year missing", "error");
       }
@@ -481,6 +406,7 @@ export default function RegularExam() {
           examId: Exam
         }
         const students = await RegularExamService.getRegularStudents(parameter);
+        invalidateExams(); // seat-no / ATKT exam lists derive from MarksMaster rows
         setUnassignedStudents(students.unassignedStudents);
         setAssignedStudents(students.assignedStudents);
         setIsEditMode(false);
