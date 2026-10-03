@@ -9,7 +9,7 @@
  * under the wrong module still works. Add Permission offers the exact labels so owners need not guess.
  *
  * Screens that are NOT built yet (so not listed here and not in the menu) - add them back when they exist:
- *   Academic Master: Fees Master, Active Exam, Student Promotion
+ *   Academic Master: Fees Master, Active Exam
  *   Students Admin : Declare Result, Release Hallticket, Student Password Reset
  *   Reports        : Student Assign Report, Fees Report
  */
@@ -47,6 +47,7 @@ export const SCREENS: Screen[] = [
   { key: "createUser", label: "Create User", module: "Admin", path: "/Staff/CreateUser", adminOnly: true },
   { key: "roleMaster", label: "Role Master", module: "Admin", path: "/Staff/Role_master", adminOnly: true },
 
+  { key: "studentPromotion", label: "Student Promotion", module: "Academic Master", path: "/Staff/StudentPromotion", aliases: ["Promotion", "Students Promotion"] },
   { key: "ordinance", label: "Ordinances", module: "Academic Master", path: "/Staff/Ordinance", aliases: ["Ordineances", "Ordinance"] },
   { key: "subjectMaster", label: "Subject Master", module: "Academic Master", path: "/Staff/SubjectMaster", aliases: ["Subject Masters", "Subjects"] },
   { key: "examMaster", label: "Exam Master", module: "Academic Master", path: "/Staff/ExamMaster", aliases: ["Exam Masters"] },
