@@ -80,6 +80,7 @@ export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({ 
     [years, selected],
   );
 
+  // Mirror kept for team branches' un-migrated screens; remove after they move to useAcademicYear() (T-19 D).
   // Mirror to localStorage during render (idempotent) rather than in an effect: child screens' effects run
   // before a parent effect would, and un-migrated screens read localStorage "AYID" from theirs.
   if (resolved && localStorage.getItem("AYID") !== resolved.ayid) {

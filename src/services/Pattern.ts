@@ -5,6 +5,7 @@ export interface PatternApiResponse{
     patternName:string;
 }
 
+/** @deprecated Use usePatterns() from src/data. Kept with its API endpoint for team branches (T-19 D). */
 export const PatternService={
 async getpattern():Promise<PatternApiResponse[]>{
     const response=await apiClient.get<PatternApiResponse[]>("/PatternService");

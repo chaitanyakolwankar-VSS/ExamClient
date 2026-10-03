@@ -49,6 +49,7 @@ studentId:string;
 
 
 export const RegularExamService = {
+    /** @deprecated Use useExams({ purpose: "regular" or "hallTicket" }) from src/data. Kept with its API endpoint for team branches (T-19 D). */
     async getExam(params: ExamApiRequest): Promise<ExamApiResponse[]> {
         const response = await apiClient.get<ExamApiResponse[]>(
             "/RegularExam/get-exam", { params }
@@ -58,6 +59,7 @@ export const RegularExamService = {
     /** Active exams of every type (Regular + ATKT + Revaluation). Use on the post-assignment
      *  screens (Marks Entry, Gazette, Hall Ticket, Marksheet, Assign Seat No) so an ATKT/Reval
      *  exam is selectable. The Regular conduct screen keeps using getExam. */
+    /** @deprecated Use useExams({ purpose: "all" }) from src/data. Kept with its API endpoint for team branches (T-19 D). */
     async getAllExams(params: ExamApiRequest): Promise<ExamApiResponse[]> {
         const response = await apiClient.get<ExamApiResponse[]>(
             "/RegularExam/get-all-exams", { params }

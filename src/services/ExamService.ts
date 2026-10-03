@@ -14,21 +14,9 @@ export interface Exams {
   examType: string;
   isActive: boolean | null;
 }
-export interface RevolutionExamApiResponse {
-  examId: string;
-  examname: string;
-}
-
 export interface GetExams {
   Courseid: string;
   Ayid: string;
-}
-
-export interface GetResolutionExams {
-  Courseid: string;
-  Ayid: string;
-  Semester: string;
-  Pattern: string;
 }
 
 export interface UpdateExams {
@@ -101,15 +89,6 @@ export const ExamService = {
     });
     return response.data;
   },
-  async SearchResolutionExam(
-    params: GetResolutionExams,
-  ): Promise<RevolutionExamApiResponse[]> {
-    const response = await apiClient.get<RevolutionExamApiResponse[]>(
-      "/ExamMaster/get-resolutionexam",
-      { params },
-    );
-    return response.data;
-  },
   async GetCreditHeadResolution(
     params: GetCreditHeadResolutionreq,
   ): Promise<GetCreditHeadResolutionres[]> {
@@ -119,6 +98,7 @@ export const ExamService = {
     );
     return response.data;
   },
+  /** @deprecated Use useExams({ purpose: "master" }) from src/data. Kept with its API endpoint for team branches (T-19 D). */
   async GetExam(params: GetExams): Promise<Exams[]> {
     const response = await apiClient.get<Exams[]>("/ExamMaster/get-exam", {
       params,
