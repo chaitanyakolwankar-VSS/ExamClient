@@ -132,9 +132,10 @@ export const ReportService = {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (error: any) {
-      if (error.response?.data instanceof Blob) {
-        const text = await error.response.data.text();
+    } catch (error) {
+      const data = (error as { response?: { data?: unknown } }).response?.data;
+      if (data instanceof Blob) {
+        const text = await data.text();
         console.log("Server Error:", text);
       }
 

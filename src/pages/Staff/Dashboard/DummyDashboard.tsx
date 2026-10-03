@@ -1185,7 +1185,6 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
-  Legend,
   PieChart,
   Pie,
   Cell,
@@ -1196,18 +1195,11 @@ import {
   Award,
   Calendar,
   AlertCircle,
-  Download,
-  Filter,
   Search,
 } from "lucide-react";
 import {
   CheckCircle,
   Clock,
-  XCircle,
-  UserCheck,
-  Ticket,
-  FileText,
-  FileCheck,
 } from "lucide-react";
 
 // ============================================================

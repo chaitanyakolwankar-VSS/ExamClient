@@ -139,7 +139,7 @@
 //     </>
 //   );
 // }
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -148,7 +148,6 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
-  Legend,
   PieChart,
   Pie,
   Cell,
@@ -415,8 +414,6 @@ export default function ExamDashboard() {
     label: `${d.passed}/${d.appeared}`,
   }));
 
-  const totalPassed = pieData.reduce((t, i) => t + i.value, 0);
-  const totalAppeared = pieData.reduce((t, i) => t + i.total, 0);
 
   const statsCards = [
     {
