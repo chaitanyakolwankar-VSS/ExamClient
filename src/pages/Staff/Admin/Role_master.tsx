@@ -95,7 +95,10 @@ export default function RoleMaster() {
 
 
   const handleSave = async () => {
-    if (selectedPermissions.length === 0) {
+    // The Admin role sees every screen and needs no ticked forms; any other role without forms would
+    // only ever see the Dashboard, so ask for at least one.
+    const isAdminRole = role.trim().toLowerCase() === "admin";
+    if (selectedPermissions.length === 0 && !isAdminRole) {
       setAlert({
         variant: "warning",
         title: "Permission Required",
@@ -137,7 +140,9 @@ export default function RoleMaster() {
       }
 
       handleRefresh();
-    } catch (err) { 
+    } catch (err) {
+      // e.g. 400 "Only the platform administrator can create, rename or delete the Admin role"
+      Swal.fire("Error!", (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to save role.", "error");
     }
   };
   const handleDelete = async (roleId: string) => { 

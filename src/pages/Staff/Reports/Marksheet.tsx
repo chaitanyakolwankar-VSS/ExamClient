@@ -62,7 +62,7 @@ export default function Marksheet() {
           setExamOptions([]);
           return;
         }
-        const exams = await RegularExamService.getExam({ Courseid: selectedCourse, Ayid: ayid });
+        const exams = await RegularExamService.getAllExams({ Courseid: selectedCourse, Ayid: ayid });
         setExamOptions(exams.map((e: any) => ({ value: e.examId, label: e.examname })));
     } catch (error) {
         console.error("Fetch exams error:", error);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 
 import {
@@ -14,6 +14,9 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useSidebar } from "../../context/SidebarContext";
+import { useAuth } from "../../context/AuthContext";
+import { DASHBOARD_PATH, MODULE_ORDER, SCREENS } from "../../config/screens";
+import type { ScreenModule } from "../../config/screens";
 
 type NavItem = {
   name: string;
@@ -28,211 +31,23 @@ type NavItem = {
   }[];
 };
 
-const navItems: NavItem[] = [
-  {
-    icon: <LayoutGrid />,
-    name: "Dashboard",
-    path: "/",
-  },
-  {
-    icon: <UserStar />,
-    name: "Admin",
-    subItems: [
-      {
-        icon: <SubMenuIcon />,
-        name: "Add Permission",
-        path: "/Staff/AddPermission",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "College Details",
-        path: "/Staff/CollegeDetail",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Create User",
-        path: "/Staff/CreateUser",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Role Master",
-        path: "/Staff/Role_master",
-        pro: false,
-      },
-    ],
-  },
-  {
-    icon: <GraduationCap />,
-    name: "Academic Master",
-    subItems: [
-      {
-        icon: <SubMenuIcon />,
-        name: "Ordineances",
-        path: "/Staff/Ordinance",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Subject Master",
-        path: "/Staff/SubjectMaster",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Exam Master",
-        path: "/Staff/ExamMaster",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Fees Master",
-        path: "/blank",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Active Exam",
-        path: "/blank",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Student Promotion",
-        path: "/blank",
-        pro: false,
-      },
-    ],
-  },
-  {
-    name: "Studetns Admin",
-    icon: <UserRoundPen />,
-    subItems: [
-      {
-        icon: <SubMenuIcon />,
-        name: "Declare Result",
-        path: "/blank",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Release Hallticket",
-        path: "/blank",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Student Master",
-        path: "/Staff/Student_Master",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Student Password Reset",
-        path: "/blank",
-        pro: false,
-      },
-    ],
-  },
-  {
-    name: "Conduct Exam",
-    icon: <BookOpenCheck />,
-    subItems: [
-      {
-        icon: <SubMenuIcon />,
-        name: "Regular Exam",
-        path: "/Staff/RegularExam",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "ATKT/Reval Exam",
-        path: "/blank",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Assign Seat No",
-        path: "/Staff/AssignSeatNo",
-        pro: false,
-      },
-    ],
-  },
-  {
-    name: "Marks Entry",
-    icon: <NotebookPen />,
-    subItems: [
-      {
-        icon: <SubMenuIcon />,
-        name: "Enter Marks", 
-        path: "/Staff/MarksEntry",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Apply Grace Marks",
-        path: "/Staff/OverallMarksEntry",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Enter Eligibility",
-        path: "/Staff/EnterEligibility",
-        pro: false,
-      },
-    ],
-  },
-  {
-    name: "Reports",
-    icon: <FileUser />,
-    subItems: [
-      {
-        icon: <SubMenuIcon />,
-        name: "Generate Hallticket",
-        path: "/Staff/GenerateHallTicket",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Generate Gazette",
-        path: "/Staff/Gazette",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Generate Result",
-        path: "/Staff/Marksheet",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Statistic Report",
-        path: "/blank",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "ATKT Cummulative Report",
-        path: "/blank",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Student Assign Report",
-        path: "/blank",
-        pro: false,
-      },
-      {
-        icon: <SubMenuIcon />,
-        name: "Fees Report",
-        path: "/blank",
-        pro: false,
-      },
-    ],
-  },
-];
+// The menu is built from config/screens.ts (the only list of screens): a group per module, an item per
+// built screen. Screens that are not built yet are simply not listed there (see the comment in that file),
+// and a group with no visible item is not rendered.
+const GROUP_ICONS: Record<ScreenModule, React.ReactNode> = {
+  Admin: <UserStar />,
+  "Academic Master": <GraduationCap />,
+  "Students Admin": <UserRoundPen />,
+  "Conduct Exam": <BookOpenCheck />,
+  "Marks Entry": <NotebookPen />,
+  Reports: <FileUser />,
+};
+
+const dashboardItem: NavItem = {
+  icon: <LayoutGrid />,
+  name: "Dashboard",
+  path: DASHBOARD_PATH,
+};
 
 const othersItems: NavItem[] = [
   // {
@@ -268,6 +83,25 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
+  const { canAccess } = useAuth();
+
+  // Dashboard is always shown. Every other item is shown only if the user may open that screen:
+  // admin / platform admin see everything (incl. the Admin group); anyone else sees the screens ticked
+  // for their role or user. A non-admin whose role has NO permissions configured sees only the Dashboard
+  // (also while the list is loading). A group with no visible item is not rendered.
+  const mainItems = useMemo(() => {
+    const groups: NavItem[] = [];
+    for (const module of MODULE_ORDER) {
+      const subItems = SCREENS.filter((s) => s.module === module && canAccess(s)).map((s) => ({
+        icon: <SubMenuIcon />,
+        name: s.label,
+        path: s.path,
+        pro: false,
+      }));
+      if (subItems.length > 0) groups.push({ name: module, icon: GROUP_ICONS[module], subItems });
+    }
+    return [dashboardItem, ...groups];
+  }, [canAccess]);
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -286,7 +120,7 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+      const items = menuType === "main" ? mainItems : othersItems;
       items.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
@@ -305,7 +139,7 @@ const AppSidebar: React.FC = () => {
     if (!submenuMatched) {
       setOpenSubmenu(null);
     }
-  }, [location, isActive]);
+  }, [location, isActive, mainItems]);
 
   useEffect(() => {
     if (openSubmenu !== null) {
@@ -521,7 +355,7 @@ const AppSidebar: React.FC = () => {
                   <Ellipsis className="size-6" />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(mainItems, "main")}
             </div>
             {/* <div className="">
               <h2

@@ -46,6 +46,7 @@ interface Subject {
 interface College {
   logo: string;
   center: string;
+  collegeName?: string;
   CourseNmae: string;
 }
 
@@ -428,7 +429,8 @@ export default function GenerateHallTicket() {
       college: {
         logo: collegedata.logo,
         center: collegedata.center,
-        CourseNmae: "MECHANICAL ENGINEERING (" + pattern + ")"
+        collegeName: collegedata.collegeName,
+        CourseNmae: `${(courseOptions.find((c) => c.value === courseId)?.label ?? "").toUpperCase()} (${pattern})`
       },
       students: data 
     };

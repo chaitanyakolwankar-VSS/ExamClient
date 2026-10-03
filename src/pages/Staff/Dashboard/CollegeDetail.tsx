@@ -3,6 +3,7 @@ import Input from "../../../components/form/input/InputField";
 import { Pencil, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import Dropzone from "../../../components/form/input/DropZone";
+import AuthImage from "../../../components/common/AuthImage";
 import Button from "../../../components/ui/button/Button";
 import Alert from "../../../components/ui/alert/Alert";
 import collegedetailService from "../../../services/collegedetailService";
@@ -310,7 +311,7 @@ const CollegeDetail = () => {
 
           {showLogo ? (
             logoPreview ? (
-              <img
+              <AuthImage
                 src={logoPreview}
                 alt="Logo Preview"
                 className="w-full h-47 object-contain rounded-md cursor-pointer"
@@ -326,7 +327,7 @@ const CollegeDetail = () => {
               />
             )
           ) : bannerPreview ? (
-            <img
+            <AuthImage
               src={bannerPreview}
               alt="Banner Preview"
               className="w-full h-47 object-contain rounded-md cursor-pointer"
@@ -391,7 +392,7 @@ const CollegeDetail = () => {
             <div className="flex-1 space-y-2">
               <p className="font-medium">Logo</p>
               {tempLogoPreview ? (
-                <img
+                <AuthImage
                   src={tempLogoPreview}
                   className="w-full h-47 object-contain border rounded-md cursor-pointer"
                   onClick={() => {
@@ -410,7 +411,7 @@ const CollegeDetail = () => {
             <div className="flex-1 space-y-2">
               <p className="font-medium">Banner</p>
               {tempBannerPreview ? (
-                <img
+                <AuthImage
                   src={tempBannerPreview}
                   className="w-full h-47 object-contain border rounded-md cursor-pointer"
                   onClick={() => {

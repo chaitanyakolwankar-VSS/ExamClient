@@ -10,8 +10,9 @@ import { CourseService } from "../../../services/Course";
 import { PatternService } from "../../../services/Pattern";
 import { GetSubject } from "../../../services/GetSubject";
 import { RegularExamService } from "../../../services/RegularExamService";
-import { MarksEntryService, MarksEntryData, StudentHeadMarks } from "../../../services/MarksEntryService";
-import { Loader2, Save, Search, Download, Upload, RefreshCcw, X } from "lucide-react";
+import { MarksEntryService, MarksEntryData, StudentHeadMarks, ResolutionConfig } from "../../../services/MarksEntryService";
+import ResolutionConfigModal from "./ResolutionConfigModal";
+import { Loader2, Save, Search, Download, Upload, RefreshCcw } from "lucide-react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -36,9 +37,9 @@ export default function MarksEntry() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const originalMarksMapRef = useRef<Record<string, string>>({});
   const originalRankRef = useRef<string>("0");
-  /** Condonation limit per head, keyed by subjectCreditId. */
-  const [resolutions, setResolutions] = useState<Record<string, string>>({});
-  const originalResolutionsRef = useRef<Record<string, string>>({});
+  /** Resolution (^) config for the selected exam, from ResolutionMaster (null until loaded). */
+  const [resolutionConfig, setResolutionConfig] = useState<ResolutionConfig | null>(null);
+  const [showResolutionModal, setShowResolutionModal] = useState(false);
 
   useEffect(() => {
     if (pageAlert) {
@@ -76,6 +77,7 @@ export default function MarksEntry() {
     setSelectedExam(val);
     setSelectedSubject("");
     setMarksData([]);
+    setResolutionConfig(null);
   };
 
   const handleSubjectChange = (val: string) => {
@@ -90,6 +92,7 @@ export default function MarksEntry() {
     setSelectedExam("");
     setSelectedSubject("");
     setMarksData([]);
+    setResolutionConfig(null);
     setPageAlert(null);
   };
 
@@ -128,7 +131,7 @@ export default function MarksEntry() {
   const fetchExams = async () => {
     try {
         const ayid = localStorage.getItem("AYID");
-        const exams = await RegularExamService.getExam({ Courseid: selectedCourse, Ayid: ayid || "" });
+        const exams = await RegularExamService.getAllExams({ Courseid: selectedCourse, Ayid: ayid || "" });
         setExamOptions(exams.map(e => ({ value: e.examId, label: e.examname })));
     } catch (error) {
         console.error("Fetch exams error:", error);
@@ -146,6 +149,21 @@ export default function MarksEntry() {
         setSubjectOptions(subjects.map(s => ({ value: s.subjectId, label: s.subjectName })));
     } catch (error) {
         console.error("Fetch subjects error:", error);
+    }
+  };
+
+  /** Loads the resolution config for the current exam context. Never blocks marks entry. */
+  const fetchResolutionConfig = async () => {
+    try {
+      const res = await MarksEntryService.getResolutionConfig({
+        branchId: selectedCourse,
+        semId: selectedSemester,
+        pattern: selectedPattern,
+        examId: selectedExam,
+      });
+      setResolutionConfig(res.success && res.data ? res.data : null);
+    } catch {
+      setResolutionConfig(null);
     }
   };
 
@@ -186,14 +204,8 @@ export default function MarksEntry() {
           originalRankRef.current = "0";
         }
 
-        // Resolution is configured per head and shared by every student in the subject.
-        const fetchedResolutions: Record<string, string> = {};
-        normalizedData[0]?.heads.forEach(head => {
-          fetchedResolutions[head.subjectCreditId] = head.resolution ? head.resolution.toString() : "";
-        });
-        setResolutions(fetchedResolutions);
-        originalResolutionsRef.current = fetchedResolutions;
-
+        // Resolution is configured per exam (ResolutionMaster), not per marks screen load.
+        void fetchResolutionConfig();
 
         // Build a high-speed O(1) lookup map of original marks
         const marksMap: Record<string, string> = {};
@@ -321,18 +333,7 @@ export default function MarksEntry() {
 
     const hasRankChanged = rank !== originalRankRef.current;
 
-    // Send every configured limit, not just the edited ones: the backend re-applies resolution
-    // to the whole subject on save, so it needs the full picture.
-    const resolutionUpdates = Object.entries(resolutions).map(([subjectCreditId, value]) => ({
-      subjectCreditId,
-      resolution: value === "" ? null : Number(value),
-    }));
-
-    const hasResolutionChanged = resolutionUpdates.some(
-      r => (originalResolutionsRef.current[r.subjectCreditId] ?? "") !== (r.resolution?.toString() ?? "")
-    );
-
-    if (updates.length === 0 && !hasRankChanged && !hasResolutionChanged) {
+    if (updates.length === 0 && !hasRankChanged) {
       Swal.fire("Info", "No changes detected to save.", "info");
       return;
     }
@@ -344,10 +345,9 @@ export default function MarksEntry() {
             rank: parsedRank,
             examId: selectedExam,
             subjectId: selectedSubject,
-            resolutions: resolutionUpdates,
         });
         if (res.success) {
-            Swal.fire("Saved!", "Marks updated successfully.", "success");
+            Swal.fire("Saved!", res.message || "Marks updated successfully.", "success");
             handleFetchData();
         } else {
             Swal.fire("Error", res.message, "error");
@@ -564,7 +564,24 @@ export default function MarksEntry() {
                 render: (row: MarksEntryData) => {
                     const head = row.heads.find(x => x.headName === h.headName);
                     if (!head) return "-";
-                    
+
+                    // Carried forward from the source attempt (ATKT/Revaluation): the student is
+                    // not appearing for this head, the mark is fixed. Render a locked, light-blue
+                    // cell rather than a disabled input so the fill reads clearly (a disabled
+                    // input greys out) and the value can never be edited.
+                    if (head.isCarryForward === true) {
+                        return (
+                          <div className="w-full min-w-[70px]">
+                            <div
+                              title="Carried forward from the source attempt — the student is not appearing for this head, so its mark is fixed."
+                              className="text-center font-medium px-2 h-11 flex items-center justify-center rounded-lg border border-sky-300 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-900/40 cursor-not-allowed select-none"
+                            >
+                              {head.marks ?? "—"}
+                            </div>
+                          </div>
+                        );
+                    }
+
                     const isAb = (head.marks ?? "").toString().toLowerCase() === 'ab';
 
                     // A combined subject is judged on the sum of its heads, so flagging a head
@@ -618,6 +635,24 @@ export default function MarksEntry() {
 
     return base;
   }, [marksData]);
+
+  /** Resolution config of the subject currently open on this screen. */
+  const selectedResolutionSubject = useMemo(
+    () => resolutionConfig?.subjects.find(s => s.subjectId === selectedSubject) ?? null,
+    [resolutionConfig, selectedSubject]
+  );
+
+  const resolutionSummary = useMemo(() => {
+    const subject = selectedResolutionSubject;
+    if (!subject) return "";
+    const withLimit = subject.heads.filter(h => h.limit > 0);
+    if (withLimit.length === 0) return "no limit set";
+    if (subject.passingStrategy === "Combined") {
+      const carrier = withLimit[0];
+      return `limit ${carrier.limit} on head ${carrier.headType || carrier.head} (combined marks)`;
+    }
+    return withLimit.map(h => `${h.headType || h.head} ≤ ${h.limit}`).join(", ");
+  }, [selectedResolutionSubject]);
 
   return (
     <div className="space-y-6">
@@ -799,37 +834,35 @@ export default function MarksEntry() {
               </div>
            </div>
 
-            {/* Resolution: the staff's condonation limit per head, set while viewing the marks
-                (this used to live in Exam Master). Applied on Save, marked with '^'. */}
-            {marksData.length > 0 && (
-              <div className="flex flex-wrap items-center gap-3 mb-4 border-t border-gray-100 dark:border-gray-800 pt-3">
-                <span className="text-gray-400 dark:text-gray-500 uppercase tracking-wider text-[10px]">
-                  Resolution:
-                </span>
-                {marksData[0].heads.map(h => (
-                  <div key={h.subjectCreditId} className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{h.headName}</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={resolutions[h.subjectCreditId] ?? ""}
-                      placeholder="0"
-                      maxLength={2}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, "").slice(0, 2);
-                        setResolutions(prev => ({ ...prev, [h.subjectCreditId]: value }));
-                      }}
-                      className="h-9 w-16 rounded border border-gray-300 px-2 text-center text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                    />
-                  </div>
-                ))}
-                <span className="text-[11px] text-gray-400 dark:text-gray-500">
-                  {marksData[0].passingStrategy === "Combined"
-                    ? "Closes the subject deficit using the head(s) you set a limit on."
-                    : "Lifts a head to its own passing marks when it falls short by no more than the limit."}
-                </span>
-              </div>
-            )}
+            {/* Resolution (^): a summary only. The limits live in ResolutionMaster, are edited in the
+                dialog, and are applied when results are processed. */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-4 border-t border-gray-100 dark:border-gray-800 pt-3 text-sm">
+              <span className="text-gray-400 dark:text-gray-500 uppercase tracking-wider text-[10px]">
+                Resolution:
+              </span>
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                {selectedResolutionSubject ? `${selectedResolutionSubject.appliedCount} applied` : "—"}
+              </span>
+              {resolutionSummary && (
+                <>
+                  <span className="text-gray-300 dark:text-gray-600">·</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{resolutionSummary}</span>
+                </>
+              )}
+              <span className="text-gray-300 dark:text-gray-600">·</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowResolutionModal(true)}
+                disabled={loading || !resolutionConfig}
+                className="h-11 px-4 py-0"
+              >
+                Change
+              </Button>
+              <span className="text-[11px] text-gray-400 dark:text-gray-500">
+                Applied on Process Results; the count reflects the last run.
+              </span>
+            </div>
 
             {/* Color Legend */}
             <div className="flex flex-wrap items-center gap-4 mb-4 text-xs font-medium text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800 pt-3">
@@ -858,6 +891,10 @@ export default function MarksEntry() {
                 <span className="size-1.5 rounded-full bg-purple-500"></span>
                 <span>Quota (#)</span>
               </div>
+              <div className="flex items-center gap-1.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 px-2.5 py-1 rounded-full border border-sky-300 dark:border-sky-900/40">
+                <span className="size-1.5 rounded-full bg-sky-500"></span>
+                <span>Carried forward (locked)</span>
+              </div>
             </div>
             
             {/* Data Table */}
@@ -872,6 +909,18 @@ export default function MarksEntry() {
            </div>
         </div>
       )}
+
+      <ResolutionConfigModal
+        isOpen={showResolutionModal}
+        onClose={() => setShowResolutionModal(false)}
+        examId={selectedExam}
+        config={resolutionConfig}
+        selectedSubjectId={selectedSubject}
+        onSaved={(message) => {
+          setPageAlert({ variant: "success", title: "Resolution", message });
+          void fetchResolutionConfig();
+        }}
+      />
     </div>
   );
 }

@@ -47,11 +47,15 @@ export interface StudentHallTicketData {
     centre: string;
     seat:string;
     studentid:string;
+    /** Stored path of the student photo; shown via the authenticated /Files endpoint. */
+    photo?: string | null;
     subjects:StudentsHallTicketSubjects[];
 }
 export interface HallTicketCollege{
     logo:string;
     center:string;
+    /** College name for the header when there is no logo. */
+    collegeName?:string;
 }
  
 export const GenerateHallTicketService = {

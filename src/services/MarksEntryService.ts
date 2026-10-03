@@ -20,7 +20,7 @@ export type PassingStrategy = "HeadWise" | "Combined";
 export interface StudentHeadMarks {
     studentMarksId: string;
     creditId: string;
-    /** The configured head row; resolution limits are keyed on this. */
+    /** The configured head row (the key resolution limits are stored against). */
     subjectCreditId: string;
     headName: string;
     marks: string;
@@ -30,9 +30,9 @@ export interface StudentHeadMarks {
     isAbsent: boolean;
     /** Derived server-side: whether this head clears its own passing marks. */
     isPassed: boolean;
-    /** Condonation limit configured for this head on this exam. */
-    resolution?: number | null;
     isEnabled: boolean;
+    /** True when carried forward from the source attempt (ATKT/Revaluation): locked, mark fixed. */
+    isCarryForward?: boolean;
 }
 
 export interface MarksEntryData {
@@ -53,14 +53,65 @@ export interface SaveMarksRequest {
         marks: string;
     }[];
     rank: number;
-    /** Scopes the resolution pass, which spans a subject's heads even when no mark changed. */
+    /** Used by the server for the locked-exam check. */
     examId: string;
     subjectId: string;
-    /** Resolution limits per head; the backend upserts these into ResolutionMaster. */
-    resolutions: {
-        subjectCreditId: string;
-        resolution: number | null;
-    }[];
+}
+
+/** One configured head of a subject, as shown in the resolution dialog. */
+export interface ResolutionConfigHead {
+    subjectCreditId: string;
+    /** Positional key, "H1"/"H2". */
+    head: string;
+    /** Display label, e.g. "ESE". */
+    headType: string;
+    outOf: number;
+    passing: number;
+    /** Saved limit; 0 = off. */
+    limit: number;
+    /** Head-wise only: the shortfall of each student failing this head on raw marks (ascending). */
+    deficits: number[];
+}
+
+export interface ResolutionConfigSubject {
+    subjectId: string;
+    subjectCode: string;
+    subjectName: string;
+    passingStrategy: PassingStrategy;
+    passPercentage?: number | null;
+    outOfTotal: number;
+    requiredToPass: number;
+    heads: ResolutionConfigHead[];
+    /** Combined only: the head currently carrying the limit. */
+    selectedHeadSubjectCreditId?: string | null;
+    studentCount: number;
+    /** Students failing the subject on raw marks. */
+    failingCount: number;
+    /** Failing students the SAVED limits would condone. */
+    withinLimitCount: number;
+    /** Students holding a resolution bump after the last Process Results. */
+    appliedCount: number;
+    /** Combined only: subject deficit of each failing student with no absent head (ascending). */
+    deficits: number[];
+}
+
+export interface ResolutionConfig {
+    examId: string;
+    isLocked: boolean;
+    subjects: ResolutionConfigSubject[];
+}
+
+export interface ResolutionConfigRequest {
+    branchId: string;
+    semId: string;
+    pattern: string;
+    examId: string;
+}
+
+export interface SaveResolutionConfigRequest {
+    examId: string;
+    /** One entry per head. Combined subjects carry the limit on exactly one head, 0 on the others. */
+    limits: { subjectCreditId: string; limit: number }[];
 }
 
 export const MarksEntryService = {
@@ -80,6 +131,26 @@ export const MarksEntryService = {
             return response.data;
         } catch (error) {
             console.error("Error saving marks:", error);
+            throw error;
+        }
+    },
+
+    getResolutionConfig: async (request: ResolutionConfigRequest): Promise<ApiResponse<ResolutionConfig>> => {
+        try {
+            const response = await Client.get<ApiResponse<ResolutionConfig>>("/MarksEntry/ResolutionConfig", { params: request });
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching resolution config:", error);
+            throw error;
+        }
+    },
+
+    saveResolutionConfig: async (request: SaveResolutionConfigRequest): Promise<ApiResponse<unknown>> => {
+        try {
+            const response = await Client.post<ApiResponse<unknown>>("/MarksEntry/ResolutionConfig", request);
+            return response.data;
+        } catch (error) {
+            console.error("Error saving resolution config:", error);
             throw error;
         }
     },
