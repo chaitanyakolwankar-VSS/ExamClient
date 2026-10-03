@@ -11,7 +11,7 @@
  * Screens that are NOT built yet (so not listed here and not in the menu) - add them back when they exist:
  *   Academic Master: Fees Master, Active Exam, Student Promotion
  *   Students Admin : Declare Result, Release Hallticket, Student Password Reset
- *   Reports        : ATKT Cummulative Report, Student Assign Report, Fees Report
+ *   Reports        : Student Assign Report, Fees Report
  */
 
 export type ScreenModule =
@@ -64,6 +64,7 @@ export const SCREENS: Screen[] = [
   { key: "hallTicket", label: "Generate Hallticket", module: "Reports", path: "/Staff/GenerateHallTicket", extraPaths: ["/hallticket"], aliases: ["Generate Hall Ticket", "Hall Ticket", "Hallticket"] },
   { key: "gazette", label: "Generate Gazette", module: "Reports", path: "/Staff/Gazette", aliases: ["Gazette"] },
   { key: "marksheet", label: "Generate Result", module: "Reports", path: "/Staff/Marksheet", aliases: ["Marksheet", "Result"] },
+  { key: "atktCumulativeReport", label: "ATKT Cummulative Report", module: "Reports", path: "/Staff/ATKTCommulativeReport", aliases: ["ATKT Cumulative Report", "ATKT Cummulative"] },
   { key: "statisticalReport", label: "Statistic Report", module: "Reports", path: "/Staff/StatisticalReport", aliases: ["Statistical Report"] },
 ];
 

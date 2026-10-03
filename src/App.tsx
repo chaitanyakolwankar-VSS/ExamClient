@@ -33,7 +33,7 @@ import Marksheet from "./pages/Staff/Reports/Marksheet.tsx";
 import StatisticalReportPage from "./pages/Staff/Reports/StatisticalReport.tsx";
 import StudentMaster from "./pages/Staff/Students Admin/Student_master";
 import HallTicketPage from "./components/HallTicket/Hallticket.tsx";
-
+import ATKTCommulativeReport from "./pages/Staff/Reports/ATKTCommulativeReport.tsx";
 
 
 export default function App() {
@@ -90,6 +90,7 @@ export default function App() {
                  <Route path="Gazette" element={<Gazette />} />
                  <Route path="Marksheet" element={<Marksheet />} />
                  <Route path="StatisticalReport" element={<StatisticalReportPage />} />
+                      <Route path="ATKTCommulativeReport" element={<ATKTCommulativeReport />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
              <Route path="/hallticket" element={<HallTicketPage />} />
