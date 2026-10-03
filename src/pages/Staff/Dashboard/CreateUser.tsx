@@ -533,60 +533,6 @@ const CreateUser = () => {
             pageSizeOptions={[5, 10, 20, 50]}
           />
         </div>
-        {/* <Modal
-          isOpen={isResetModalOpen}
-          onClose={() => setIsResetModalOpen(false)}
-          className="max-w-md p-6"
-        >
-          <h2 className="text-xl font-semibold mb-4">Reset Password</h2>
-          <div className="mb-4">
-            <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              onClick={() => setIsResetModalOpen(true)}
-            >
-              Remember Password
-            </button>
-            <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              onClick={() => setIsResetModalOpen(true)}
-            >
-              Forgot Password
-            </button>
-          </div>
-          <div className="flex flex-col gap-4">
-            <Input
-              label="Current Password"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-            />
-
-            <Input
-              label="New Password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
-
-            <Input
-              label="Confirm New Password"
-              type="password"
-              value={confirmNewPassword}
-              onChange={(e) => setConfirmNewPassword(e.target.value)}
-            />
-
-            <div className="flex justify-end gap-3 mt-4">
-              <Button
-                variant="outline"
-                onClick={() => setIsResetModalOpen(false)}
-              >
-                Cancel
-              </Button>
-
-              <Button onClick={handleResetPassword}>Update Password</Button>
-            </div>
-          </div>
-        </Modal> */}
         <ResetPasswordModal
           isOpen={isResetModalOpen}
           onClose={() => setIsResetModalOpen(false)}

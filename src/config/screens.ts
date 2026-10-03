@@ -10,8 +10,8 @@
  *
  * Screens that are NOT built yet (so not listed here and not in the menu) - add them back when they exist:
  *   Academic Master: Fees Master, Active Exam
- *   Students Admin : Declare Result, Release Hallticket, Student Password Reset
- *   Reports        : Student Assign Report, Fees Report
+ *   Students Admin : Student Password Reset
+ *   Reports        : Fees Report
  */
 
 export type ScreenModule =
@@ -52,6 +52,8 @@ export const SCREENS: Screen[] = [
   { key: "subjectMaster", label: "Subject Master", module: "Academic Master", path: "/Staff/SubjectMaster", aliases: ["Subject Masters", "Subjects"] },
   { key: "examMaster", label: "Exam Master", module: "Academic Master", path: "/Staff/ExamMaster", aliases: ["Exam Masters"] },
 
+  { key: "declareResult", label: "Declare Result", module: "Students Admin", path: "/Staff/DeclareResult", aliases: ["Declare Results"] },
+  { key: "releaseHallTicket", label: "Release Hallticket", module: "Students Admin", path: "/Staff/ReleaseHallTicket", aliases: ["Release Hall Ticket", "Release Hall Tickets"] },
   { key: "studentMaster", label: "Student Master", module: "Students Admin", path: "/Staff/Student_Master", aliases: ["Student Masters", "Students"] },
 
   { key: "regularExam", label: "Regular Exam", module: "Conduct Exam", path: "/Staff/RegularExam", aliases: ["Regular Exams"] },
@@ -65,6 +67,7 @@ export const SCREENS: Screen[] = [
   { key: "hallTicket", label: "Generate Hallticket", module: "Reports", path: "/Staff/GenerateHallTicket", extraPaths: ["/hallticket"], aliases: ["Generate Hall Ticket", "Hall Ticket", "Hallticket"] },
   { key: "gazette", label: "Generate Gazette", module: "Reports", path: "/Staff/Gazette", aliases: ["Gazette"] },
   { key: "marksheet", label: "Generate Result", module: "Reports", path: "/Staff/Marksheet", aliases: ["Marksheet", "Result"] },
+  { key: "studentAssignReport", label: "Student Assign Report", module: "Reports", path: "/Staff/StudentAssignReport", aliases: ["Students Assign Report"] },
   { key: "atktCumulativeReport", label: "ATKT Cummulative Report", module: "Reports", path: "/Staff/ATKTCommulativeReport", aliases: ["ATKT Cumulative Report", "ATKT Cummulative"] },
   { key: "statisticalReport", label: "Statistic Report", module: "Reports", path: "/Staff/StatisticalReport", aliases: ["Statistical Report"] },
 ];

@@ -153,6 +153,8 @@ export default function Marksheet() {
           examId: exam,
           semId: semester,
           pattern: pattern,
+          courseId: selectedCourse,
+          ayid: localStorage.getItem("AYID") || "",
           generationType: generationType,
           includeHistory: includeHistory,
           resultDate: resultDate || undefined,

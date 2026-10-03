@@ -34,7 +34,7 @@
 //   const [Mname, setMname] = useState("");
 //   const [Lname, setLname] = useState("");
 //   const [searchPrn, setSearchPrn] = useState("");
-// //Refresh 
+// //Refresh
 // const [refreshKey, setRefreshKey] = useState(0);
 
 // const handleRefresh = () => {
@@ -46,7 +46,7 @@
 //   setCategory("");
 //   setPrn("");
 //   setGender("");
-//   setDyslexia(false); 
+//   setDyslexia(false);
 //   setRefreshKey(prev => prev + 1);
 // };
 
@@ -87,7 +87,6 @@
 // //   // const res = await StudentMasterService.SearchStudent(payload);
 // // };
 
-
 //   // toggle switch
 //   const [mode, setMode] = useState<"new" | "search">("new");
 
@@ -118,7 +117,6 @@
 //     title: string;
 //     message: string;
 //   } | null>(null);
-
 
 //   useEffect(() => {
 //     if (alert) {
@@ -151,7 +149,7 @@
 //     try {
 // const res = await StudentMasterService.SaveStudent(payload);
 
-// const studentId = res.data.studentId; 
+// const studentId = res.data.studentId;
 
 //       await Swal.fire({
 //         icon: "success",
@@ -301,7 +299,6 @@
 //                 onChange={(value) => setGender(value as "Female")}
 //               />
 
-
 //               <div className="flex items-center gap-2 whitespace-nowrap">
 //                 {/* <Switch
 //                   label="Dyslexia Student"
@@ -349,7 +346,7 @@
 //                   setStudentId(value);
 //                 }
 //               }}
-//               disabled={!!searchCourse}  
+//               disabled={!!searchCourse}
 //             />
 
 //             <Input
@@ -361,7 +358,7 @@
 //                   setfname(value);
 //                 }
 //               }}
-//               disabled={!!searchCourse}  
+//               disabled={!!searchCourse}
 //             />
 
 //             <Input
@@ -373,7 +370,7 @@
 //                   setMname(value);
 //                 }
 //               }}
-//               disabled={!!searchCourse}               
+//               disabled={!!searchCourse}
 //             />
 
 //             <Input
@@ -385,7 +382,7 @@
 //                   setLname(value);
 //                 }
 //               }}
-//               disabled={!!searchCourse}  
+//               disabled={!!searchCourse}
 //             />
 
 //             <Input
@@ -397,7 +394,7 @@
 //                   setSearchPrn(value);
 //                 }
 //               }}
-//               disabled={!!searchCourse}  
+//               disabled={!!searchCourse}
 //             />
 //           </div>
 
@@ -443,7 +440,6 @@ interface FetchData {
   studentPRN: string;
 }
 
-
 export default function StudentMaster() {
   const [loading, setLoading] = useState(false);
   //save card
@@ -464,7 +460,7 @@ export default function StudentMaster() {
   const [Mname, setMname] = useState("");
   const [Lname, setLname] = useState("");
   const [searchPrn, setSearchPrn] = useState("");
-  //Refresh 
+  //Refresh
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleRefresh = () => {
@@ -477,7 +473,7 @@ export default function StudentMaster() {
     setPrn("");
     setGender("");
     setDyslexia(false);
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
     setSearchPrn("");
     setLname("");
     setMname("");
@@ -487,9 +483,8 @@ export default function StudentMaster() {
     setDataList([]);
     setSearched(false);
     setMode("new");
-
   };
-  //clear field 
+  //clear field
   const clearAllFields = () => {
     // New Student Fields
     setSelectedCourse("");
@@ -501,7 +496,7 @@ export default function StudentMaster() {
     setPrn("");
     setGender("");
     setDyslexia(false);
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
 
     // Search Student Fields
     setSearchCourse("");
@@ -550,7 +545,6 @@ export default function StudentMaster() {
     message: string;
   } | null>(null);
 
-
   useEffect(() => {
     if (alert) {
       const timer = setTimeout(() => setAlert(null), 3000);
@@ -559,7 +553,14 @@ export default function StudentMaster() {
   }, [alert]);
 
   const handleSave = async () => {
-    if (!selectedCourse || !selectedSemester || !firstname || !lastname || !category || !prn || !gender
+    if (
+      !selectedCourse ||
+      !selectedSemester ||
+      !firstname ||
+      !lastname ||
+      !category ||
+      !prn ||
+      !gender
     ) {
       setAlert({
         variant: "warning",
@@ -591,7 +592,7 @@ export default function StudentMaster() {
         title: "Saved Successfully!",
         text: `Student ID: ${studentId}`,
 
-        confirmButtonText: "OK"
+        confirmButtonText: "OK",
       });
       window.location.reload();
     } catch (err) {
@@ -601,11 +602,10 @@ export default function StudentMaster() {
         icon: "error",
         title: "Save Failed",
         text: "Error saving student. Please try again.",
-        confirmButtonText: "OK"
+        confirmButtonText: "OK",
       });
       window.location.reload();
     }
-
   };
 
   useEffect(() => {
@@ -660,7 +660,6 @@ export default function StudentMaster() {
 
   //search with both
   const handleSearch = async () => {
-
     if (
       !searchCourse &&
       !studentId &&
@@ -681,39 +680,30 @@ export default function StudentMaster() {
     setSearched(true);
 
     try {
-
       let data = [];
 
       // ✅ CASE 1: Branch selected → use existing API
       if (searchCourse) {
-
         data = await StudentMasterService.GetByCourse(searchCourse);
-
       }
       // ✅ CASE 2: Search using fields
       else {
-
         data = await StudentMasterService.SearchStudents({
           studentId,
           firstName: Fname,
           middleName: Mname,
           lastName: Lname,
           studentPRN: searchPrn,
-
         });
-
       }
 
       setDataList(Array.isArray(data) ? data : []);
-
     } catch (err) {
-
       setAlert2({
         variant: "warning",
         title: "Error",
         message: "Failed to fetch data",
       });
-
     } finally {
       setLoading(false);
     }
@@ -758,12 +748,13 @@ export default function StudentMaster() {
             <button
               onClick={() => {
                 clearAllFields(); // clear first
-                setMode("new");   // then switch to new student
+                setMode("new"); // then switch to new student
               }}
-              className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium ${mode === "new"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-blue-600"
-                }`}
+              className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium ${
+                mode === "new"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-blue-600"
+              }`}
             >
               New Student
             </button>
@@ -772,10 +763,11 @@ export default function StudentMaster() {
                 clearAllFields(); // clear first
                 setMode("search"); // then switch to search student
               }}
-              className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium border-l border-blue-600 ${mode === "search"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-blue-600"
-                }`}
+              className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium border-l border-blue-600 ${
+                mode === "search"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-blue-600"
+              }`}
             >
               Search Student
             </button>
@@ -805,19 +797,15 @@ export default function StudentMaster() {
               value={selectedSemester}
               onChange={setSelectedSemester}
             />
-           <div className="flex">
-              <div className="flex rounded-lg border border-white-600 overflow-hidden"> 
-                <button 
-                  className="flex items-center gap-4 px-4 py-2 text-sm font-medium bg-green-600 text-white"
-                >
+            <div className="flex">
+              <div className="flex rounded-lg border border-white-600 overflow-hidden">
+                <button className="flex items-center gap-4 px-4 py-2 text-sm font-medium bg-green-600 text-white">
                   <FaFileExcel className="text-lg" />
                   Excel
-                </button> 
-                <button 
-                  className="px-4 py-2 text-md font-medium border-l border-blue-600 bg-white text-blue-600"
-                >
-                  Import         
-                </button> 
+                </button>
+                <button className="px-4 py-2 text-md font-medium border-l border-blue-600 bg-white text-blue-600">
+                  Import
+                </button>
               </div>
             </div>
           </div>
@@ -893,7 +881,6 @@ export default function StudentMaster() {
                 onChange={(value) => setGender(value as "Female")}
               />
 
-
               <div className="flex items-center gap-2 whitespace-nowrap">
                 {/* <Switch
                   label="Dyslexia Student"
@@ -912,8 +899,12 @@ export default function StudentMaster() {
 
           <div className="mt-4 grid grid-cols-6 gap-4">
             <div className="col-start-3 flex gap-3">
-              <Button variant="primary" onClick={handleSave}>Save</Button>
-              <Button variant="outline" onClick={handleRefresh}>Refresh</Button>
+              <Button variant="primary" onClick={handleSave}>
+                Save
+              </Button>
+              <Button variant="outline" onClick={handleRefresh}>
+                Refresh
+              </Button>
             </div>
           </div>
         </ComponentCard>
@@ -1019,13 +1010,12 @@ export default function StudentMaster() {
           )}
           {!loading && searched && dataList.length === 0 && (
             <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-              No students found. Check that the Academic Year selected in the header
-              matches the students you are looking for.
+              No students found. Check that the Academic Year selected in the
+              header matches the students you are looking for.
             </p>
           )}
         </ComponentCard>
       )}
-
     </>
   );
 }

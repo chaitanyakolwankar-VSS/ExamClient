@@ -34,6 +34,7 @@ export interface StudentHallTicketDataRequest {
     Semester:string;
     Pattern:string;
     Mode:string;
+    CourseId:string;
     StudentId:string;
 }
 export interface StudentsHallTicketSubjects {

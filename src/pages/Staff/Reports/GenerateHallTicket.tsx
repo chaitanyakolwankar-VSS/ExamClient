@@ -419,6 +419,7 @@ export default function GenerateHallTicket() {
       Semester: semester,
       Pattern: pattern,
       Mode: hallticketmode,
+      CourseId: courseId,
       StudentId: SingleStudent ? studentId : ""
     };
     

@@ -50,6 +50,8 @@ export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({
             // If saved year is valid, use it
             setCurrentYear(foundYear.shortDuration);
             setCurrentYearId(foundYear.ayid);
+            localStorage.setItem("academicYear", foundYear.shortDuration);
+            localStorage.setItem("AYID", foundYear.ayid);
           } else {
             // If not found, look for the "Current" one from DB, or fallback to the last one
             const defaultYear =

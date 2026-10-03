@@ -34,6 +34,10 @@ import StatisticalReportPage from "./pages/Staff/Reports/StatisticalReport.tsx";
 import StudentMaster from "./pages/Staff/Students Admin/Student_master";
 import HallTicketPage from "./components/HallTicket/Hallticket.tsx";
 import StudentPromotion from "./pages/Staff/Academic_Master/StudentPromotion.tsx";
+import DeclareResult from "./pages/Staff/Students Admin/DeclareResult.tsx";
+import ReleaseHallTicket from "./pages/Staff/Students Admin/ReleaseHallTicket.tsx";
+import StudentAssignReport from "./pages/Staff/Reports/StudentAssignReport.tsx";
+import DummyDashboard from "./pages/Staff/Dashboard/DummyDashboard.tsx";
 import ATKTCommulativeReport from "./pages/Staff/Reports/ATKTCommulativeReport.tsx";
 
 
@@ -93,6 +97,10 @@ export default function App() {
                  <Route path="StatisticalReport" element={<StatisticalReportPage />} />
                       <Route path="ATKTCommulativeReport" element={<ATKTCommulativeReport />} />
                  <Route path="StudentPromotion" element={<StudentPromotion />} />
+                 <Route path="DeclareResult" element={<DeclareResult />} />
+                 <Route path="ReleaseHallTicket" element={<ReleaseHallTicket />} />
+                 <Route path="StudentAssignReport" element={<StudentAssignReport />} />
+                 <Route path="dummydashboard" element={<DummyDashboard />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
              <Route path="/hallticket" element={<HallTicketPage />} />
