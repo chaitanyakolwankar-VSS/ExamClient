@@ -45,18 +45,24 @@ const value: React.CSSProperties = {
   padding: "8px"
 };
 
+// Subject table: compact cells so a full semester (~12 subjects) still fits one A4 sheet in print.
 const th: React.CSSProperties = {
   border: "1px solid black",
-  padding: "10px",
+  padding: "6px",
+  fontSize: "12px",
   fontWeight: "bold",
   textAlign: "center"
 };
 
 const td: React.CSSProperties = {
   border: "1px solid black",
-  padding: "8px",
+  padding: "5px 6px",
+  fontSize: "12px",
   textAlign: "center"
 };
+
+// Code, date and time never wrap; the subject name takes the remaining width.
+const tdNoWrap: React.CSSProperties = { ...td, whiteSpace: "nowrap" };
 
 // Height reserved at the bottom of each card for the signature block (absolutely positioned).
 const SIGNATURE_BLOCK_HEIGHT_PX = 70;
@@ -230,11 +236,11 @@ const HallTicketCard = ({
         <tbody>
           {student.subjects.map((sub, i) => (
             <tr key={i}>
-              <td style={td}>{sub.code}</td>
-              <td style={td}>{sub.name}</td>
-              <td style={td}>{sub.date}</td>
-              <td style={td}>{sub.time}</td>
-                <td style={td}></td>
+              <td style={tdNoWrap}>{sub.code}</td>
+              <td style={{ ...td, textAlign: "left" }}>{sub.name}</td>
+              <td style={tdNoWrap}>{sub.date}</td>
+              <td style={tdNoWrap}>{sub.time}</td>
+              <td style={{ ...td, width: "22%" }}></td>
             </tr>
           ))}
         </tbody>
