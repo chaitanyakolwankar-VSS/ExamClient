@@ -134,53 +134,38 @@ export const DashboardService = {
   },
 
   //New
-  async getDashboardStats(
-    collegeId: string,
-    ayId: string,
-  ): Promise<DashboardStats> {
+  async getDashboardStats(ayId: string): Promise<DashboardStats> {
     const response = await apiClient.get("/Dashboard/stats", {
-      params: { collegeId, ayId },
+      params: { ayId },
     });
     return response.data.data;
   },
 
   // Individual endpoints
-  async getTotalStudents(collegeId: string, ayId: string): Promise<number> {
+  async getTotalStudents(ayId: string): Promise<number> {
     const response = await apiClient.get("/Dashboard/total-students", {
-      params: { collegeId, ayId },
+      params: { ayId },
     });
     return response.data.data;
   },
 
-  async getPassPercentage(collegeId: string, ayId: string): Promise<number> {
+  async getPassPercentage(ayId: string): Promise<number> {
     const response = await apiClient.get("/Dashboard/pass-percentage", {
-      params: { collegeId, ayId },
+      params: { ayId },
     });
     return response.data.data;
   },
 
-  // async getTotalExamsConducted(
-  //   collegeId: string,
-  //   ayId: string,
-  // ): Promise<number> {
-  //   const response = await apiClient.get("/Dashboard/total-exams", {
-  //     params: { collegeId, ayId },
-  //   });
-  //   return response.data.data;
-  // },
-  async getTotalExamsConducted(
-    collegeId: string,
-    ayId: string,
-  ): Promise<number> {
+  async getTotalExamsConducted(ayId: string): Promise<number> {
     const response = await apiClient.get("/Dashboard/total-exam", {
-      params: { collegeId, ayId },
+      params: { ayId },
     });
     return response.data.data;
   },
 
-  async getATKTStudentCount(collegeId: string, ayId: string): Promise<number> {
+  async getATKTStudentCount(ayId: string): Promise<number> {
     const response = await apiClient.get("/Dashboard/atkt-count", {
-      params: { collegeId, ayId },
+      params: { ayId },
     });
     return response.data.data;
   },
@@ -260,12 +245,9 @@ export const DashboardService = {
     return response.data; // backend returns RAW array
   },
 
-  async getExamLifecycle(
-    collegeId: string,
-    ayId: string,
-  ): Promise<ExamLifecycle> {
+  async getExamLifecycle(ayId: string): Promise<ExamLifecycle> {
     const response = await apiClient.get("/Dashboard/exam-lifecycle", {
-      params: { collegeId, ayId },
+      params: { ayId },
     });
     return response.data.data;
   },

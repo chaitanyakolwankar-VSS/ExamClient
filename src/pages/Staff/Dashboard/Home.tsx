@@ -221,22 +221,7 @@ const getLifecycleProgress = (record: ExamLifecycle) => {
 };
 
 export default function ExamDashboard() {
-  // ---- local storage helpers ----
-  const getCollegeId = (): string => {
-    try {
-      const authUserStr = localStorage.getItem("authUser");
-      if (authUserStr) {
-        const authUser = JSON.parse(authUserStr);
-        if (authUser?.collegeId) return authUser.collegeId;
-        if (authUser?.CollegeId) return authUser.CollegeId;
-      }
-      return "";
-    } catch {
-      return "";
-    }
-  };
-
-  const collegeId = getCollegeId();
+  // The API takes the college from the login token; it is never sent from here.
   const { ayid: selectedAyid } = useAcademicYear();
   const ayid = selectedAyid ?? "";
 
@@ -297,7 +282,7 @@ export default function ExamDashboard() {
   };
 
   const fetchDashboardStats = async () => {
-    if (!ayid || !collegeId) return;
+    if (!ayid) return;
     try {
       setLoadingStats(true);
       const [
@@ -306,10 +291,10 @@ export default function ExamDashboard() {
         totalExamsResult,
         atktResult,
       ] = await Promise.all([
-        DashboardService.getTotalStudents(collegeId, ayid),
-        DashboardService.getPassPercentage(collegeId, ayid),
-        DashboardService.getTotalExamsConducted(collegeId, ayid),
-        DashboardService.getATKTStudentCount(collegeId, ayid),
+        DashboardService.getTotalStudents(ayid),
+        DashboardService.getPassPercentage(ayid),
+        DashboardService.getTotalExamsConducted(ayid),
+        DashboardService.getATKTStudentCount(ayid),
       ]);
       setTotalStudents(totalStudentsResult);
       setPassPercentage(passPercentageResult);
@@ -350,11 +335,11 @@ export default function ExamDashboard() {
 
   // Lifecycle list (handles both array and single-object responses from the API)
   const fetchExamLifecycles = async () => {
-    if (!ayid || !collegeId) return;
+    if (!ayid) return;
     try {
       setLoadingLifecycle(true);
       const res = await apiClient.get("/Dashboard/exam-lifecycle", {
-        params: { collegeId, ayId: ayid },
+        params: { ayId: ayid },
       });
       const body = res.data;
       const raw = body?.data ?? body;
@@ -375,7 +360,7 @@ export default function ExamDashboard() {
     fetchDashboardStats();
     fetchExamLifecycles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ayid, collegeId]);
+  }, [ayid]);
 
   useEffect(() => {
     if (selectedCourseId) fetchCourseData(selectedCourseId);
