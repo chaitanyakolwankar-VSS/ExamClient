@@ -179,8 +179,9 @@ import {
 
 const PIE_COLORS = ["#435CFF", "#00AFC0", "#FF6B6B", "#FFD93D", "#6C5CE7"];
 
-// Build the 6 pipeline stages from a single exam lifecycle record
-const buildStages = (record: ExamLifecycle) => [
+// Build the 6 pipeline stages from a single exam lifecycle record.
+// count is a student count; null marks a yes/no stage (shown as Done / Pending).
+const buildStages = (record: ExamLifecycle): { stage: string; count: number | null; completed: boolean }[] => [
   {
     stage: "Students Assigned",
     count: record.assignedStudent,
@@ -193,8 +194,8 @@ const buildStages = (record: ExamLifecycle) => [
   },
   {
     stage: "Hall Ticket Released",
-    count: record.releaseHallTicket,
-    completed: record.releaseHallTicket > 0,
+    count: null,
+    completed: record.releaseHallTicket,
   },
   {
     stage: "Marks Entered",
@@ -203,13 +204,13 @@ const buildStages = (record: ExamLifecycle) => [
   },
   {
     stage: "Gazette Generated",
-    count: record.gazetteGnrt,
+    count: null,
     completed: record.gazetteGnrt > 0,
   },
   {
     stage: "Result Declared",
-    count: record.isDeclare === 1 ? record.assignedStudent : 0,
-    completed: record.isDeclare === 1,
+    count: null,
+    completed: record.isDeclare,
   },
 ];
 
@@ -913,7 +914,9 @@ export default function ExamDashboard() {
                                     : "bg-gray-100 text-gray-400"
                                 }`}
                               >
-                                {stage.count} students
+                                {stage.count === null
+                                  ? stage.completed ? "Done" : "Pending"
+                                  : `${stage.count} students`}
                               </span>
                             </div>
 

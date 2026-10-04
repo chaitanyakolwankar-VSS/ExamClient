@@ -86,10 +86,11 @@ export interface ExamLifecycle {
   examName: string;
   assignedStudent: number;
   seatNo: number;
-  releaseHallTicket: number;
+  releaseHallTicket: boolean;
   marksEntered: number;
+  /** How many times the gazette was generated (not a student count). */
   gazetteGnrt: number;
-  isDeclare: number;
+  isDeclare: boolean;
 }
 
 export const DashboardService = {
