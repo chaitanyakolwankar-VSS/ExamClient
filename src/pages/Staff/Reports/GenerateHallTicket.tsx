@@ -50,6 +50,7 @@ interface College {
   center: string;
   collegeName?: string;
   CourseNmae: string;
+  principalSign?: string;
 }
 
 interface Student {
@@ -369,6 +370,7 @@ export default function GenerateHallTicket() {
         logo: collegedata.logo,
         center: collegedata.center,
         collegeName: collegedata.collegeName,
+        principalSign: collegedata.principalSign,
         CourseNmae: `${(courseOptions.find((c) => c.value === courseId)?.label ?? "").toUpperCase()} (${pattern})`
       },
       students: data 

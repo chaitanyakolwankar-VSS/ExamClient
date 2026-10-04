@@ -9,6 +9,7 @@ import Alert from "../../../components/ui/alert/Alert";
 import collegedetailService from "../../../services/collegedetailService";
 import { Modal } from "../../../components/ui/modal";
 import { invalidateBootstrap } from "../../../data";
+import ReportSignatures from "./ReportSignatures";
 
 const CollegeDetail = () => {
   const [showLogo, setShowLogo] = useState(true);
@@ -176,6 +177,15 @@ const CollegeDetail = () => {
     setBannerFile(savedBanner);
   };
 
+  const [controllerSignUrl, setControllerSignUrl] = useState<string | null>(null);
+  const [principalSignUrl, setPrincipalSignUrl] = useState<string | null>(null);
+
+  const reloadSignatures = async () => {
+    const data = await collegedetailService.getCollege();
+    setControllerSignUrl(data?.controllerSignUrl ?? null);
+    setPrincipalSignUrl(data?.principalSignUrl ?? null);
+  };
+
   useEffect(() => {
     const fetchCollege = async () => {
       try {
@@ -192,6 +202,8 @@ const CollegeDetail = () => {
 
           setLogoUrl(data.logoUrl);
           setBannerUrl(data.bannerUrl);
+          setControllerSignUrl(data.controllerSignUrl ?? null);
+          setPrincipalSignUrl(data.principalSignUrl ?? null);
 
           setIsSaved(true);
           setIsEditting(false);
@@ -453,6 +465,15 @@ const CollegeDetail = () => {
           </div>
         </div>
       </Modal>
+
+      <ReportSignatures
+        collegeId={isSaved && !isEditting ? collegeId : null}
+        college={{ name, collegeCode: code, collegeCenter: center, address, contactEmail: email, contactPhone: phone }}
+        controllerSignUrl={controllerSignUrl}
+        principalSignUrl={principalSignUrl}
+        onSaved={reloadSignatures}
+        onMessage={(variant, title, message) => showAlert(variant, title, message)}
+      />
     </ComponentCard>
   );
 };

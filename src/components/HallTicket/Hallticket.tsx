@@ -15,6 +15,8 @@ interface College {
   /** Shown as a text header when there is no logo (or it cannot be loaded). */
   collegeName?: string;
   CourseNmae: string;
+  /** Stored path of the Principal's signature image, printed above the Principal line. */
+  principalSign?: string;
 }
 
 interface Student {
@@ -23,6 +25,8 @@ interface Student {
   seat: string;
   studentid:string;
   photo?: string | null;
+  /** Stored path of the student's signature image (null when none). */
+  sign?: string | null;
   subjects: Subject[];
 }
 
@@ -197,6 +201,35 @@ const HallTicketCard = ({
                   </div>
                 }
               />
+              {/* The student's uploaded signature, under the photo. */}
+              <AuthImage
+                src={student.sign}
+                alt="student signature"
+                style={{
+                  display: "block",
+                  width: "116px",
+                  height: "36px",
+                  objectFit: "contain",
+                  margin: "4px auto 0",
+                }}
+                fallback={
+                  <div
+                    style={{
+                      width: "116px",
+                      height: "36px",
+                      margin: "4px auto 0",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px dashed #999",
+                      color: "#777",
+                      fontSize: "11px",
+                    }}
+                  >
+                    Signature
+                  </div>
+                }
+              />
             </td>
           </tr>
 
@@ -268,7 +301,8 @@ const HallTicketCard = ({
       left: "15px",
       right: "15px",
       display: "flex",
-      justifyContent: "space-between"
+      justifyContent: "space-between",
+      alignItems: "flex-end"
     }}
   >
     <div style={{ width: "200px", textAlign: "center" }}>
@@ -278,6 +312,13 @@ const HallTicketCard = ({
     </div>
 
     <div style={{ width: "200px", textAlign: "center" }}>
+      {college.principalSign && (
+        <AuthImage
+          src={college.principalSign}
+          alt="principal signature"
+          style={{ display: "block", height: "34px", maxWidth: "180px", objectFit: "contain", margin: "0 auto 2px" }}
+        />
+      )}
       <div style={{ borderTop: "1px solid black", paddingTop: "5px" }}>
         Principal
       </div>
@@ -308,7 +349,10 @@ export default function HallTicketPage() {
   // AuthImage, so wait until every expected image is on the page and decoded, with a cap so a
   // missing/failed image cannot block printing forever.
   const expectedImages =
-    (college.logo ? 1 : 0) + data.filter((s) => s.photo).length;
+    (college.logo ? 1 : 0) +
+    (college.principalSign ? data.length : 0) +
+    data.filter((s) => s.photo).length +
+    data.filter((s) => s.sign).length;
   React.useEffect(() => {
     if (data.length === 0) return;
     const startedAt = Date.now();

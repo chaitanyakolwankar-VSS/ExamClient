@@ -425,6 +425,8 @@ import Alert from "../../../components/ui/alert/Alert";
 import Swal from "sweetalert2";
 import DataTable from "../../../components/ui/table/DataTable";
 import { FaFileExcel } from "react-icons/fa";
+import { Modal } from "../../../components/ui/modal";
+import StudentImagePicker from "./StudentImagePicker";
 
 interface SelectOption {
   value: string;
@@ -437,8 +439,12 @@ interface FetchData {
   firstName: string;
   lastName: string;
   studentNmae: string;
+  studentName?: string;
   semesterId: string;
   studentPRN: string;
+  /** Stored paths of the uploaded photo / signature (null when none). */
+  photoUrl?: string | null;
+  signUrl?: string | null;
 }
 
 export default function StudentMaster() {
@@ -457,6 +463,9 @@ export default function StudentMaster() {
   const [prn, setPrn] = useState("");
   const [gender, setGender] = useState<"Male" | "Female" | "">("");
   const [Dyslexia, setDyslexia] = useState(false);
+  // Photo and signature for a new student, as data: URLs (the hall ticket prints both).
+  const [photoData, setPhotoData] = useState<string | null>(null);
+  const [signData, setSignData] = useState<string | null>(null);
   //search card
   const [searchCourse, setSearchCourse] = useState("");
   const [studentId, setStudentId] = useState("");
@@ -477,6 +486,8 @@ export default function StudentMaster() {
     setPrn("");
     setGender("");
     setDyslexia(false);
+    setPhotoData(null);
+    setSignData(null);
     setRefreshKey((prev) => prev + 1);
     setSearchPrn("");
     setLname("");
@@ -500,6 +511,8 @@ export default function StudentMaster() {
     setPrn("");
     setGender("");
     setDyslexia(false);
+    setPhotoData(null);
+    setSignData(null);
     setRefreshKey((prev) => prev + 1);
 
     // Search Student Fields
@@ -568,6 +581,8 @@ export default function StudentMaster() {
       gender: gender,
       dyslexia: Dyslexia,
       ayid: ayid,
+      photoUrl: photoData,
+      signUrl: signData,
     };
     try {
       const res = await StudentMasterService.SaveStudent(payload);
@@ -698,9 +713,52 @@ export default function StudentMaster() {
     { key: "studentName", label: "Student Name" },
     { key: "semesterId", label: "Semester" },
     { key: "studentPRN", label: "PRN" },
+    {
+      key: "images",
+      label: "Photo / Sign",
+      render: (row: FetchData) => (
+        <button
+          type="button"
+          onClick={() => openImages(row)}
+          className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          {row.photoUrl ? "Photo ✓" : "No photo"} · {row.signUrl ? "Sign ✓" : "No sign"}
+        </button>
+      ),
+    },
     { key: "edit", label: "Edit" },
     { key: "delete", label: "Delete" },
   ];
+
+  // Photo / signature of an existing student (search list).
+  const [imageRow, setImageRow] = useState<FetchData | null>(null);
+  const [rowPhoto, setRowPhoto] = useState<string | null>(null);
+  const [rowSign, setRowSign] = useState<string | null>(null);
+  const [savingImages, setSavingImages] = useState(false);
+
+  const openImages = (row: FetchData) => {
+    setImageRow(row);
+    setRowPhoto(null);
+    setRowSign(null);
+  };
+
+  const saveImages = async () => {
+    if (!imageRow) return;
+    setSavingImages(true);
+    try {
+      const saved = await StudentMasterService.UpdateImages(imageRow.studentId, { photo: rowPhoto, sign: rowSign });
+      setDataList((rows) => rows.map((r) => (r.studentId === imageRow.studentId ? { ...r, ...saved } : r)));
+      setImageRow(null);
+      await Swal.fire({ icon: "success", title: "Saved", text: "Photo / signature updated.", timer: 1500, showConfirmButton: false });
+    } catch (err) {
+      const apiMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      await Swal.fire({ icon: "error", title: "Save failed", text: apiMessage ?? "Could not save the images." });
+    } finally {
+      setSavingImages(false);
+    }
+  };
+
+  const imageError = (message: string) => setAlert({ variant: "warning", title: "Image", message });
 
   //
   return (
@@ -880,6 +938,11 @@ export default function StudentMaster() {
             </div>
           </div>
 
+          <div className="mt-6 flex flex-wrap gap-8">
+            <StudentImagePicker label="Photo" value={photoData} onChange={setPhotoData} onError={imageError} />
+            <StudentImagePicker label="Signature" value={signData} onChange={setSignData} onError={imageError} />
+          </div>
+
           <div className="mt-4 grid grid-cols-6 gap-4">
             <div className="col-start-3 flex gap-3">
               <Button variant="primary" onClick={handleSave}>
@@ -999,6 +1062,27 @@ export default function StudentMaster() {
           )}
         </ComponentCard>
       )}
+
+      <Modal isOpen={!!imageRow} onClose={() => setImageRow(null)} className="max-w-[520px] p-6">
+        {imageRow && (
+          <div className="flex flex-col gap-5">
+            <div>
+              <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">Photo and signature</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {imageRow.studentId} · {imageRow.studentName ?? ""}
+              </p>
+            </div>
+            <StudentImagePicker label="Photo" value={rowPhoto} savedPath={imageRow.photoUrl} onChange={setRowPhoto} onError={imageError} />
+            <StudentImagePicker label="Signature" value={rowSign} savedPath={imageRow.signUrl} onChange={setRowSign} onError={imageError} />
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setImageRow(null)}>Cancel</Button>
+              <Button onClick={saveImages} disabled={savingImages || (!rowPhoto && !rowSign)}>
+                {savingImages ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </>
   );
 }

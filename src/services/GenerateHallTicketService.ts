@@ -42,6 +42,8 @@ export interface StudentHallTicketData {
     studentid:string;
     /** Stored path of the student photo; shown via the authenticated /Files endpoint. */
     photo?: string | null;
+    /** Stored path of the student signature (same /Files access); null when none. */
+    sign?: string | null;
     subjects:StudentsHallTicketSubjects[];
 }
 export interface HallTicketCollege{
@@ -49,6 +51,8 @@ export interface HallTicketCollege{
     center:string;
     /** College name for the header when there is no logo. */
     collegeName?:string;
+    /** Stored path of the Principal's signature image; empty when none. */
+    principalSign?:string;
 }
  
 export const GenerateHallTicketService = {
