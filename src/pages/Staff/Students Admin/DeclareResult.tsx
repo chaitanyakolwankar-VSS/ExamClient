@@ -21,6 +21,8 @@ interface ExamRow {
   semester: string;
   declareDate: string;
   isDeclare: boolean;
+  /** Bulk marksheets generated at least once; required before declaring. */
+  marksheetGenerated: boolean;
 }
 
 const DeclareResult = () => {
@@ -136,6 +138,7 @@ const DeclareResult = () => {
           semester,
           declareDate: exam.declareDate ? exam.declareDate.split("T")[0] : "",
           isDeclare: exam.isDeclare ?? false,
+          marksheetGenerated: exam.marksheetGenerated ?? false,
         });
       } else {
         setTableRow(null);
@@ -217,10 +220,11 @@ const DeclareResult = () => {
           ? { ...prev, isDeclare: row.isDeclare, declareDate: row.declareDate }
           : prev,
       );
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
       showAlert(
         "error",
         "Error",
-        "Failed to update declare status. Please try again.",
+        apiMessage ?? "Failed to update declare status. Please try again.",
       );
     }
   };
@@ -264,11 +268,11 @@ const DeclareResult = () => {
           }}
           type="date"
           className={`border rounded px-2 py-1 w-full ${
-            row.isDeclare ? "bg-gray-100 cursor-not-allowed" : ""
+            row.isDeclare || !row.marksheetGenerated ? "bg-gray-100 cursor-not-allowed" : ""
           }`}
           value={row.declareDate}
-          disabled={row.isDeclare}
-          onClick={() => !row.isDeclare && handleDateFieldClick(row.examId)}
+          disabled={row.isDeclare || !row.marksheetGenerated}
+          onClick={() => !row.isDeclare && row.marksheetGenerated && handleDateFieldClick(row.examId)}
           onChange={(e) => handleDateChange(row.examId, e.target.value)}
         />
       ),
@@ -278,8 +282,12 @@ const DeclareResult = () => {
       label: "Status",
       sortable: false,
       render: (row: ExamRow) => (
-        <span className={row.isDeclare ? "text-green-600" : "text-gray-500"}>
-          {row.isDeclare ? "Declared" : "Not declared"}
+        <span className={row.isDeclare ? "text-green-600" : row.marksheetGenerated ? "text-gray-500" : "text-amber-600"}>
+          {row.isDeclare
+            ? "Declared"
+            : row.marksheetGenerated
+              ? "Not declared"
+              : "Not declared (generate the marksheets first)"}
         </span>
       ),
     },
@@ -294,11 +302,13 @@ const DeclareResult = () => {
           <button
             type="button"
             onClick={() => handleToggleDeclare(row)}
-            disabled={!row.isDeclare && !row.declareDate}
+            disabled={!row.isDeclare && (!row.marksheetGenerated || !row.declareDate)}
             title={
               row.isDeclare
                 ? "Declared (click to undeclare)"
-                : !row.declareDate
+                : !row.marksheetGenerated
+                  ? "Generate the marksheets first (Reports > Generate Result)"
+                  : !row.declareDate
                   ? "Select a declare date first"
                   : "Not declared (click to declare)"
             }
@@ -307,7 +317,7 @@ const DeclareResult = () => {
               <Eye className="w-7 h-7 text-green-600" />
             ) : (
               <EyeOff
-                className={`w-7 h-7 ${!row.declareDate ? "text-gray-200" : "text-gray-400"}`}
+                className={`w-7 h-7 ${!row.marksheetGenerated || !row.declareDate ? "text-gray-200" : "text-gray-400"}`}
               />
             )}
           </button>

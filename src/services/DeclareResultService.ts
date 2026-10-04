@@ -24,6 +24,10 @@ export interface DeclareExamApiResponse {
   pattern: string;
   /** False when no DeclareResult row exists yet (the result is "not declared"). */
   hasRecord?: boolean;
+  /** Bulk marksheets were generated at least once; the API refuses to declare before that. */
+  marksheetGenerated?: boolean;
+  /** The gazette was generated at least once. */
+  gazetteGenerated?: boolean;
 }
 
 export interface SaveDeclareExam {
