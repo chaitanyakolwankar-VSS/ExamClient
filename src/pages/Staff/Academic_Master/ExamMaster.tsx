@@ -394,7 +394,7 @@ export default function ExamDashboard() {
 
                     {(ExamType) && (
                         <Switch
-                            label="Revolution Exam"
+                            label="Revaluation Exam"
                             disabled={Examexist}
                             color="blue"
                             onChange={RevolutionToggle}
