@@ -1,0 +1,39 @@
+# Builds the website for vivacollege.in/gradesphere on every push to main (and on pull requests).
+# Download the "gradesphere-site" artifact from the run's page on GitHub and copy its contents into the
+# site folder on the server (see ExamAPI/deploy/DEPLOY_GUIDE.md). Paths come from .env.gradesphere.
+name: Build website
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build for /gradesphere
+        run: npm run build:gradesphere
+
+      - name: Check the build targets /gradesphere
+        run: |
+          grep -q 'url="/gradesphere/index.html"' dist/web.config
+          grep -q '/gradesphere-api' dist/assets/*.js
+          echo "$GITHUB_SHA" > dist/COMMIT.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gradesphere-site
+          path: dist/
+          retention-days: 30
