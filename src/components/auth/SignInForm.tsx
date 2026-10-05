@@ -56,6 +56,8 @@ export default function SignInForm() {
 
       if (error.response && error.response.status === 401) {
         setError("Invalid email or password");
+      } else if (error.response && error.response.status === 429) {
+        setError("Too many sign-in attempts. Please wait a minute and try again.");
       } else {
         setError(`Server error occurred. Please try again later.`);
       }
