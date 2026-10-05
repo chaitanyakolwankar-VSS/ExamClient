@@ -12,6 +12,8 @@ export interface PlatformCollegeListItem {
   currentAcademicYear: string | null;
   hasLogo: boolean;
   hasBanner: boolean;
+  /** A starter template: offered under "Copy from" when adding a college, not listed as a college. */
+  isTemplate: boolean;
 }
 
 export interface PlatformBranch {

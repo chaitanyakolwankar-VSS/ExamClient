@@ -370,7 +370,8 @@ export default function NewCollege() {
                 onChange={setTemplateId}
                 options={[
                   { value: "", label: "None (no grade scale or ordinance rules)" },
-                  ...existing.map((c) => ({ value: c.collegeId, label: `${c.name} (${c.collegeCode})` })),
+                  ...existing.filter((c) => c.isTemplate).map((c) => ({ value: c.collegeId, label: `Starter: ${c.name}` })),
+                  ...existing.filter((c) => !c.isTemplate).map((c) => ({ value: c.collegeId, label: `${c.name} (${c.collegeCode})` })),
                 ]}
               />
               {!templateId && (

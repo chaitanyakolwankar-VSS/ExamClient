@@ -2,7 +2,8 @@ import axios from 'axios';
 import { queryClient } from '../data/queryClient';
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.DEV ? 'https://localhost:7225/api' : '/ExamAPI/api',
+  // Production: the API's IIS path from the build mode's .env (VITE_API_BASE); the demo build uses /ExamAPI.
+  baseURL: import.meta.env.DEV ? 'https://localhost:7225/api' : `${(import.meta.env.VITE_API_BASE || '/ExamAPI').replace(/\/+$/, '')}/api`,
   headers: {
     'Content-Type': 'application/json',
   },

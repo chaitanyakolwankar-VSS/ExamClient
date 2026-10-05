@@ -23,7 +23,8 @@ export default function Colleges() {
     platformService
       .getColleges()
       .then((rows) => {
-        if (!cancelled) setColleges(rows);
+        // Starter templates are not colleges; they only appear under "Copy from" on New college.
+        if (!cancelled) setColleges(rows.filter((r) => !r.isTemplate));
       })
       .catch((err) => {
         if (!cancelled) setError(platformErrorMessage(err, "Could not load the colleges."));
