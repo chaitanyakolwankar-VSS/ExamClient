@@ -25,6 +25,7 @@ type NavItem = {
     path: string;
     pro?: boolean;
     new?: boolean;
+    dividerAfter?: boolean;
   }[];
 };
 
@@ -205,6 +206,7 @@ const navItems: NavItem[] = [
         name: "Generate Result",
         path: "/Staff/Marksheet",
         pro: false,
+        dividerAfter: true,
       },
       {
         icon: <SubMenuIcon />,
@@ -452,6 +454,9 @@ const AppSidebar: React.FC = () => {
                         )}
                       </span>
                     </Link>
+                    {subItem.dividerAfter && (
+                      <hr className="my-2 border-gray-200 dark:border-gray-800 mr-4" />
+                    )}
                   </li>
                 ))}
               </ul>
