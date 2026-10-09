@@ -12,7 +12,6 @@ import TopLoader from "./components/common/TopLoader";
 import PageFallback from "./components/common/PageFallback";
 
 // Pages load on first visit (their own chunks), so the sign-in page does not wait for the whole app.
-const SignUp = lazy(() => import("./pages/AuthPages/SignUp"));
 const NotFound = lazy(() => import("./pages/OtherPage/NotFound"));
 const ExamDashboard = lazy(() => import("./pages/Staff/Dashboard/Home"));
 const SubjectMaster = lazy(() => import("./pages/Staff/Academic_Master/Subject_Master.tsx"));
@@ -41,7 +40,6 @@ const StudentPromotion = lazy(() => import("./pages/Staff/Academic_Master/Studen
 const DeclareResult = lazy(() => import("./pages/Staff/Students Admin/DeclareResult.tsx"));
 const ReleaseHallTicket = lazy(() => import("./pages/Staff/Students Admin/ReleaseHallTicket.tsx"));
 const StudentAssignReport = lazy(() => import("./pages/Staff/Reports/StudentAssignReport.tsx"));
-const DummyDashboard = lazy(() => import("./pages/Staff/Dashboard/DummyDashboard.tsx"));
 const ATKTCommulativeReport = lazy(() => import("./pages/Staff/Reports/ATKTCommulativeReport.tsx"));
 
 
@@ -105,7 +103,6 @@ export default function App() {
                  <Route path="DeclareResult" element={<DeclareResult />} />
                  <Route path="ReleaseHallTicket" element={<ReleaseHallTicket />} />
                  <Route path="StudentAssignReport" element={<StudentAssignReport />} />
-                 <Route path="dummydashboard" element={<DummyDashboard />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
              <Route path="/hallticket" element={<HallTicketPage />} />
@@ -117,7 +114,6 @@ export default function App() {
 
           {/* AUTHENTICATION (Shared) */}
           <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
 
           {/* DEFAULT REDIRECT */}
           <Route
