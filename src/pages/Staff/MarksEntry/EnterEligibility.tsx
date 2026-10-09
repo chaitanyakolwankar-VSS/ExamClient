@@ -443,7 +443,6 @@ const exportToCSV = async () => {
     const missing = [...existingIds].filter((id) => !excelIds.has(id));
 
     if (notFound.length > 0 || missing.length > 0) {
-      console.log("Mismatch ❌", { notFound, missing });
 
       Swal.fire(
         "Error",
@@ -453,7 +452,6 @@ const exportToCSV = async () => {
 
       return; // ❌ stop here
     }
-    console.log("Converted 👉", result);
 
     setEligibilityStudents(result);
    if (fileInputRef.current) {

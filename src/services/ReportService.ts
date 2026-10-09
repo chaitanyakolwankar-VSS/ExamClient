@@ -136,7 +136,6 @@ export const ReportService = {
       const data = (error as { response?: { data?: unknown } }).response?.data;
       if (data instanceof Blob) {
         const text = await data.text();
-        console.log("Server Error:", text);
       }
 
       throw error;

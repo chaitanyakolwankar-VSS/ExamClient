@@ -122,7 +122,6 @@ const StudentAssignReport = () => {
 
       if (type === "assign") {
         const data = await StudentAssignRptService.getReport(payload);
-        console.log("ASSIGN REPORT RESPONSE", data);
         setAssignData(data || []);
         setActiveReport("assign");
         setTableKey((k) => k + 1);
@@ -132,7 +131,6 @@ const StudentAssignReport = () => {
         }
       } else {
         const data = await StudentAssignRptService.getCreditReport(payload);
-        console.log("CREDIT REPORT RESPONSE", data);
         const rows = Array.isArray(data) ? data : [];
         setCreditRawData(rows);
         setActiveReport("credit");

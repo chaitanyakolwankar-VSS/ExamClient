@@ -203,7 +203,6 @@ export default function MarksEntry() {
 
   const handleSave = async () => {
     // Log all student heads to console for debugging
-    console.log("Saving marksData:", marksData);
 
     let errorReason = "";
     let invalidEntry: { student: MarksEntryData; head: any } | null = null;

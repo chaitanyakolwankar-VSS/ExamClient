@@ -284,7 +284,6 @@ export default function SubjectMaster() {
       };
 
       // 2️⃣ Debug (optional but recommended)
-      console.log("SAVE CREDITS PAYLOAD 👉", payload);
 
       // 3️⃣ API call
       const res = await SubjectService.saveCredits(payload);
@@ -362,7 +361,6 @@ export default function SubjectMaster() {
       };
 
       // 2️⃣ Debug (optional but recommended)
-      console.log("SAVE CREDITS PAYLOAD 👉", payload);
 
       // 3️⃣ API call
       const res = await SubjectService.UpdateCredits(payload);

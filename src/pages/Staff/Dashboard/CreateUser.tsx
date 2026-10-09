@@ -252,7 +252,6 @@ const CreateUser = () => {
       setConfirmPassword("");
       setSelectedRole("");
     } catch (error: any) {
-      console.log("FULL ERROR:", error.response?.data);
       showAlert("error", "Failed", JSON.stringify(error.response?.data));
     }
   };

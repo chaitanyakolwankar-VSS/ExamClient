@@ -56,7 +56,6 @@ export default function ATKTCommulativeReport() {
             Ayid: ayid
           }
           const data: ExamApiResponse[] = await ATKTCommulativeReportService.getExam(parameter);
-          console.log("EXAM API RAW RESPONSE 👉", data);
           const mappedData = data.map((e) => ({
             value: e.examId,
             label: e.examname
