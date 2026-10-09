@@ -166,10 +166,14 @@ import {
 } from "lucide-react";
 import PageMeta from "../../../components/common/PageMeta";
 import Alert from "../../../components/ui/alert/Alert";
-import apiClient from "../../../api/Client";
 import { useAcademicYear } from "../../../data";
 import {
-  DashboardService,
+  useDashboardCourses,
+  useDashboardStats,
+  useDashboardLifecycle,
+  useDashboardCourse,
+} from "../../../data/useDashboard";
+import {
   CourseStudentCountApiResponse,
   SemesterStudentCountApiResponse,
   PassFailChartApiResponse,
@@ -178,6 +182,13 @@ import {
 } from "../../../services/Dashboard";
 
 const PIE_COLORS = ["#435CFF", "#00AFC0", "#FF6B6B", "#FFD93D", "#6C5CE7"];
+
+// Stable empty lists, so effects that depend on them do not re-run on every render.
+const NO_COURSES: CourseStudentCountApiResponse[] = [];
+const NO_SEMESTERS: SemesterStudentCountApiResponse[] = [];
+const NO_PASS_FAIL: PassFailChartApiResponse[] = [];
+const NO_EXAM_TYPES: ExamTypeDistribution[] = [];
+const NO_LIFECYCLES: ExamLifecycle[] = [];
 
 // Build the 6 pipeline stages from a single exam lifecycle record.
 // count is a student count; null marks a yes/no stage (shown as Done / Pending).
@@ -227,34 +238,15 @@ export default function ExamDashboard() {
   const ayid = selectedAyid ?? "";
 
   // ---- state ----
-  const [courses, setCourses] = useState<CourseStudentCountApiResponse[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [activeSemester, setActiveSemester] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedExamIndex, setSelectedExamIndex] = useState(0);
   const [alertData, setAlertData] = useState<{
     variant: "success" | "error" | "warning" | "info";
     title: string;
     message: string;
   } | null>(null);
-
-  const [totalStudents, setTotalStudents] = useState(0);
-  const [passPercentage, setPassPercentage] = useState(0);
-  const [totalExamsConducted, setTotalExamsConducted] = useState(0);
-  const [atktStudentCount, setAtktStudentCount] = useState(0);
-  const [loadingStats, setLoadingStats] = useState(false);
-
-  const [semesters, setSemesters] = useState<SemesterStudentCountApiResponse[]>(
-    [],
-  );
-  const [passFailData, setPassFailData] = useState<PassFailChartApiResponse[]>(
-    [],
-  );
-  const [examTypeData, setExamTypeData] = useState<ExamTypeDistribution[]>([]);
-
-  const [examLifecycles, setExamLifecycles] = useState<ExamLifecycle[]>([]);
-  const [selectedExamIndex, setSelectedExamIndex] = useState(0);
-  const [loadingLifecycle, setLoadingLifecycle] = useState(false);
 
   const showAlert = (
     variant: "success" | "error" | "warning" | "info",
@@ -266,107 +258,55 @@ export default function ExamDashboard() {
     setTimeout(() => setAlertData(null), timeout);
   };
 
-  // ---- fetches ----
-  const fetchCourses = async () => {
-    if (!ayid) return;
-    try {
-      setIsLoading(true);
-      const data = await DashboardService.GetCourseStudentCount({ Ayid: ayid });
-      setCourses(data);
-      if (data.length > 0) setSelectedCourseId(data[0].courseId);
-    } catch (error) {
-      console.error("Error fetching course student count:", error);
-      showAlert("error", "Error", "Failed to load course data.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // ---- data (cached: the last numbers show at once and are refreshed in the background) ----
+  const coursesQuery = useDashboardCourses(ayid);
+  const statsQuery = useDashboardStats(ayid);
+  const lifecycleQuery = useDashboardLifecycle(ayid);
+  const courseQuery = useDashboardCourse(ayid, selectedCourseId);
 
-  const fetchDashboardStats = async () => {
-    if (!ayid) return;
-    try {
-      setLoadingStats(true);
-      const [
-        totalStudentsResult,
-        passPercentageResult,
-        totalExamsResult,
-        atktResult,
-      ] = await Promise.all([
-        DashboardService.getTotalStudents(ayid),
-        DashboardService.getPassPercentage(ayid),
-        DashboardService.getTotalExamsConducted(ayid),
-        DashboardService.getATKTStudentCount(ayid),
-      ]);
-      setTotalStudents(totalStudentsResult);
-      setPassPercentage(passPercentageResult);
-      setTotalExamsConducted(totalExamsResult);
-      setAtktStudentCount(atktResult);
-      setSelectedExamIndex(0);
-    } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
-      showAlert("error", "Error", "Failed to load dashboard statistics.");
-    } finally {
-      setLoadingStats(false);
-    }
-  };
+  const courses: CourseStudentCountApiResponse[] = coursesQuery.data ?? NO_COURSES;
+  const totalStudents = statsQuery.data?.totalStudents ?? 0;
+  const passPercentage = statsQuery.data?.passPercentage ?? 0;
+  const totalExamsConducted = statsQuery.data?.totalExamsConducted ?? 0;
+  const atktStudentCount = statsQuery.data?.atktStudentCount ?? 0;
+  const semesters: SemesterStudentCountApiResponse[] = courseQuery.data?.semesters ?? NO_SEMESTERS;
+  const passFailData: PassFailChartApiResponse[] = courseQuery.data?.passFail ?? NO_PASS_FAIL;
+  const examTypeData: ExamTypeDistribution[] = courseQuery.data?.examTypes ?? NO_EXAM_TYPES;
+  const examLifecycles: ExamLifecycle[] = lifecycleQuery.data ?? NO_LIFECYCLES;
 
-  const fetchCourseData = async (courseId: string) => {
-    if (!ayid) return;
-    try {
-      setIsLoading(true);
-      const [semestersResult, passFailResult, examTypeResult] =
-        await Promise.all([
-          DashboardService.getSemesterWiseStudentCount(courseId, ayid),
-          DashboardService.getPassFailChart(courseId, ayid),
-          DashboardService.getExamTypeDistribution(courseId, ayid),
-        ]);
-      setSemesters(semestersResult);
-      setPassFailData(passFailResult);
-      setExamTypeData(examTypeResult);
-      setActiveSemester(
-        semestersResult.length > 0 ? semestersResult[0].semesterId : null,
-      );
-    } catch (error) {
-      console.error("Error fetching course data:", error);
-      showAlert("error", "Error", "Failed to load course data.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Lifecycle list (handles both array and single-object responses from the API)
-  const fetchExamLifecycles = async () => {
-    if (!ayid) return;
-    try {
-      setLoadingLifecycle(true);
-      const res = await apiClient.get("/Dashboard/exam-lifecycle", {
-        params: { ayId: ayid },
-      });
-      const body = res.data;
-      const raw = body?.data ?? body;
-      const list: ExamLifecycle[] = Array.isArray(raw) ? raw : [raw];
-      setExamLifecycles(list);
-      setSelectedExamIndex(0);
-    } catch (error) {
-      console.error("Error fetching exam lifecycles:", error);
-      showAlert("error", "Error", "Failed to load exam lifecycle.");
-    } finally {
-      setLoadingLifecycle(false);
-    }
-  };
+  // Spinners only when there is nothing to show yet; a background refresh keeps the old numbers visible.
+  const loadingStats = statsQuery.isPending && !!ayid;
+  const loadingCourses = coursesQuery.isPending && !!ayid;
+  const isLoading = !!selectedCourseId && courseQuery.isPending;
+  const loadingLifecycle = lifecycleQuery.isPending && !!ayid;
+  const isRefreshing =
+    coursesQuery.isFetching || statsQuery.isFetching || lifecycleQuery.isFetching || courseQuery.isFetching;
 
   // ---- effects ----
+  // First course by default, and again when the year changes and the selected course is not in its list.
   useEffect(() => {
-    fetchCourses();
-    fetchDashboardStats();
-    fetchExamLifecycles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ayid]);
+    if (courses.length === 0) return;
+    if (!selectedCourseId || !courses.some((c) => c.courseId === selectedCourseId)) {
+      setSelectedCourseId(courses[0].courseId);
+    }
+  }, [courses, selectedCourseId]);
+
+  // First semester of the shown course when the current one is not in its list.
+  useEffect(() => {
+    if (courseQuery.isPlaceholderData) return;
+    if (!activeSemester || !semesters.some((s) => s.semesterId === activeSemester)) {
+      setActiveSemester(semesters.length > 0 ? semesters[0].semesterId : null);
+    }
+  }, [semesters, activeSemester, courseQuery.isPlaceholderData]);
 
   useEffect(() => {
-    if (selectedCourseId) fetchCourseData(selectedCourseId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCourseId]);
+    setSelectedExamIndex(0);
+  }, [examLifecycles]);
+
+  const failed = coursesQuery.isError || statsQuery.isError || lifecycleQuery.isError || courseQuery.isError;
+  useEffect(() => {
+    if (failed) showAlert("error", "Error", "Some dashboard data could not be loaded.");
+  }, [failed]);
 
   // ---- derived ----
   const currentCourse = courses.find((c) => c.courseId === selectedCourseId);
@@ -480,7 +420,12 @@ export default function ExamDashboard() {
       {/* Course Cards */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-900">Courses</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Courses
+            {isRefreshing && !loadingCourses && (
+              <span className="ml-2 text-xs font-normal text-gray-400">Updating…</span>
+            )}
+          </h2>
           <div className="flex items-center gap-3">
             <button className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
               <Filter className="w-4 h-4 text-gray-600" />
@@ -502,7 +447,7 @@ export default function ExamDashboard() {
           </div>
         </div>
 
-        {isLoading ? (
+        {loadingCourses ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
           </div>
