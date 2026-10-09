@@ -145,7 +145,7 @@ export default function Gazette() {
         gpaSems,
         fileName: getDownloadFileName()
       });
-    } catch (error) {
+    } catch {
       setPageAlert({
         variant: "error",
         title: "Download Failed",
@@ -191,7 +191,7 @@ export default function Gazette() {
         gpaSems,
         fileName: getDownloadFileName()
       });
-    } catch (error) {
+    } catch {
       setPageAlert({
         variant: "error",
         title: "Download Failed",

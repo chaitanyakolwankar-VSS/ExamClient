@@ -16,7 +16,7 @@ export interface Exams {
 }
 export interface UpdateExams {
   ExamId: string;
-  ActiveStatus: Boolean;
+  ActiveStatus: boolean;
 }
 export interface DeleteExams {
   ExamId: string;

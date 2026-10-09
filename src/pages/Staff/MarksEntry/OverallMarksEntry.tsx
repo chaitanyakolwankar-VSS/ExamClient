@@ -198,7 +198,7 @@ export default function OverallMarksEntry() {
             isSingleStudent,
         });
         setIsReportModalOpen(false);
-    } catch (error: any) {
+    } catch {
         setPageAlert({ variant: "error", title: "Export Error", message: "Failed to export Excel report." });
     } finally {
         setReportLoading(false);
@@ -218,7 +218,7 @@ export default function OverallMarksEntry() {
             isSingleStudent,
         });
         setIsReportModalOpen(false);
-    } catch (error: any) {
+    } catch {
         setPageAlert({ variant: "error", title: "Export Error", message: "Failed to export PDF report." });
     } finally {
         setReportLoading(false);

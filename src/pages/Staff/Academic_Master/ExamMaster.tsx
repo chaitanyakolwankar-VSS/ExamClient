@@ -72,27 +72,6 @@ export default function ExamDashboard() {
     // 🔹 RevalType
     const [RevalExam, setRevalExam] = useState(false);
 
-    const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-    const [editingRowId, setEditingRowId] = useState<string | null>(null);
-
-    const [editingName, setEditingName] = useState<string>(""); // temp value
-
-    const toggleRow = (id: string) => {
-        setSelectedIds((prev) =>
-            prev.includes(id)
-                ? prev.filter((x) => x !== id)
-                : [...prev, id]
-        );
-    };
-
-    const toggleAll = (checked: boolean) => {
-        if (checked) {
-            setSelectedIds(examData.map((x) => x.examId));
-        } else {
-            setSelectedIds([]);
-        }
-    };
     // The two calendar years of the selected academic year, e.g. "24-25" -> 24 / 25.
     const YearOptions = useMemo<Option[]>(() => {
         if (!ayid) return [];

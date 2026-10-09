@@ -133,9 +133,15 @@ export const ReportService = {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      const data = (error as { response?: { data?: unknown } }).response?.data;
-      if (data instanceof Blob) {
-        const text = await data.text();
+      // With responseType "blob" the API's error body arrives as a Blob too; turn it back into JSON so the
+      // caller can show the API's message.
+      const response = (error as { response?: { data?: unknown } }).response;
+      if (response?.data instanceof Blob) {
+        try {
+          response.data = JSON.parse(await response.data.text());
+        } catch {
+          /* not JSON: leave it as it is */
+        }
       }
 
       throw error;

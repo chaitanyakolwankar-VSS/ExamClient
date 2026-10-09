@@ -5,16 +5,13 @@ import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
 import Alert from "../../../components/ui/alert/Alert";
 import { useCourses, usePatterns, useSemesters, useAcademicYear, toCourseOptions, toPatternOptions, toSemesterOptions } from "../../../data";
-import { EligibilityAssignedStudent ,StudentPromotionService,UpdateEligibilityRequest,StudentData,EligibilityUnAssignedStudent} from "../../../services/StudentPromotionService";
+import { EligibilityAssignedStudent ,StudentPromotionService,UpdateEligibilityRequest,EligibilityUnAssignedStudent} from "../../../services/StudentPromotionService";
 import DataTable from "../../../components/ui/table/DataTable";
 import Swal from "sweetalert2";
 import Switch from "../../../components/form/switch/Switch";
-import { Plus, Trash2, Edit, X, Pencil, Save, RefreshCcw, CheckCircle, Eye, Copy, Delete,Loader2 } from "lucide-react";
-import { number } from "framer-motion";
+import { Edit, X, Save, Eye, Loader2 } from "lucide-react";
 import { FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
-import Input from "../../../components/form/input/InputField";
-import { set } from "nprogress";
 import { Modal } from "../../../components/ui/modal";
 import Badge from "../../../components/ui/badge/Badge";
 
@@ -266,17 +263,6 @@ const handleSelectAll = (checked: boolean) => {
     }
 };
 
-const handleSwitch1 = (id: string, checked: boolean) => {
-    if (checked) {
-        setSelectedStudents(prev =>
-            prev.includes(id) ? prev : [...prev, id]
-        );
-    } else {
-        setSelectedStudents(prev =>
-            prev.filter(x => x !== id)
-        );
-    }
-};
 const handleSwitch = (id: string, checked: boolean) => {
 
     // Selected students update

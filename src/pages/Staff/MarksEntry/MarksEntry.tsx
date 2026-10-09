@@ -29,8 +29,7 @@ export default function MarksEntry() {
   const [selectedSemester, setSelectedSemester] = useState("");
   const [selectedExam, setSelectedExam] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
-  const [studentId, setStudentId] = useState("");
-  const [showStudentIdSearch, setShowStudentIdSearch] = useState(false);
+  const [studentId] = useState("");
   const [rank, setRank] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -182,7 +181,7 @@ export default function MarksEntry() {
       } else {
         setPageAlert({ variant: "error", title: "Error", message: res.message });
       }
-    } catch (error) {
+    } catch {
       setPageAlert({ variant: "error", title: "Error", message: "Failed to fetch marks data." });
     } finally {
       setLoading(false);
@@ -315,7 +314,7 @@ export default function MarksEntry() {
         } else {
             Swal.fire("Error", res.message, "error");
         }
-    } catch (error) {
+    } catch {
         Swal.fire("Error", "Failed to save marks.", "error");
     } finally {
         setLoading(false);
@@ -350,7 +349,7 @@ export default function MarksEntry() {
       a.download = `${cleanName}.xlsx`;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       Swal.fire("Error", "Failed to download template.", "error");
     }
   };

@@ -224,7 +224,7 @@ export default function SubjectMaster() {
       setCredits(1);
       setCreditInput(String(1));
       setSubject("");
-    } catch (error) {
+    } catch {
       Swal.fire({
         title: "Failed!",
         text: "Something went wrong !!",
@@ -260,7 +260,7 @@ export default function SubjectMaster() {
       const payload: SaveCreditsPayload = {
         subjectId: subject,
         ayid: ayid,
-        credits: creditData.map((item, index) => ({
+        credits: creditData.map((item) => ({
           creditId: item.creditId,
           // creditNo: String(index + 1),
           creditNo: String(item.creditNo),
@@ -309,7 +309,7 @@ export default function SubjectMaster() {
       setIsEditMode(false);
       setCredits(0);
       setCreditData([]);
-    } catch (error) {
+    } catch {
       Swal.fire({
         title: "Failed!",
         text: "Something went wrong while saving credits",
@@ -337,7 +337,7 @@ export default function SubjectMaster() {
       const payload: SaveCreditsPayload = {
         subjectId: subject,
         ayid: ayid,
-        credits: creditData.map((item, index) => ({
+        credits: creditData.map((item) => ({
           creditId: item.creditId,
           creditNo: String(item.creditNo),
 
@@ -388,7 +388,7 @@ export default function SubjectMaster() {
       setIsViewMode(false);
       setCredits(0);
       setCreditData([]);
-    } catch (error) {
+    } catch {
       return Swal.fire({
         title: "Error!",
         text: "Something went wrong while saving credits",
@@ -487,7 +487,7 @@ export default function SubjectMaster() {
       const payload: DeleteCredits = {
         subjectId: subject,
         ayid: ayid,
-        credits: creditData.map((item, index) => ({
+        credits: creditData.map((item) => ({
           creditId: item.creditId,
         })),
       };
@@ -517,7 +517,7 @@ export default function SubjectMaster() {
       setCredits(1);
       setCreditInput(String(1));
     }
-    catch (error) {
+    catch {
       Swal.fire({
         title: "Error!",
         text: "Something went wrong !!",
@@ -578,7 +578,7 @@ export default function SubjectMaster() {
         });
       }
       resetCreditFlow();
-    } catch (error) {
+    } catch {
       Swal.fire({
         title: "Error!",
         text: "Something went wrong !!",
@@ -799,7 +799,7 @@ export default function SubjectMaster() {
           timer: 1000,
         });
       }
-    } catch (error) {
+    } catch {
       Swal.fire({
         title: "Failed!",
         text: "Something went wrong",
@@ -1056,7 +1056,6 @@ export default function SubjectMaster() {
                 const isInternalSelected = Object.values(
                   creditData[index]?.internalType || {}
                 ).some(Boolean);
-                const isAnyTypeSelected = isExamSelected || isInternalSelected;
                 return (
                   <Table key={index} className="border border-gray-200">
                     <TableBody>

@@ -274,7 +274,7 @@ const Reset=()=>{
             message: res.message,
           });
       }
-    } catch (err) {
+    } catch {
        return setAlert({
             variant: "error",
             title: "Error",

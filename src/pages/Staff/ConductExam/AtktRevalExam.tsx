@@ -463,7 +463,6 @@ export default function AtktRevalExam() {
         return ea !== eb ? ea - eb : orderOf(a.subjectId) - orderOf(b.subjectId);
       });
 
-  const filters = useMemo(() => ({}), []);
 
   const columns = useMemo(() => {
     const base: Column<AtktStudentRow>[] = [

@@ -1,5 +1,4 @@
 import apiClient from "../api/Client";
-import { Response } from "./Response";
 export interface PromotionRequest {
     CourseId: string;
     Semester: string;

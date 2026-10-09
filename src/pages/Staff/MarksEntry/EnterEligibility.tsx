@@ -3,8 +3,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
 import { useCourses, useSemesters, useAcademicYear, toCourseOptions, toSemesterOptions } from "../../../data";
-import Switch from "../../../components/form/switch/Switch";
-import { Plus, Trash2, Edit, X, Pencil, Save, RefreshCcw, CheckCircle, Eye, Copy, Delete } from "lucide-react";
+import { Save } from "lucide-react";
 import Checkbox from "../../../components/form/input/Checkbox";
 import DataTable from "../../../components/ui/table/DataTable";
 import { SemesterData, EligibilityStudents, EligibilityService, GetEligibilityStudents } from "../../../services/EligibilityService";
@@ -20,14 +19,6 @@ export type RenderResult = {
   colSpan?: number;
   skip?: boolean;
 };
-interface Column<T = any> {
-  key: string;
-  label: string;
-  className?: string;
-  sortable?: boolean;
-  group?: boolean;
-  render?: (row: T) => React.ReactNode | RenderResult;
-}
 type AlertVariant = "success" | "warning" | "error" | "info";
 interface AlertState {
   variant: AlertVariant;
@@ -68,7 +59,7 @@ export default function EnterEligibility() {
 
   const filters = useMemo(() => ({}), []);
   const selectedSems = useMemo(() => {
-    let sems: number[] = [];
+    const sems: number[] = [];
 
     if (FirstYear_checked) {
       sems.push(1, 2);

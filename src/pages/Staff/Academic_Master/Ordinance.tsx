@@ -287,7 +287,7 @@ export default function Ordinance() {
           });
         }
       }
-    } catch (error) {
+    } catch {
       setPageAlert({ variant: "error", title: "Error", message: "Unexpected error linking Grade Master." });
     } finally {
       setIsLinkingGrade(false);
@@ -355,7 +355,7 @@ export default function Ordinance() {
       } else {
         setGradeModalAlert({ variant: "error", title: "Error", message: response.message });
       }
-    } catch (error) {
+    } catch {
       setGradeModalAlert({ variant: "error", title: "Error", message: "Unexpected error occurred." });
     } finally {
       setIsGradeSubmitting(false);
@@ -453,7 +453,7 @@ export default function Ordinance() {
       setPatternOptions(
         data.map((p) => ({ value: p.patternId || "", label: p.patternName })),
       );
-    } catch (error) {
+    } catch {
       const alertPayload = {
         variant: "error" as const,
         title: "Error",
@@ -502,7 +502,7 @@ export default function Ordinance() {
           message: response.message || "Operation failed.",
         });
       }
-    } catch (error) {
+    } catch {
       setPatternModalAlert({
         variant: "error",
         title: "Error!",
@@ -541,7 +541,7 @@ export default function Ordinance() {
               message: response.message || "Failed to delete pattern.",
             });
           }
-        } catch (error) {
+        } catch {
           setPatternModalAlert({
             variant: "error",
             title: "Error!",
@@ -584,7 +584,7 @@ export default function Ordinance() {
           .filter((rs) => rs.isActive)
           .map((rs) => ({ value: rs.ruleSetId || "", label: rs.name })),
       );
-    } catch (error) {
+    } catch {
       const alertPayload = {
         variant: "error" as const,
         title: "Error",
@@ -667,7 +667,7 @@ export default function Ordinance() {
           message: response.message || "Operation failed.",
         });
       }
-    } catch (error) {
+    } catch {
       setRuleSetModalAlert({
         variant: "error",
         title: "Error!",
@@ -705,7 +705,7 @@ export default function Ordinance() {
               message: response.message || "Failed to delete ruleset.",
             });
           }
-        } catch (error) {
+        } catch {
           setRuleSetModalAlert({
             variant: "error",
             title: "Error!",
@@ -730,7 +730,7 @@ export default function Ordinance() {
     try {
       const data = await OrdinanceService.getRules(ruleSetId);
       setRules(data);
-    } catch (error) {
+    } catch {
       setPageAlert({
         variant: "error",
         title: "Error",
@@ -907,7 +907,7 @@ export default function Ordinance() {
               message: response.message || "Failed to delete rule.",
             });
           }
-        } catch (error) {
+        } catch {
           setPageAlert({
             variant: "error",
             title: "Error",

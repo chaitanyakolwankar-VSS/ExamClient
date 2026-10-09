@@ -350,7 +350,7 @@ export default function GenerateHallTicket() {
       return Swal.fire("Error", "Academic Year missing", "error");
     }
     
-    let hallticketmode = SingleStudent ? "Single" : "All";
+    const hallticketmode = SingleStudent ? "Single" : "All";
 
     const payload: StudentHallTicketDataRequest = {
       Ayid: ayid,

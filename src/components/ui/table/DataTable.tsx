@@ -47,7 +47,7 @@ const DataTable: React.FC<DataTableProps> = ({
     let result = [...data];
 
     // Custom Filters
-    for (let key in filters) {
+    for (const key in filters) {
       const value = filters[key];
       if (value !== undefined && value !== "" && value !== null) {
         result = result.filter(

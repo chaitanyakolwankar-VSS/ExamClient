@@ -162,7 +162,7 @@ export default function RoleMaster() {
         await RoleMasterService.DeleteRole(roleId); 
         Swal.fire("Deleted!", "Role has been deleted.", "success");  
         fetchRoles(); 
-      } catch (err) { 
+      } catch { 
         Swal.fire("Error!", "Failed to delete role.", "error");  
       }
     }

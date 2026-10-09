@@ -1,5 +1,4 @@
 import apiClient from "../api/Client";
-import { Response } from "./Response";
 import { ExamApiResponse,ExamApiRequest } from "./RegularExamService";
 export interface HeadTypeRequest {
     Ayid: string;

@@ -696,7 +696,7 @@ export default function StudentMaster() {
       }
 
       setDataList(Array.isArray(data) ? data : []);
-    } catch (err) {
+    } catch {
       setAlert2({
         variant: "warning",
         title: "Error",

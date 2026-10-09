@@ -18,17 +18,8 @@ import {
 } from "../../../data";
 import Swal from "sweetalert2";
 import {
-  Plus,
-  Trash2,
-  Edit,
   X,
-  Pencil,
   Save,
-  RefreshCcw,
-  CheckCircle,
-  Eye,
-  Copy,
-  Delete,
 } from "lucide-react";
 import DataTable from "../../../components/ui/table/DataTable";
 import Switch from "../../../components/form/switch/Switch";

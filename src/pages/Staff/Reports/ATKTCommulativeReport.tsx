@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import PageMeta from "../../../components/common/PageMeta"; 
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
@@ -6,9 +6,8 @@ import { useCourses, usePatterns, useSemesters, useAcademicYear, toCourseOptions
 import Swal from "sweetalert2";
 import { ExamApiRequest ,ExamApiResponse} from "../../../services/RegularExamService";
 import { ATKTCommulativeReportService,HeadTypeRequest,HeadTypeResponse ,AtktReportRequest,AtktReportResponse} from "../../../services/ATKTCommulativeReportService";
-import { Save, StretchVertical } from "lucide-react";
+import { Save } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
-import { saveAs } from "file-saver";
 import DataTable from "../../../components/ui/table/DataTable";
 
 interface Option {
