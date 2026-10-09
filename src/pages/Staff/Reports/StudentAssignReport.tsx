@@ -22,7 +22,6 @@ import {
   StudentCreditReportResponse,
 } from "../../../services/StudentAssignRptService";
 import DataTable from "../../../components/ui/table/DataTable";
-import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
@@ -250,31 +249,22 @@ const StudentAssignReport = () => {
         return Swal.fire("No Data", "There is no data to download", "info");
       }
 
-      const rows = assignData.map((r) => ({
-        "Seat No.": r.seatNo,
-        "Student ID": r.studentID,
-        "Student Name": r.name,
-        "Subject Code": r.subjectCode,
-        "Subject Name": r.subjectName,
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      worksheet["!cols"] = [
-        { wch: 14 },
-        { wch: 16 },
-        { wch: 30 },
-        { wch: 16 },
-        { wch: 45 },
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Student Assign Report");
+      worksheet.columns = [
+        { header: "Seat No.", key: "seatNo", width: 14 },
+        { header: "Student ID", key: "studentID", width: 16 },
+        { header: "Student Name", key: "name", width: 30 },
+        { header: "Subject Code", key: "subjectCode", width: 16 },
+        { header: "Subject Name", key: "subjectName", width: 45 },
       ];
-
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Student Assign Report");
+      worksheet.addRows(assignData);
 
       const fileName = `StudentAssignReport_${courseName}_${pattern}_${semester}.xlsx`
         .replace(/[\\/:*?"<>|]/g, "")
         .replace(/\s+/g, "_");
 
-      XLSX.writeFile(workbook, fileName);
+      saveAs(new Blob([await workbook.xlsx.writeBuffer()]), fileName);
     } else {
       const dataToExport =
         filteredCreditRows.length > 0 ? filteredCreditRows : pivotedCreditRows;

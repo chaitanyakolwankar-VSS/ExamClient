@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, ChangeEvent } from "react";
-import * as XLSX from "xlsx";
+import { readExcelRows } from "../../../utils/readExcel";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
 import Button from "../../../components/ui/button/Button";
@@ -366,20 +366,15 @@ export default function MarksEntry() {
       return;
     }
 
-    if (!/\.xlsx?$/i.test(file.name)) {
-      setPageAlert({ variant: "error", title: "Invalid file", message: "Only .xlsx and .xls files can be imported." });
+    if (!/\.xlsx$/i.test(file.name)) {
+      setPageAlert({ variant: "error", title: "Invalid file", message: "Only .xlsx files can be imported. Use the downloaded template." });
       e.target.value = "";
       return;
     }
 
     setLoading(true);
     try {
-        const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: "array" });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        const jsonData = await readExcelRows(file);
         
         if (jsonData.length < 2) {
             Swal.fire("Error", "The imported Excel file is empty or missing data.", "error");
@@ -427,7 +422,7 @@ export default function MarksEntry() {
         const newMarksData = marksData.map(student => {
             const excelRow = dataRows.find(row => 
                 row[studentIdIndex] !== undefined && row[studentIdIndex] !== null &&
-                row[studentIdIndex].toString().trim().toLowerCase() === student.studentId.toString().trim().toLowerCase()
+                String(row[studentIdIndex]).trim().toLowerCase() === student.studentId.toString().trim().toLowerCase()
             );
             if (!excelRow) return student;
 
@@ -442,7 +437,7 @@ export default function MarksEntry() {
                 });
                 
                 if (mapping && excelRow[mapping.colIndex] !== undefined && excelRow[mapping.colIndex] !== null) {
-                    let rawMarks = excelRow[mapping.colIndex].toString().trim().toUpperCase();
+                    let rawMarks = String(excelRow[mapping.colIndex]).trim().toUpperCase();
                     // Auto-fix decimals if excel formatted them weirdly
                     if (!isNaN(Number(rawMarks)) && rawMarks !== "") {
                         rawMarks = Math.round(Number(rawMarks)).toString();
@@ -789,7 +784,7 @@ export default function MarksEntry() {
                       type="file" 
                       ref={fileInputRef} 
                       style={{ display: "none" }} 
-                      accept=".xlsx, .xls"
+                      accept=".xlsx"
                       onChange={handleImportExcel}
                   />
                   <Button variant="primary" onClick={() => fileInputRef.current?.click()} className="whitespace-nowrap h-11">

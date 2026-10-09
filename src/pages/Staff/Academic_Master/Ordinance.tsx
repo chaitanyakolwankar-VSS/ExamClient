@@ -64,6 +64,11 @@ const withCurrentValue = (
     ? [...options, { value, label: value }]
     : options;
 
+/** UpgradeGrade with no % (param 1), marks (param 2) or Max Limit spends a default pool on the API (UpgradeGradeHandler). */
+const UPGRADE_DEFAULT_POOL = 10;
+const usesDefaultUpgradePool = (a: Pick<RuleAction, "actionType" | "param1Value" | "param2Value" | "maxLimit">) =>
+  a.actionType === "UpgradeGrade" && !((a.param1Value ?? 0) > 0) && !((a.param2Value ?? 0) > 0) && !((a.maxLimit ?? 0) > 0);
+
 const GRADE_PRESETS = [
   { value: "10pt_cbgs", label: "10-Point Scale (CBGS)" },
   { value: "7pt", label: "7-Point Scale" },
@@ -999,6 +1004,7 @@ export default function Ordinance() {
       if (a.param1Type !== "None") summary += ` (${a.param1Type}: ${a.param1Value ?? 0})`;
       summary += ` to ${a.target}`;
       if ((a.maxLimit ?? 0) > 0) summary += ` (Max: ${a.maxLimit})`;
+      else if (usesDefaultUpgradePool(a)) summary += ` (Max: ${UPGRADE_DEFAULT_POOL}, default)`;
       return summary;
     });
 
@@ -1440,6 +1446,11 @@ export default function Ordinance() {
                         value={act.maxLimit?.toString() ?? ""}
                         onChange={(e) => updateAction(idx, "maxLimit", parseFloat(e.target.value) || 0)}
                       />
+                      {usesDefaultUpgradePool(act) && (
+                        <p className="mt-1 text-xs text-gray-400" title="No % or marks limit and no Max Limit set">
+                          Default: {UPGRADE_DEFAULT_POOL} marks
+                        </p>
+                      )}
                     </td>
                     <td className="px-2 py-2">
                       <Input

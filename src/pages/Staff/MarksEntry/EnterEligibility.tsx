@@ -9,9 +9,8 @@ import Checkbox from "../../../components/form/input/Checkbox";
 import DataTable from "../../../components/ui/table/DataTable";
 import { SemesterData, EligibilityStudents, EligibilityService, GetEligibilityStudents } from "../../../services/EligibilityService";
 import Swal from "sweetalert2";
-//import * as XLSX from "xlsx";
 import Alert from "../../../components/ui/alert/Alert";
-import * as XLSX from "xlsx";
+import { readExcelObjects } from "../../../utils/readExcel";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
@@ -386,21 +385,9 @@ const exportToCSV = async () => {
     );
     return;
   }
-    const reader = new FileReader();
-
-    reader.onload = (evt: any) => {
-      const data = new Uint8Array(evt.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData: any[] = XLSX.utils.sheet_to_json(sheet);
-
-      console.log("Excel Data 👉", jsonData);
-
-      convertToEligibility(jsonData);
-    };
-
-    reader.readAsArrayBuffer(file);
+    readExcelObjects(file)
+      .then(convertToEligibility)
+      .catch(() => Swal.fire("Error", "The file could not be read. Use the downloaded .xlsx template.", "error"));
   };
   const convertToEligibility = (rows: any[]) => {
     const result: EligibilityStudents[] = [];
@@ -614,7 +601,7 @@ const exportToCSV = async () => {
           )}
           <input
             type="file"
-            accept=".xlsx, .xls, .csv"
+            accept=".xlsx"
             ref={fileInputRef}
             style={{ display: "none" }}
             onChange={handleFileUpload}
