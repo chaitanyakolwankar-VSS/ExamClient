@@ -10,9 +10,9 @@ import { lookupKeys } from "../data/queryKeys";
 /**
  * The one place that knows which academic year is selected.
  *
- * Years come from the lookup bootstrap (one shared request). The selection lives here (React state) and is
- * still mirrored to localStorage "AYID" / "academicYear" so screens that have not moved to the hooks yet keep
- * working; remove that mirror when the last screen has been migrated (T-19 layer C).
+ * Years come from the lookup bootstrap (one shared request). The selection lives here (React state); only the
+ * chosen year's label is remembered in localStorage "academicYear" so a reload keeps it. Screens read the
+ * year through useAcademicYear(), never from localStorage.
  *
  * Every AY-dependent lookup query carries the ayid in its key (see data/queryKeys.ts), so changing the year
  * refetches them automatically.
@@ -80,20 +80,11 @@ export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({ 
     [years, selected],
   );
 
-  // Mirror kept for team branches' un-migrated screens; remove after they move to useAcademicYear() (T-19 D).
-  // Mirror to localStorage during render (idempotent) rather than in an effect: child screens' effects run
-  // before a parent effect would, and un-migrated screens read localStorage "AYID" from theirs.
-  if (resolved && localStorage.getItem("AYID") !== resolved.ayid) {
-    localStorage.setItem("academicYear", resolved.shortDuration);
-    localStorage.setItem("AYID", resolved.ayid);
-  }
-
   const setAcademicYear = (yearString: string) => {
     const match = years.find((y) => y.shortDuration === yearString);
     if (!match) return;
     setSelected(match.shortDuration);
     localStorage.setItem("academicYear", match.shortDuration);
-    localStorage.setItem("AYID", match.ayid);
   };
 
   const isLoading = !!collegeId && !resolved && (bootstrap.isPending || (bootstrap.isError && legacy.isPending));

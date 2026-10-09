@@ -14,11 +14,6 @@ export interface Exams {
   examType: string;
   isActive: boolean | null;
 }
-export interface GetExams {
-  Courseid: string;
-  Ayid: string;
-}
-
 export interface UpdateExams {
   ExamId: string;
   ActiveStatus: Boolean;
@@ -96,13 +91,6 @@ export const ExamService = {
       "/ExamMaster/get-creditHeadResolution",
       { params },
     );
-    return response.data;
-  },
-  /** @deprecated Use useExams({ purpose: "master" }) from src/data. Kept with its API endpoint for team branches (T-19 D). */
-  async GetExam(params: GetExams): Promise<Exams[]> {
-    const response = await apiClient.get<Exams[]>("/ExamMaster/get-exam", {
-      params,
-    });
     return response.data;
   },
   async UpdateExam(Exam: UpdateExams): Promise<Response> {
