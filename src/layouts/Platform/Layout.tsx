@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import PageFallback from "../../components/common/PageFallback";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import { AnimatePresence } from "framer-motion";
 import { Building2, GraduationCap, KeyRound } from "lucide-react";
@@ -62,7 +64,9 @@ export default function PlatformLayout() {
       <main className="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
         <AnimatePresence mode="wait">
           <PageTransition key={location.pathname}>
-            <Outlet />
+            <Suspense fallback={<PageFallback />}>
+              <Outlet />
+            </Suspense>
           </PageTransition>
         </AnimatePresence>
       </main>

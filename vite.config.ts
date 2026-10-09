@@ -7,6 +7,9 @@ const slashed = (p: string) => `/${p.replace(/^\/+|\/+$/g, "")}/`.replace(/^\/\/
 /**
  * IIS rewrite for the single-page app: every path that is not a real file goes to index.html under
  * the app's own base path, so the rule always matches the folder the build is deployed to.
+ * Caching: files in assets/ carry a content hash in their name, so browsers may keep them for a year;
+ * everything else (index.html above all) is revalidated on every visit so a new build shows at once.
+ * Static compression is switched on for the folder (used when the IIS feature is installed).
  */
 const iisWebConfig = (base: string): Plugin => ({
   name: "iis-web-config",
@@ -17,7 +20,18 @@ const iisWebConfig = (base: string): Plugin => ({
       fileName: "web.config",
       source: `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
+  <location path="assets">
+    <system.webServer>
+      <staticContent>
+        <clientCache cacheControlMode="UseMaxAge" cacheControlMaxAge="365.00:00:00" cacheControlCustom="immutable" />
+      </staticContent>
+    </system.webServer>
+  </location>
   <system.webServer>
+    <urlCompression doStaticCompression="true" doDynamicCompression="false" />
+    <staticContent>
+      <clientCache cacheControlMode="DisableCache" />
+    </staticContent>
     <rewrite>
       <rules>
         <rule name="React Route Rewrite" stopProcessing="true">
