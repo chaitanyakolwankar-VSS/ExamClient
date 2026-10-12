@@ -22,8 +22,44 @@ export const StudentMasterService = {
   SearchStudents(payload: any, ayid: string) {
     return apiClient.post("/StudentMaster/SearchStudents", { ...payload, AYID: ayid })
       .then(res => res.data);
-  }
+  },
+  /** The Excel template for one branch + semester + pattern + year; returns the file and the API's file name. */
+  async DownloadTemplate(p: StudentBatch): Promise<{ blob: Blob; fileName: string }> {
+    const res = await apiClient.get<Blob>("/StudentMaster/DownloadExcelTemplate", {
+      params: { CourseId: p.courseId, SemesterId: p.semesterId, Pattern: p.pattern, AYID: p.ayid },
+      responseType: "blob",
+    });
+    const disposition = String(res.headers["content-disposition"] ?? "");
+    const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+    return { blob: res.data, fileName: match ? decodeURIComponent(match[1]) : "Students.xlsx" };
+  },
+  /** Imports the filled-in template; nothing is saved unless every row is valid. */
+  async ImportStudents(p: StudentBatch, file: File): Promise<StudentImportResult> {
+    const form = new FormData();
+    form.append("File", file);
+    form.append("CourseId", p.courseId);
+    form.append("SemesterId", p.semesterId);
+    form.append("Pattern", p.pattern);
+    form.append("AYID", p.ayid);
+    const res = await apiClient.post<StudentImportResult>("/StudentMaster/ImportStudents", form);
+    return res.data;
+  },
 };
+
+/** Where a batch of students is enrolled: branch, semester, pattern and academic year. */
+export interface StudentBatch {
+  courseId: string;
+  semesterId: string;
+  pattern: string;
+  ayid: string;
+}
+
+export interface StudentImportResult {
+  success: boolean;
+  message: string;
+  /** One line per problem row, e.g. "Row 5: gender must be Male or Female." */
+  errors: string[];
+}
 
 
  

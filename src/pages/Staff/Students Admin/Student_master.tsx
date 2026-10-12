@@ -412,11 +412,12 @@
 //   );
 // }
 //===============================================================
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
 import { StudentMasterService } from "../../../services/Student_MasterService";
-import { useCourses, useSemesters, useAcademicYear, toCourseOptions, toSemesterOptions } from "../../../data";
+import { useCourses, useSemesters, usePatterns, useAcademicYear, toCourseOptions, toSemesterOptions, toPatternOptions } from "../../../data";
+import { saveAs } from "file-saver";
 import Input from "../../../components/form/input/InputField";
 import Radio from "../../../components/form/input/Radio";
 import Switch from "../../../components/form/switch/Switch";
@@ -456,6 +457,15 @@ export default function StudentMaster() {
   const ayid = currentAyid ?? "";
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("");
+  // Pattern (e.g. NEP): exam assignment lists students by branch + semester + pattern. Pre-selected when the
+  // college has only one.
+  const { data: patterns } = usePatterns();
+  const patternOptions = useMemo<SelectOption[]>(() => toPatternOptions(patterns), [patterns]);
+  const [selectedPattern, setSelectedPattern] = useState("");
+  const defaultPattern = patternOptions.length === 1 ? patternOptions[0].value : "";
+  useEffect(() => {
+    if (!selectedPattern && defaultPattern) setSelectedPattern(defaultPattern);
+  }, [selectedPattern, defaultPattern]);
   const [firstname, setFirstName] = useState("");
   const [middlename, setMidleName] = useState("");
   const [lastname, setLastName] = useState("");
@@ -479,6 +489,7 @@ export default function StudentMaster() {
   const handleRefresh = () => {
     setSelectedCourse("");
     setSelectedSemester("");
+    setSelectedPattern(defaultPattern);
     setFirstName("");
     setMidleName("");
     setLastName("");
@@ -504,6 +515,7 @@ export default function StudentMaster() {
     // New Student Fields
     setSelectedCourse("");
     setSelectedSemester("");
+    setSelectedPattern(defaultPattern);
     setFirstName("");
     setMidleName("");
     setLastName("");
@@ -557,6 +569,7 @@ export default function StudentMaster() {
     if (
       !selectedCourse ||
       !selectedSemester ||
+      !selectedPattern ||
       !firstname ||
       !lastname ||
       !category ||
@@ -573,6 +586,7 @@ export default function StudentMaster() {
     const payload = {
       courseId: selectedCourse,
       semesterId: selectedSemester,
+      pattern: selectedPattern,
       firstname: firstname,
       middlename: middlename || null,
       lastname: lastname,
@@ -586,27 +600,124 @@ export default function StudentMaster() {
     };
     try {
       const res = await StudentMasterService.SaveStudent(payload);
-
-      const studentId = res.data.studentId;
+      // The API answers with the new ID as plain text.
+      const studentId = typeof res.data === "string" ? res.data : res.data?.studentId;
 
       await Swal.fire({
         icon: "success",
         title: "Saved Successfully!",
         text: `Student ID: ${studentId}`,
-
         confirmButtonText: "OK",
       });
-      window.location.reload();
+      // Ready for the next student of the same branch, semester and pattern.
+      setFirstName("");
+      setMidleName("");
+      setLastName("");
+      setCategory("");
+      setPrn("");
+      setGender("");
+      setDyslexia(false);
+      setPhotoData(null);
+      setSignData(null);
+      setRefreshKey((prev) => prev + 1);
     } catch (err) {
-      console.error(err);
-
+      // Keep what was typed; show the API's reason (e.g. "PRN already exists").
+      const data = (err as { response?: { data?: unknown } }).response?.data;
+      const reason = typeof data === "string" ? data : (data as { message?: string } | undefined)?.message;
       await Swal.fire({
         icon: "error",
         title: "Save Failed",
-        text: "Error saving student. Please try again.",
+        text: reason || "Error saving student. Please try again.",
         confirmButtonText: "OK",
       });
-      window.location.reload();
+    }
+  };
+
+  // ---- Excel: template download and import for the selected branch + semester + pattern ----
+  const importInput = useRef<HTMLInputElement>(null);
+  const [excelBusy, setExcelBusy] = useState(false);
+
+  const excelBatch = () => {
+    if (!selectedCourse || !selectedSemester || !selectedPattern) {
+      Swal.fire("Select first", "Choose the branch, semester and pattern the students belong to.", "warning");
+      return null;
+    }
+    if (!ayid) {
+      Swal.fire("Select first", "Choose the academic year in the header.", "warning");
+      return null;
+    }
+    return { courseId: selectedCourse, semesterId: selectedSemester, pattern: selectedPattern, ayid };
+  };
+
+  const apiMessage = (err: unknown, fallback: string) => {
+    const data = (err as { response?: { data?: unknown } }).response?.data;
+    return (data as { message?: string } | undefined)?.message || fallback;
+  };
+
+  const downloadTemplate = async () => {
+    const batch = excelBatch();
+    if (!batch) return;
+    setExcelBusy(true);
+    try {
+      const { blob, fileName } = await StudentMasterService.DownloadTemplate(batch);
+      saveAs(blob, fileName);
+    } catch (err) {
+      // With responseType "blob" the error body is a Blob too.
+      let message = "The template could not be downloaded.";
+      const data = (err as { response?: { data?: unknown } }).response?.data;
+      if (data instanceof Blob) {
+        try {
+          message = JSON.parse(await data.text()).message || message;
+        } catch {
+          /* keep the generic message */
+        }
+      }
+      Swal.fire("Download failed", message, "error");
+    } finally {
+      setExcelBusy(false);
+    }
+  };
+
+  const chooseImportFile = () => {
+    if (excelBatch()) importInput.current?.click();
+  };
+
+  const importFile = async (file: File | undefined) => {
+    const batch = excelBatch();
+    if (!file || !batch) return;
+    if (!/\.xlsx$/i.test(file.name)) {
+      Swal.fire("Wrong file", "Choose the filled-in template (.xlsx) downloaded with the Excel button.", "warning");
+      return;
+    }
+    const branch = courseOptions.find((c) => c.value === selectedCourse)?.label ?? "";
+    const semester = semesterOptions.find((s) => s.value === selectedSemester)?.label ?? selectedSemester;
+    const confirm = await Swal.fire({
+      icon: "question",
+      title: "Import students?",
+      html: `<b>${file.name}</b><br/>into ${branch}, ${semester}, ${selectedPattern}`,
+      showCancelButton: true,
+      confirmButtonText: "Import",
+    });
+    if (!confirm.isConfirmed) return;
+
+    setExcelBusy(true);
+    try {
+      const result = await StudentMasterService.ImportStudents(batch, file);
+      if (result.success) {
+        await Swal.fire("Imported", result.message, "success");
+      } else {
+        const lines = result.errors.slice(0, 15).map((e) => `<li>${e.replace(/</g, "&lt;")}</li>`).join("");
+        const more = result.errors.length > 15 ? `<li>… and ${result.errors.length - 15} more</li>` : "";
+        await Swal.fire({
+          icon: "error",
+          title: "Nothing imported",
+          html: `${result.message}<ul style="text-align:left;margin-top:8px;font-size:13px">${lines}${more}</ul>`,
+        });
+      }
+    } catch (err) {
+      Swal.fire("Import failed", apiMessage(err, "The file could not be imported."), "error");
+    } finally {
+      setExcelBusy(false);
     }
   };
 
@@ -838,16 +949,44 @@ export default function StudentMaster() {
               value={selectedSemester}
               onChange={setSelectedSemester}
             />
+            <Select
+              options={patternOptions}
+              placeholder="Select Pattern"
+              value={selectedPattern}
+              onChange={setSelectedPattern}
+            />
             <div className="flex">
               <div className="flex rounded-lg border border-white-600 overflow-hidden">
-                <button className="flex items-center gap-4 px-4 py-2 text-sm font-medium bg-green-600 text-white">
+                <button
+                  type="button"
+                  onClick={downloadTemplate}
+                  disabled={excelBusy}
+                  title="Download the Excel template for the selected branch, semester and pattern"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-green-600 text-white disabled:opacity-60"
+                >
                   <FaFileExcel className="text-lg" />
                   Excel
                 </button>
-                <button className="px-4 py-2 text-md font-medium border-l border-blue-600 bg-white text-blue-600">
-                  Import
+                <button
+                  type="button"
+                  onClick={chooseImportFile}
+                  disabled={excelBusy}
+                  title="Import the filled-in template"
+                  className="px-4 py-2 text-sm font-medium border-l border-blue-600 bg-white text-blue-600 disabled:opacity-60"
+                >
+                  {excelBusy ? "Working…" : "Import"}
                 </button>
               </div>
+              <input
+                ref={importInput}
+                type="file"
+                accept=".xlsx"
+                className="hidden"
+                onChange={(e) => {
+                  importFile(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
             </div>
           </div>
 
