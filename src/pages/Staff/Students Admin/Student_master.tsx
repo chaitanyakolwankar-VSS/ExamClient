@@ -124,6 +124,7 @@ export default function StudentMaster() {
         category: fields.category,
         studentPRN: fields.prn.trim() || null,
         gender: fields.gender,
+        studentType: fields.studentType,
         dyslexia: fields.dyslexia,
         photoUrl: photo,
         signUrl: sign,
@@ -289,6 +290,7 @@ export default function StudentMaster() {
         category: s.category ?? "",
         prn: s.studentPRN ?? "",
         gender: s.gender === "Male" || s.gender === "Female" ? s.gender : "",
+        studentType: s.studentType ?? "",
         dyslexia: !!s.dyslexia,
       });
       setEditCourse(s.courseId ?? "");
@@ -326,6 +328,7 @@ export default function StudentMaster() {
         category: editFields.category,
         studentPRN: editFields.prn.trim() || null,
         gender: editFields.gender,
+        studentType: editFields.studentType,
         dyslexia: editFields.dyslexia,
         photoUrl: editPhoto, // only a new picture (data: URL) replaces the saved one
         signUrl: editSign,
@@ -487,7 +490,7 @@ export default function StudentMaster() {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-800 dark:text-white/90">Fill one row per student</p>
                         <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          First name, last name, mother's name and gender are required; middle name, category and ERN are optional. Photos are added later per student.
+                          First name, last name, mother's name, gender and student type (E, D or M) are required; middle name, category and ERN are optional. Photos are added later per student.
                         </p>
                       </div>
                     </div>

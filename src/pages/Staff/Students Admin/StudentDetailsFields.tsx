@@ -3,7 +3,7 @@ import Input from "../../../components/form/input/InputField";
 import Select from "../../../components/form/Select";
 import Checkbox from "../../../components/form/input/Checkbox";
 import RadioSm from "../../../components/form/input/RadioSm";
-import { STUDENT_CATEGORIES } from "./studentFields";
+import { STUDENT_CATEGORIES, STUDENT_TYPES } from "./studentFields";
 import type { StudentFields } from "./studentFields";
 
 // Names: letters, spaces, dot, apostrophe and hyphen (D'Souza, K. Patil, Rao-Shah); the database allows 50.
@@ -15,7 +15,7 @@ interface Props {
 }
 
 /**
- * Name, mother's name, category, ERN, gender and dyslexia of one student in three rows; used by "Add student" and the edit dialog.
+ * Name, mother's name, category, ERN, gender, student type and dyslexia of one student in three rows; used by "Add student" and the edit dialog.
  * (ERN is only the label: the field is still `prn` / `studentPRN` in code and in the API.)
  */
 export default function StudentDetailsFields({ value, onChange }: Props) {
@@ -73,7 +73,14 @@ export default function StudentDetailsFields({ value, onChange }: Props) {
       </div>
 
       <Input label="Mother's name *" value={value.motherName} maxLength={50} onChange={name("motherName")} />
-      <div className="flex items-center sm:col-span-2 sm:h-11">
+      <Select
+        label="Student type *"
+        placeholder="Choose student type"
+        options={STUDENT_TYPES}
+        value={value.studentType}
+        onChange={(v) => set({ studentType: v })}
+      />
+      <div className="flex items-center sm:h-11">
         <Checkbox
           label="Dyslexia student (extra time in exams)"
           checked={value.dyslexia}

@@ -16,6 +16,13 @@ export const STUDENT_CATEGORIES = [
   "TFWS",
 ];
 
+/** Student types the API accepts (E, D or M); staff must choose one, there is no default. */
+export const STUDENT_TYPES = [
+  { value: "E", label: "Engineering" },
+  { value: "D", label: "Diploma" },
+  { value: "M", label: "MCA" },
+];
+
 export interface StudentFields {
   firstName: string;
   middleName: string;
@@ -24,6 +31,7 @@ export interface StudentFields {
   category: string;
   prn: string;
   gender: "Male" | "Female" | "";
+  studentType: string;
   dyslexia: boolean;
 }
 
@@ -35,6 +43,7 @@ export const emptyStudentFields = (): StudentFields => ({
   category: "",
   prn: "",
   gender: "",
+  studentType: "",
   dyslexia: false,
 });
 
@@ -44,6 +53,7 @@ export const checkStudentFields = (f: StudentFields): string | null => {
   if (!f.motherName.trim()) return "Enter the mother's name.";
   if (!f.category) return "Choose the category.";
   if (!f.gender) return "Choose the gender.";
+  if (!f.studentType) return "Choose the student type.";
   return null;
 };
 

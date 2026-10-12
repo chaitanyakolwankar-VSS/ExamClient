@@ -69,6 +69,7 @@ export interface StudentDetails {
   lastName: string;
   motherName: string | null;
   gender: string | null;
+  studentType: string | null;
   category: string | null;
   studentPRN: string | null;
   photoUrl: string | null;
