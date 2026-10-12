@@ -120,6 +120,7 @@ export default function StudentMaster() {
         firstName: fields.firstName.trim(),
         middleName: fields.middleName.trim() || null,
         lastName: fields.lastName.trim(),
+        motherName: fields.motherName.trim(),
         category: fields.category,
         studentPRN: fields.prn.trim() || null,
         gender: fields.gender,
@@ -284,6 +285,7 @@ export default function StudentMaster() {
         firstName: s.firstName ?? "",
         middleName: s.middleName ?? "",
         lastName: s.lastName ?? "",
+        motherName: s.motherName ?? "",
         category: s.category ?? "",
         prn: s.studentPRN ?? "",
         gender: s.gender === "Male" || s.gender === "Female" ? s.gender : "",
@@ -320,6 +322,7 @@ export default function StudentMaster() {
         firstName: editFields.firstName.trim(),
         middleName: editFields.middleName.trim() || null,
         lastName: editFields.lastName.trim(),
+        motherName: editFields.motherName.trim(),
         category: editFields.category,
         studentPRN: editFields.prn.trim() || null,
         gender: editFields.gender,
@@ -484,7 +487,7 @@ export default function StudentMaster() {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-800 dark:text-white/90">Fill one row per student</p>
                         <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          First name, last name and gender are required; middle name, category and ERN are optional. Photos are added later per student.
+                          First name, last name, mother's name and gender are required; middle name, category and ERN are optional. Photos are added later per student.
                         </p>
                       </div>
                     </div>

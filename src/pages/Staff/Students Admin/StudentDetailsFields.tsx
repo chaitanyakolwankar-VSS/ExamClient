@@ -15,13 +15,13 @@ interface Props {
 }
 
 /**
- * Name, category, ERN, gender and dyslexia of one student in three rows; used by "Add student" and the edit dialog.
+ * Name, mother's name, category, ERN, gender and dyslexia of one student in three rows; used by "Add student" and the edit dialog.
  * (ERN is only the label: the field is still `prn` / `studentPRN` in code and in the API.)
  */
 export default function StudentDetailsFields({ value, onChange }: Props) {
   const id = useId(); // radio ids stay unique if two forms are ever on screen
   const set = (patch: Partial<StudentFields>) => onChange({ ...value, ...patch });
-  const name = (key: "firstName" | "middleName" | "lastName") => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const name = (key: "firstName" | "middleName" | "lastName" | "motherName") => (e: React.ChangeEvent<HTMLInputElement>) => {
     if (NAME.test(e.target.value)) set({ [key]: e.target.value });
   };
   // A category saved before this list existed stays selectable, so editing never loses it.
@@ -72,7 +72,8 @@ export default function StudentDetailsFields({ value, onChange }: Props) {
         ))}
       </div>
 
-      <div className="sm:col-span-3">
+      <Input label="Mother's name *" value={value.motherName} maxLength={50} onChange={name("motherName")} />
+      <div className="flex items-center sm:col-span-2 sm:h-11">
         <Checkbox
           label="Dyslexia student (extra time in exams)"
           checked={value.dyslexia}
