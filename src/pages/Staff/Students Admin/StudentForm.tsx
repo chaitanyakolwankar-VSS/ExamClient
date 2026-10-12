@@ -44,14 +44,9 @@ export default function StudentForm({
           <StudentDetailsFields value={fields} onChange={onFieldsChange} />
           {actions && <div className="hidden flex-wrap justify-center gap-3 @min-[860px]:flex">{actions}</div>}
         </div>
-        <div className="flex flex-col items-center gap-3 border-t border-gray-100 p-4 sm:p-5 @min-[860px]:border-t-0 @min-[860px]:border-l dark:border-gray-800">
-          <StudentImagePicker label="Photo" value={photo} savedPath={savedPhoto} onChange={onPhotoChange} onError={onImageError} />
-          <div className="w-44 max-w-full">
-            <StudentImagePicker label="Signature" value={sign} savedPath={savedSign} onChange={onSignChange} onError={onImageError} />
-          </div>
-          <p className="max-w-44 text-center text-xs leading-snug text-gray-500 dark:text-gray-400">
-            Click a box to upload. JPG or PNG, under&nbsp;2&nbsp;MB.
-          </p>
+        <div className="flex flex-col items-center justify-center gap-6 border-t border-gray-100 p-4 pt-6 sm:p-5 sm:pt-6 @min-[860px]:border-t-0 @min-[860px]:border-l dark:border-gray-800">
+          <StudentImagePicker label="Photo" value={photo} savedPath={savedPhoto} onChange={onPhotoChange} onError={onImageError} showRules />
+          <StudentImagePicker label="Signature" value={sign} savedPath={savedSign} onChange={onSignChange} onError={onImageError} />
         </div>
         {/* Stacked: the buttons come last, after the pictures. */}
         {actions && (
