@@ -19,6 +19,18 @@ export const StudentMasterService = {
     });
     return res.data;
   },
+  /** One student with their enrolment in the given academic year (null when not enrolled that year). */
+  GetStudentById: async (studentId: string, ayid: string): Promise<StudentDetails | null> => {
+    const res = await apiClient.get<StudentDetails | null>("/StudentMaster/GetStudentById", { params: { studentId, ayid } });
+    return res.data ?? null;
+  },
+  /** Updates details and the year's enrolment; photoUrl / signUrl only when a new data: URL is given. */
+  UpdateStudent: async (payload: StudentDetails & { ayid: string }) => {
+    return apiClient.put("/StudentMaster/UpdateStudent", payload);
+  },
+  DeleteStudent: async (studentId: string) => {
+    return apiClient.delete("/StudentMaster/DeleteStudent", { params: { studentId } });
+  },
   SearchStudents(payload: any, ayid: string) {
     return apiClient.post("/StudentMaster/SearchStudents", { ...payload, AYID: ayid })
       .then(res => res.data);
@@ -45,6 +57,23 @@ export const StudentMasterService = {
     return res.data;
   },
 };
+
+/** A student as GET /StudentMaster/GetStudentById returns it (and UpdateStudent takes it). */
+export interface StudentDetails {
+  studentId: string;
+  courseId: string;
+  semesterId: string;
+  pattern: string | null;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  gender: string | null;
+  category: string | null;
+  studentPRN: string | null;
+  photoUrl: string | null;
+  signUrl: string | null;
+  dyslexia: boolean;
+}
 
 /** Where a batch of students is enrolled: branch, semester, pattern and academic year. */
 export interface StudentBatch {
