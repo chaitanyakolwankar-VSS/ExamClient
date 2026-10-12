@@ -81,8 +81,12 @@ const StudentAssignReport = () => {
   const [semester, setSemester] = useState("");
 
   // Report Data
-  const [assignData, setAssignData] = useState<StudentAssignReportResponse[]>([]);
-  const [creditRawData, setCreditRawData] = useState<StudentCreditReportResponse[]>([]);
+  const [assignData, setAssignData] = useState<StudentAssignReportResponse[]>(
+    [],
+  );
+  const [creditRawData, setCreditRawData] = useState<
+    StudentCreditReportResponse[]
+  >([]);
   const [activeReport, setActiveReport] = useState<ReportType>("assign");
   const [creditSearchQuery, setCreditSearchQuery] = useState("");
   const [tableKey, setTableKey] = useState(0);
@@ -93,13 +97,14 @@ const StudentAssignReport = () => {
   }, []);
 
   useEffect(() => {
+    setPattern("");
+    setPatternOptions([]);
+    setSemester("");
+    setExam("");
+    setExamOptions([]);
+
     if (courseId) {
       fetchPatterns(courseId);
-    } else {
-      setPatternOptions([]);
-      setPattern("");
-      setSemester("");
-      setExam("");
     }
   }, [courseId]);
 
@@ -123,7 +128,7 @@ const StudentAssignReport = () => {
         data.map((c) => ({
           value: c.courseid,
           label: c.coursename,
-        }))
+        })),
       );
     } catch (error) {
       console.error("Failed to fetch courses", error);
@@ -137,7 +142,7 @@ const StudentAssignReport = () => {
         data.map((p) => ({
           value: p.patternName,
           label: p.patternName,
-        }))
+        })),
       );
     } catch (error) {
       console.error("Failed to fetch patterns", error);
@@ -162,7 +167,7 @@ const StudentAssignReport = () => {
         data.map((e) => ({
           value: e.examId,
           label: e.examname,
-        }))
+        })),
       );
     } catch (error) {
       console.error("Failed to fetch exam", error);
@@ -193,7 +198,11 @@ const StudentAssignReport = () => {
         setTableKey((k) => k + 1);
 
         if (!data || data.length === 0) {
-          Swal.fire("No Data", "No records found for the selected filters", "info");
+          Swal.fire(
+            "No Data",
+            "No records found for the selected filters",
+            "info",
+          );
         }
       } else {
         const data = await StudentAssignRptService.getCreditReport(payload);
@@ -205,7 +214,11 @@ const StudentAssignReport = () => {
         setTableKey((k) => k + 1);
 
         if (rows.length === 0) {
-          Swal.fire("No Data", "No records found for the selected filters", "info");
+          Swal.fire(
+            "No Data",
+            "No records found for the selected filters",
+            "info",
+          );
         }
       }
     } catch (error) {
@@ -301,7 +314,7 @@ const StudentAssignReport = () => {
       (r) =>
         (r.studentID || "").toLowerCase().includes(q) ||
         (r.name || "").toLowerCase().includes(q) ||
-        (r.seatNo || "").toLowerCase().includes(q)
+        (r.seatNo || "").toLowerCase().includes(q),
     );
   }, [pivotedCreditRows, creditSearchQuery]);
 
@@ -332,11 +345,16 @@ const StudentAssignReport = () => {
       ];
 
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Student Assign Report");
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Student Assign Report",
+      );
 
-      const fileName = `StudentAssignReport_${courseName}_${pattern}_${semester}.xlsx`
-        .replace(/[\\/:*?"<>|]/g, "")
-        .replace(/\s+/g, "_");
+      const fileName =
+        `StudentAssignReport_${courseName}_${pattern}_${semester}.xlsx`
+          .replace(/[\\/:*?"<>|]/g, "")
+          .replace(/\s+/g, "_");
 
       XLSX.writeFile(workbook, fileName);
     } else {
@@ -344,7 +362,11 @@ const StudentAssignReport = () => {
         filteredCreditRows.length > 0 ? filteredCreditRows : pivotedCreditRows;
 
       if (dataToExport.length === 0) {
-        return Swal.fire("No Data", "There is no credit data to download", "info");
+        return Swal.fire(
+          "No Data",
+          "There is no credit data to download",
+          "info",
+        );
       }
 
       const workbook = new ExcelJS.Workbook();
@@ -433,8 +455,17 @@ const StudentAssignReport = () => {
         const r = worksheet.getRow(rowIdx);
         r.height = 24;
         r.eachCell({ includeEmpty: true }, (cell) => {
-          cell.font = { bold: true, name: "Calibri", size: 11, color: { argb: "FF1F2937" } };
-          cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+          cell.font = {
+            bold: true,
+            name: "Calibri",
+            size: 11,
+            color: { argb: "FF1F2937" },
+          };
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: "center",
+            wrapText: true,
+          };
           cell.fill = {
             type: "pattern",
             pattern: "solid",
@@ -473,7 +504,7 @@ const StudentAssignReport = () => {
         new Blob([buffer]),
         `StudentCreditReport_${courseName}_${pattern}_${semester}.xlsx`
           .replace(/[\\/:*?"<>|]/g, "")
-          .replace(/\s+/g, "_")
+          .replace(/\s+/g, "_"),
       );
     }
   };
@@ -492,7 +523,13 @@ const StudentAssignReport = () => {
           onChange={(value) => {
             setCourseId(value);
             setPattern("");
+            setPatternOptions([]);
+            setSemester("");
             setExam("");
+            setExamOptions([]);
+            setAssignData([]);
+            setCreditRawData([]);
+            setCreditSearchQuery("");
           }}
         />
         {courseId && (
@@ -504,6 +541,11 @@ const StudentAssignReport = () => {
               setPattern(value);
               setSemester("");
               setExam("");
+              setExamOptions([]);
+
+              setAssignData([]);
+              setCreditRawData([]);
+              setCreditSearchQuery("");
             }}
           />
         )}
@@ -515,6 +557,8 @@ const StudentAssignReport = () => {
             value={semester}
             onChange={(value) => {
               setSemester(value);
+              setExam("");
+              setExamOptions([]);
             }}
           />
         )}
@@ -544,7 +588,9 @@ const StudentAssignReport = () => {
             onClick={() => loadReport("credit")}
             disabled={loading}
           >
-            {loading && activeReport === "credit" ? "Loading..." : "Get Credit Data"}
+            {loading && activeReport === "credit"
+              ? "Loading..."
+              : "Get Credit Data"}
           </Button>
 
           {hasData && (
@@ -562,7 +608,13 @@ const StudentAssignReport = () => {
             key={`assign-${tableKey}`}
             data={assignData}
             columns={assignColumns}
-            searchKeys={["seatNo", "studentID", "name", "subjectCode", "subjectName"]}
+            searchKeys={[
+              "seatNo",
+              "studentID",
+              "name",
+              "subjectCode",
+              "subjectName",
+            ]}
             pageSizeOptions={[10, 25, 50, 100]}
             stickyHeader
           />
@@ -585,7 +637,8 @@ const StudentAssignReport = () => {
               <Search className="absolute left-3 top-2.5 size-4 text-gray-400 dark:text-gray-500" />
             </div>
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-              Showing {filteredCreditRows.length} of {pivotedCreditRows.length} students
+              Showing {filteredCreditRows.length} of {pivotedCreditRows.length}{" "}
+              students
             </span>
           </div>
 
@@ -635,7 +688,7 @@ const StudentAssignReport = () => {
                       >
                         {h.headType ? `${h.headType} - ${h.head}` : h.head}
                       </th>
-                    ))
+                    )),
                   )}
                 </tr>
 
@@ -655,7 +708,7 @@ const StudentAssignReport = () => {
                       >
                         Pass
                       </th>,
-                    ])
+                    ]),
                   )}
                 </tr>
               </thead>
@@ -676,7 +729,10 @@ const StudentAssignReport = () => {
                       {row.name || "-"}
                     </td>
                     {creditHeads.map((ch) => {
-                      const cell = row.credits[ch.key] || { out: "-", pass: "-" };
+                      const cell = row.credits[ch.key] || {
+                        out: "-",
+                        pass: "-",
+                      };
                       return (
                         <React.Fragment key={ch.key}>
                           <td className="px-3 py-2 border border-gray-200 dark:border-gray-800 whitespace-nowrap">
