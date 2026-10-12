@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { saveAs } from "file-saver";
 import Swal from "sweetalert2";
-import { Download, FileSpreadsheet, Pencil, Search, Trash2, Upload, UserPlus } from "lucide-react";
+import { Download, FileSpreadsheet, Pencil, Search, Trash2, Upload, User, UserPlus } from "lucide-react";
 import PageMeta from "../../../components/common/PageMeta";
 import ComponentCard from "../../../components/common/ComponentCard";
 import AuthImage from "../../../components/common/AuthImage";
@@ -43,8 +43,9 @@ const apiReason = (err: unknown, fallback: string): string => {
   return (data as { message?: string } | undefined)?.message || fallback;
 };
 
-const tabClass = (active: boolean) =>
-  `flex items-center gap-2 px-4 py-2 text-sm font-medium transition ${
+/** Segmented-toggle button: the page tabs (py-2) and the "Single student / Excel import" switch (py-2.5, as tall as the selects). */
+const tabClass = (active: boolean, tall = false) =>
+  `flex items-center justify-center gap-2 px-4 ${tall ? "py-2.5" : "py-2"} text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden focus-visible:ring-inset ${
     active ? "bg-brand-500 text-white" : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/[0.03]"
   }`;
 
@@ -61,8 +62,9 @@ export default function StudentMaster() {
   const onlyPattern = patternOptions.length === 1 ? patternOptions[0].value : "";
 
   const [tab, setTab] = useState<"add" | "find">("add");
+  const [mode, setMode] = useState<"single" | "excel">("single");
 
-  // ---- Enrol into: shared by "Add student" and "Import from Excel" ----
+  // ---- Enrol into: shared by "Single student" and "Excel import" ----
   const [course, setCourse] = useState("");
   const [semester, setSemester] = useState("");
   const [pattern, setPattern] = useState("");
@@ -135,17 +137,10 @@ export default function StudentMaster() {
     }
   };
 
-  // ---- Import from Excel (dialog; uses the branch, semester and pattern chosen above) ----
+  // ---- Excel import (uses the branch, semester and pattern chosen above) ----
   const importInput = useRef<HTMLInputElement>(null);
-  const [importOpen, setImportOpen] = useState(false);
   const [excelBusy, setExcelBusy] = useState(false);
   const [importResult, setImportResult] = useState<(StudentImportResult & { fileName: string }) | null>(null);
-
-  const openImport = () => {
-    if (!batch()) return;
-    setImportResult(null);
-    setImportOpen(true);
-  };
 
   const downloadTemplate = async () => {
     const b = batch();
@@ -390,7 +385,7 @@ export default function StudentMaster() {
   return (
     <>
       <PageMeta title="GradeSphere | Student Master" description="Add and find students" />
-      <div className="space-y-5">
+      <div className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">Student Master</h2>
@@ -410,26 +405,34 @@ export default function StudentMaster() {
 
         {tab === "add" && (
           <div className="@container rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-            {/* Toolbar: where every new student goes, whether added here or imported from Excel. */}
-            <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:px-6 @min-[860px]:flex-row @min-[860px]:items-center @min-[860px]:gap-4 dark:border-gray-800">
+            {/* Toolbar: where every new student goes (single or imported), and how they are added. */}
+            <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-3 sm:px-5 @min-[860px]:flex-row @min-[860px]:items-center @min-[860px]:gap-4 dark:border-gray-800">
               <span className="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Enrol into</span>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 @min-[860px]:flex-1">
                 <Select options={courseOptions} placeholder="Select Branch" value={course} onChange={setCourse} />
                 <Select options={semesterOptions} placeholder="Select Semester" value={semester} onChange={setSemester} />
                 <Select options={patternOptions} placeholder="Select Pattern" value={pattern} onChange={setPattern} />
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={openImport}
-                className="shrink-0 self-end @min-[860px]:self-auto"
-                startIcon={<FileSpreadsheet className="size-4" />}
+              <div
+                role="group"
+                aria-label="How to add students"
+                className="grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-gray-300 @min-[860px]:flex dark:border-gray-700"
               >
-                Import from Excel
-              </Button>
+                <button type="button" aria-pressed={mode === "single"} className={tabClass(mode === "single", true)} onClick={() => setMode("single")}>
+                  <User className="size-4" aria-hidden="true" /> Single student
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={mode === "excel"}
+                  className={`${tabClass(mode === "excel", true)} border-l border-gray-300 dark:border-gray-700`}
+                  onClick={() => setMode("excel")}
+                >
+                  <FileSpreadsheet className="size-4" aria-hidden="true" /> Excel import
+                </button>
+              </div>
             </div>
 
-            <div className="p-4 sm:p-6">
+            {mode === "single" ? (
               <StudentForm
                 fields={fields}
                 onFieldsChange={setFields}
@@ -438,17 +441,115 @@ export default function StudentMaster() {
                 onPhotoChange={setPhoto}
                 onSignChange={setSign}
                 onImageError={imageError}
+                actions={
+                  <>
+                    <Button variant="outline" onClick={clearStudent} disabled={saving}>
+                      Clear
+                    </Button>
+                    <Button onClick={saveStudent} disabled={saving}>
+                      {saving ? "Saving…" : "Save student"}
+                    </Button>
+                  </>
+                }
               />
-            </div>
+            ) : (
+              <div className="flex flex-col gap-4 p-4 sm:p-5">
+                <ol className="grid grid-cols-1 gap-4 @min-[860px]:grid-cols-3">
+                  <li className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                    <div className="flex items-start gap-3">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                        1
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-white/90">Download the template</p>
+                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Made for the branch, semester and pattern above.</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-auto self-start"
+                      onClick={downloadTemplate}
+                      disabled={excelBusy}
+                      startIcon={<Download className="size-4" />}
+                    >
+                      Download template
+                    </Button>
+                  </li>
+                  <li className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                    <div className="flex items-start gap-3">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                        2
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-white/90">Fill one row per student</p>
+                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                          First name, last name and gender are required; middle name, category and ERN are optional. Photos are added later per student.
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                  <li className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                    <div className="flex items-start gap-3">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                        3
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-white/90">Import the file</p>
+                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                          Every row is checked first; nothing is saved unless all rows are right. Students get their IDs in the order of the rows.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="mt-auto self-start"
+                      onClick={() => batch() && importInput.current?.click()}
+                      disabled={excelBusy}
+                      startIcon={<Upload className="size-4" />}
+                    >
+                      {excelBusy ? "Working…" : "Import file"}
+                    </Button>
+                    <input
+                      ref={importInput}
+                      type="file"
+                      accept=".xlsx"
+                      aria-label="Filled-in template (.xlsx)"
+                      className="hidden"
+                      onChange={(e) => {
+                        importFile(e.target.files?.[0]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </li>
+                </ol>
 
-            <div className="flex justify-end gap-3 border-t border-gray-100 px-4 py-4 sm:px-6 dark:border-gray-800">
-              <Button variant="outline" onClick={clearStudent} disabled={saving}>
-                Clear
-              </Button>
-              <Button onClick={saveStudent} disabled={saving}>
-                {saving ? "Saving…" : "Save student"}
-              </Button>
-            </div>
+                {importResult && (
+                  <div
+                    role="status"
+                    className={`rounded-xl border p-4 text-sm ${
+                      importResult.success
+                        ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-400"
+                        : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400"
+                    }`}
+                  >
+                    <p className="flex items-start gap-2 font-medium">
+                      <FileSpreadsheet className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                      <span className="min-w-0 break-words">
+                        {importResult.fileName}: {importResult.message}
+                      </span>
+                    </p>
+                    {importResult.errors.length > 0 && (
+                      <ul className="mt-2 max-h-60 list-disc space-y-0.5 overflow-y-auto pl-5">
+                        {importResult.errors.map((e) => (
+                          <li key={e}>{e}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -490,8 +591,8 @@ export default function StudentMaster() {
 
       <Modal isOpen={!!editing} onClose={() => setEditing(null)} className="max-w-[960px] p-6">
         {editing && (
-          <div className="flex flex-col gap-5">
-            <div>
+          <div className="flex flex-col gap-4">
+            <div className="pr-10">
               <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">Edit student</h4>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {editing.studentId} · {academicYear}
@@ -501,12 +602,12 @@ export default function StudentMaster() {
               <p className="py-10 text-center text-sm text-gray-500">Loading…</p>
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   <Select options={courseOptions} placeholder="Select Branch" value={editCourse} onChange={setEditCourse} />
                   <Select options={semesterOptions} placeholder="Select Semester" value={editSemester} onChange={setEditSemester} />
                   <Select options={patternOptions} placeholder="Select Pattern" value={editPattern} onChange={setEditPattern} />
                 </div>
-                <div className="border-t border-gray-100 pt-5 dark:border-gray-800">
+                <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
                   <StudentForm
                     fields={editFields}
                     onFieldsChange={setEditFields}
@@ -517,119 +618,22 @@ export default function StudentMaster() {
                     onPhotoChange={setEditPhoto}
                     onSignChange={setEditSign}
                     onImageError={imageError}
+                    actions={
+                      <>
+                        <Button variant="outline" onClick={() => setEditing(null)} disabled={editSaving}>
+                          Cancel
+                        </Button>
+                        <Button onClick={saveEdit} disabled={editSaving}>
+                          {editSaving ? "Saving…" : "Save changes"}
+                        </Button>
+                      </>
+                    }
                   />
-                </div>
-                <div className="flex justify-end gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
-                  <Button variant="outline" onClick={() => setEditing(null)} disabled={editSaving}>
-                    Cancel
-                  </Button>
-                  <Button onClick={saveEdit} disabled={editSaving}>
-                    {editSaving ? "Saving…" : "Save changes"}
-                  </Button>
                 </div>
               </>
             )}
           </div>
         )}
-      </Modal>
-
-      <Modal isOpen={importOpen} onClose={() => setImportOpen(false)} className="max-w-[640px] p-6">
-        <div className="flex flex-col gap-5">
-          <div className="pr-10">
-            <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">Import students from Excel</h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Students go to{" "}
-              <span className="font-medium text-gray-700 dark:text-gray-300">
-                {courseName} · {semesterName} · {pattern} · {academicYear}
-              </span>
-            </p>
-          </div>
-
-          <ol className="divide-y divide-gray-100 rounded-xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-            <li className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
-                1
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">Download the template</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Made for the branch, semester and pattern above.</p>
-              </div>
-              <Button size="sm" variant="outline" onClick={downloadTemplate} disabled={excelBusy} startIcon={<Download className="size-4" />}>
-                Download template
-              </Button>
-            </li>
-            <li className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
-                2
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">Fill one row per student</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  First name, last name and gender are required; middle name, category and ERN are optional. Photos are added later per student.
-                </p>
-              </div>
-            </li>
-            <li className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
-                3
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">Import the file</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Every row is checked first; nothing is saved unless all rows are right. Students get their IDs in the order of the rows.
-                </p>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => batch() && importInput.current?.click()}
-                disabled={excelBusy}
-                startIcon={<Upload className="size-4" />}
-              >
-                {excelBusy ? "Working…" : "Import file"}
-              </Button>
-              <input
-                ref={importInput}
-                type="file"
-                accept=".xlsx"
-                className="hidden"
-                onChange={(e) => {
-                  importFile(e.target.files?.[0]);
-                  e.target.value = "";
-                }}
-              />
-            </li>
-          </ol>
-
-          {importResult && (
-            <div
-              className={`rounded-xl border p-4 text-sm ${
-                importResult.success
-                  ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-400"
-                  : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400"
-              }`}
-            >
-              <p className="flex items-start gap-2 font-medium">
-                <FileSpreadsheet className="mt-0.5 size-4 shrink-0" />
-                <span className="min-w-0 break-words">
-                  {importResult.fileName}: {importResult.message}
-                </span>
-              </p>
-              {importResult.errors.length > 0 && (
-                <ul className="mt-2 max-h-60 list-disc space-y-0.5 overflow-y-auto pl-5">
-                  {importResult.errors.map((e) => (
-                    <li key={e}>{e}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => setImportOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </div>
       </Modal>
     </>
   );
