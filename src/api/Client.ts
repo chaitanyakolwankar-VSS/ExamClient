@@ -16,6 +16,11 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // A file upload must not go out under the default JSON Content-Type: axios would turn the form into
+    // JSON and drop the file. Without the header the browser sends multipart/form-data with its boundary.
+    if (config.data instanceof FormData) {
+      config.headers.delete('Content-Type');
+    }
     return config;
   },
   (error) => Promise.reject(error)
