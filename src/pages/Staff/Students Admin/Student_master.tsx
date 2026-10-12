@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { saveAs } from "file-saver";
 import Swal from "sweetalert2";
-import { Download, FileSpreadsheet, Pencil, Search, Trash2, Upload, UserPlus, Users } from "lucide-react";
+import { Download, FileSpreadsheet, Pencil, Search, Trash2, Upload, UserPlus } from "lucide-react";
 import PageMeta from "../../../components/common/PageMeta";
 import ComponentCard from "../../../components/common/ComponentCard";
 import AuthImage from "../../../components/common/AuthImage";
@@ -21,8 +21,7 @@ import {
 } from "../../../data";
 import { StudentMasterService } from "../../../services/Student_MasterService";
 import type { StudentBatch, StudentImportResult } from "../../../services/Student_MasterService";
-import StudentImagePicker from "./StudentImagePicker";
-import StudentDetailsFields from "./StudentDetailsFields";
+import StudentForm from "./StudentForm";
 import { checkStudentFields, emptyStudentFields } from "./studentFields";
 import type { StudentFields } from "./studentFields";
 
@@ -62,9 +61,8 @@ export default function StudentMaster() {
   const onlyPattern = patternOptions.length === 1 ? patternOptions[0].value : "";
 
   const [tab, setTab] = useState<"add" | "find">("add");
-  const [addMode, setAddMode] = useState<"one" | "many">("one");
 
-  // ---- Enrol into: shared by "one student" and "many from Excel" ----
+  // ---- Enrol into: shared by "Add student" and "Import from Excel" ----
   const [course, setCourse] = useState("");
   const [semester, setSemester] = useState("");
   const [pattern, setPattern] = useState("");
@@ -137,10 +135,17 @@ export default function StudentMaster() {
     }
   };
 
-  // ---- Many from Excel ----
+  // ---- Import from Excel (dialog; uses the branch, semester and pattern chosen above) ----
   const importInput = useRef<HTMLInputElement>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [excelBusy, setExcelBusy] = useState(false);
   const [importResult, setImportResult] = useState<(StudentImportResult & { fileName: string }) | null>(null);
+
+  const openImport = () => {
+    if (!batch()) return;
+    setImportResult(null);
+    setImportOpen(true);
+  };
 
   const downloadTemplate = async () => {
     const b = batch();
@@ -206,7 +211,7 @@ export default function StudentMaster() {
 
   const search = async () => {
     if (!findCourse && !findId && !findFirst && !findLast && !findPrn) {
-      Swal.fire("Find students", "Choose a branch, or enter a student ID, name or PRN.", "warning");
+      Swal.fire("Find students", "Choose a branch, or enter a student ID, name or ERN.", "warning");
       return;
     }
     setSearching(true);
@@ -355,7 +360,7 @@ export default function StudentMaster() {
     { key: "studentName", label: "Name", sortable: true },
     { key: "name", label: "Branch", sortable: true },
     { key: "semesterId", label: "Semester", sortable: true },
-    { key: "studentPRN", label: "PRN" },
+    { key: "studentPRN", label: "ERN" },
     {
       key: "actions",
       label: "",
@@ -386,11 +391,16 @@ export default function StudentMaster() {
     <>
       <PageMeta title="GradeSphere | Student Master" description="Add and find students" />
       <div className="space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">Student Master</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">Student Master</h2>
+            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+              Academic year {academicYear || "not chosen (choose it in the header)"}
+            </p>
+          </div>
           <div className="flex overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
             <button type="button" className={tabClass(tab === "add")} onClick={() => setTab("add")}>
-              <UserPlus className="size-4" /> Add students
+              <UserPlus className="size-4" /> Add student
             </button>
             <button type="button" className={`${tabClass(tab === "find")} border-l border-gray-300 dark:border-gray-700`} onClick={() => setTab("find")}>
               <Search className="size-4" /> Find students
@@ -399,131 +409,57 @@ export default function StudentMaster() {
         </div>
 
         {tab === "add" && (
-          <>
-            {/* Where every new student goes, whether added one by one or from Excel. */}
-            <ComponentCard
-              title="Enrol into"
-              desc={`New students are enrolled in this branch, semester and pattern for ${academicYear || "the academic year in the header"}.`}
-            >
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="@container rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            {/* Toolbar: where every new student goes, whether added here or imported from Excel. */}
+            <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:px-6 @min-[860px]:flex-row @min-[860px]:items-center @min-[860px]:gap-4 dark:border-gray-800">
+              <span className="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Enrol into</span>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 @min-[860px]:flex-1">
                 <Select options={courseOptions} placeholder="Select Branch" value={course} onChange={setCourse} />
                 <Select options={semesterOptions} placeholder="Select Semester" value={semester} onChange={setSemester} />
                 <Select options={patternOptions} placeholder="Select Pattern" value={pattern} onChange={setPattern} />
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
-                <div className="flex overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
-                  <button type="button" className={tabClass(addMode === "one")} onClick={() => setAddMode("one")}>
-                    <UserPlus className="size-4" /> One student
-                  </button>
-                  <button
-                    type="button"
-                    className={`${tabClass(addMode === "many")} border-l border-gray-300 dark:border-gray-700`}
-                    onClick={() => setAddMode("many")}
-                  >
-                    <Users className="size-4" /> Many from Excel
-                  </button>
-                </div>
-                {course && semester && pattern && (
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {courseName} · {semesterName} · {pattern} · {academicYear}
-                  </span>
-                )}
-              </div>
-            </ComponentCard>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={openImport}
+                className="shrink-0 self-end @min-[860px]:self-auto"
+                startIcon={<FileSpreadsheet className="size-4" />}
+              >
+                Import from Excel
+              </Button>
+            </div>
 
-            {addMode === "one" && (
-              <ComponentCard title="Student details" desc="Fields marked * are required. The hall ticket prints the photo and signature.">
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_220px]">
-                  <StudentDetailsFields value={fields} onChange={setFields} />
-                  <div className="flex flex-row items-start justify-center gap-6 rounded-xl border border-gray-100 p-4 lg:flex-col lg:items-center dark:border-gray-800">
-                    <StudentImagePicker label="Photo" value={photo} onChange={setPhoto} onError={imageError} />
-                    <StudentImagePicker label="Signature" value={sign} onChange={setSign} onError={imageError} />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
-                  <Button variant="outline" onClick={clearStudent} disabled={saving}>
-                    Clear
-                  </Button>
-                  <Button onClick={saveStudent} disabled={saving}>
-                    {saving ? "Saving…" : "Save student"}
-                  </Button>
-                </div>
-              </ComponentCard>
-            )}
+            <div className="p-4 sm:p-6">
+              <StudentForm
+                fields={fields}
+                onFieldsChange={setFields}
+                photo={photo}
+                sign={sign}
+                onPhotoChange={setPhoto}
+                onSignChange={setSign}
+                onImageError={imageError}
+              />
+            </div>
 
-            {addMode === "many" && (
-              <ComponentCard title="Many students from Excel" desc="All rows are checked first; nothing is saved unless every row is right.">
-                <ol className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <li className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-                    <p className="mb-1 text-sm font-medium text-gray-800 dark:text-white/90">1. Download the template</p>
-                    <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">Made for the branch, semester and pattern above.</p>
-                    <Button size="sm" variant="outline" onClick={downloadTemplate} disabled={excelBusy} startIcon={<Download className="size-4" />}>
-                      Download template
-                    </Button>
-                  </li>
-                  <li className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-                    <p className="mb-1 text-sm font-medium text-gray-800 dark:text-white/90">2. Fill one row per student</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      First name, last name and gender are required; middle name, category and PRN are optional. Photos are added later per student.
-                    </p>
-                  </li>
-                  <li className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-                    <p className="mb-1 text-sm font-medium text-gray-800 dark:text-white/90">3. Import the file</p>
-                    <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">Students get their IDs in the order of the rows.</p>
-                    <Button
-                      size="sm"
-                      onClick={() => batch() && importInput.current?.click()}
-                      disabled={excelBusy}
-                      startIcon={<Upload className="size-4" />}
-                    >
-                      {excelBusy ? "Working…" : "Import file"}
-                    </Button>
-                    <input
-                      ref={importInput}
-                      type="file"
-                      accept=".xlsx"
-                      className="hidden"
-                      onChange={(e) => {
-                        importFile(e.target.files?.[0]);
-                        e.target.value = "";
-                      }}
-                    />
-                  </li>
-                </ol>
-
-                {importResult && (
-                  <div
-                    className={`rounded-xl border p-4 text-sm ${
-                      importResult.success
-                        ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-400"
-                        : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400"
-                    }`}
-                  >
-                    <p className="flex items-center gap-2 font-medium">
-                      <FileSpreadsheet className="size-4" /> {importResult.fileName}: {importResult.message}
-                    </p>
-                    {importResult.errors.length > 0 && (
-                      <ul className="mt-2 max-h-60 list-disc space-y-0.5 overflow-y-auto pl-5">
-                        {importResult.errors.map((e) => (
-                          <li key={e}>{e}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-              </ComponentCard>
-            )}
-          </>
+            <div className="flex justify-end gap-3 border-t border-gray-100 px-4 py-4 sm:px-6 dark:border-gray-800">
+              <Button variant="outline" onClick={clearStudent} disabled={saving}>
+                Clear
+              </Button>
+              <Button onClick={saveStudent} disabled={saving}>
+                {saving ? "Saving…" : "Save student"}
+              </Button>
+            </div>
+          </div>
         )}
 
         {tab === "find" && (
-          <ComponentCard title="Find students" desc={`Students enrolled in ${academicYear || "the academic year in the header"}. A branch lists all of its students; otherwise search by ID, name or PRN.`}>
+          <ComponentCard title="Find students" desc={`Students enrolled in ${academicYear || "the academic year in the header"}. A branch lists all of its students; otherwise search by ID, name or ERN.`}>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
               <Select options={courseOptions} placeholder="Select Branch" value={findCourse} onChange={setFindCourse} />
               <Input label="Student ID" value={findId} disabled={!!findCourse} onChange={(e) => setFindId(e.target.value.replace(/[^A-Za-z0-9]/g, ""))} />
               <Input label="First name" value={findFirst} disabled={!!findCourse} onChange={(e) => setFindFirst(e.target.value)} />
               <Input label="Last name" value={findLast} disabled={!!findCourse} onChange={(e) => setFindLast(e.target.value)} />
-              <Input label="PRN" value={findPrn} disabled={!!findCourse} onChange={(e) => setFindPrn(e.target.value.replace(/[^A-Za-z0-9]/g, ""))} />
+              <Input label="ERN" value={findPrn} disabled={!!findCourse} onChange={(e) => setFindPrn(e.target.value.replace(/[^A-Za-z0-9]/g, ""))} />
             </div>
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={clearSearch} disabled={searching}>
@@ -552,7 +488,7 @@ export default function StudentMaster() {
         )}
       </div>
 
-      <Modal isOpen={!!editing} onClose={() => setEditing(null)} className="max-w-[900px] p-6">
+      <Modal isOpen={!!editing} onClose={() => setEditing(null)} className="max-w-[960px] p-6">
         {editing && (
           <div className="flex flex-col gap-5">
             <div>
@@ -570,14 +506,20 @@ export default function StudentMaster() {
                   <Select options={semesterOptions} placeholder="Select Semester" value={editSemester} onChange={setEditSemester} />
                   <Select options={patternOptions} placeholder="Select Pattern" value={editPattern} onChange={setEditPattern} />
                 </div>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_200px]">
-                  <StudentDetailsFields value={editFields} onChange={setEditFields} />
-                  <div className="flex flex-row items-start justify-center gap-6 rounded-xl border border-gray-100 p-4 md:flex-col md:items-center dark:border-gray-800">
-                    <StudentImagePicker label="Photo" value={editPhoto} savedPath={savedPhoto} onChange={setEditPhoto} onError={imageError} />
-                    <StudentImagePicker label="Signature" value={editSign} savedPath={savedSign} onChange={setEditSign} onError={imageError} />
-                  </div>
+                <div className="border-t border-gray-100 pt-5 dark:border-gray-800">
+                  <StudentForm
+                    fields={editFields}
+                    onFieldsChange={setEditFields}
+                    photo={editPhoto}
+                    sign={editSign}
+                    savedPhoto={savedPhoto}
+                    savedSign={savedSign}
+                    onPhotoChange={setEditPhoto}
+                    onSignChange={setEditSign}
+                    onImageError={imageError}
+                  />
                 </div>
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-end gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
                   <Button variant="outline" onClick={() => setEditing(null)} disabled={editSaving}>
                     Cancel
                   </Button>
@@ -589,6 +531,105 @@ export default function StudentMaster() {
             )}
           </div>
         )}
+      </Modal>
+
+      <Modal isOpen={importOpen} onClose={() => setImportOpen(false)} className="max-w-[640px] p-6">
+        <div className="flex flex-col gap-5">
+          <div className="pr-10">
+            <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">Import students from Excel</h4>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Students go to{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                {courseName} · {semesterName} · {pattern} · {academicYear}
+              </span>
+            </p>
+          </div>
+
+          <ol className="divide-y divide-gray-100 rounded-xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+            <li className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                1
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-800 dark:text-white/90">Download the template</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Made for the branch, semester and pattern above.</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={downloadTemplate} disabled={excelBusy} startIcon={<Download className="size-4" />}>
+                Download template
+              </Button>
+            </li>
+            <li className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                2
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-800 dark:text-white/90">Fill one row per student</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  First name, last name and gender are required; middle name, category and ERN are optional. Photos are added later per student.
+                </p>
+              </div>
+            </li>
+            <li className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                3
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-800 dark:text-white/90">Import the file</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Every row is checked first; nothing is saved unless all rows are right. Students get their IDs in the order of the rows.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => batch() && importInput.current?.click()}
+                disabled={excelBusy}
+                startIcon={<Upload className="size-4" />}
+              >
+                {excelBusy ? "Working…" : "Import file"}
+              </Button>
+              <input
+                ref={importInput}
+                type="file"
+                accept=".xlsx"
+                className="hidden"
+                onChange={(e) => {
+                  importFile(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </li>
+          </ol>
+
+          {importResult && (
+            <div
+              className={`rounded-xl border p-4 text-sm ${
+                importResult.success
+                  ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-400"
+                  : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400"
+              }`}
+            >
+              <p className="flex items-start gap-2 font-medium">
+                <FileSpreadsheet className="mt-0.5 size-4 shrink-0" />
+                <span className="min-w-0 break-words">
+                  {importResult.fileName}: {importResult.message}
+                </span>
+              </p>
+              {importResult.errors.length > 0 && (
+                <ul className="mt-2 max-h-60 list-disc space-y-0.5 overflow-y-auto pl-5">
+                  {importResult.errors.map((e) => (
+                    <li key={e}>{e}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setImportOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </div>
       </Modal>
     </>
   );

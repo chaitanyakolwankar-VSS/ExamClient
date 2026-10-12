@@ -1,6 +1,8 @@
+import { useId } from "react";
 import Input from "../../../components/form/input/InputField";
 import Select from "../../../components/form/Select";
 import Checkbox from "../../../components/form/input/Checkbox";
+import RadioSm from "../../../components/form/input/RadioSm";
 import { STUDENT_CATEGORIES } from "./studentFields";
 import type { StudentFields } from "./studentFields";
 
@@ -12,8 +14,12 @@ interface Props {
   onChange: (next: StudentFields) => void;
 }
 
-/** Name, category, PRN, gender and dyslexia of one student; used by "Add student" and the edit dialog. */
+/**
+ * Name, category, ERN, gender and dyslexia of one student in three rows; used by "Add student" and the edit dialog.
+ * (ERN is only the label: the field is still `prn` / `studentPRN` in code and in the API.)
+ */
 export default function StudentDetailsFields({ value, onChange }: Props) {
+  const id = useId(); // radio ids stay unique if two forms are ever on screen
   const set = (patch: Partial<StudentFields>) => onChange({ ...value, ...patch });
   const name = (key: "firstName" | "middleName" | "lastName") => (e: React.ChangeEvent<HTMLInputElement>) => {
     if (NAME.test(e.target.value)) set({ [key]: e.target.value });
@@ -24,7 +30,7 @@ export default function StudentDetailsFields({ value, onChange }: Props) {
     : STUDENT_CATEGORIES;
 
   return (
-    <div className="grid grid-cols-1 content-start gap-4 sm:grid-cols-3">
+    <div className="grid grid-cols-1 content-start gap-x-4 gap-y-5 sm:grid-cols-3">
       <Input label="First name *" value={value.firstName} maxLength={50} onChange={name("firstName")} />
       <Input label="Middle name" value={value.middleName} maxLength={50} onChange={name("middleName")} />
       <Input label="Last name *" value={value.lastName} maxLength={50} onChange={name("lastName")} />
@@ -37,34 +43,33 @@ export default function StudentDetailsFields({ value, onChange }: Props) {
         onChange={(v) => set({ category: v })}
       />
       <Input
-        label="PRN"
-        placeholder="University PRN (if issued)"
+        label="ERN (if issued)"
+        placeholder="If issued"
         value={value.prn}
         maxLength={20}
         onChange={(e) => {
           if (/^[A-Za-z0-9]*$/.test(e.target.value)) set({ prn: e.target.value });
         }}
       />
-      <div className="relative">
-        <span className="pointer-events-none absolute left-2.5 top-0 z-10 -translate-y-1/2 bg-white px-1.5 text-xs text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+      <div
+        role="radiogroup"
+        aria-label="Gender"
+        className="relative flex h-11 items-center gap-5 rounded-lg border border-gray-300 px-4 focus-within:border-brand-300 focus-within:ring-3 focus-within:ring-brand-500/20 dark:border-gray-700 dark:focus-within:border-brand-800"
+      >
+        <span className="pointer-events-none absolute left-2.5 top-0 -translate-y-1/2 bg-white px-1.5 text-xs text-gray-500 dark:bg-gray-900 dark:text-gray-400">
           Gender *
         </span>
-        <div className="grid h-11 grid-cols-2 overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
-          {(["Male", "Female"] as const).map((g) => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => set({ gender: g })}
-              className={`text-sm transition ${
-                value.gender === g
-                  ? "bg-brand-500 text-white"
-                  : "bg-transparent text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.03]"
-              } ${g === "Female" ? "border-l border-gray-300 dark:border-gray-700" : ""}`}
-            >
-              {g}
-            </button>
-          ))}
-        </div>
+        {(["Male", "Female"] as const).map((g) => (
+          <RadioSm
+            key={g}
+            id={`${id}-${g}`}
+            name={`${id}-gender`}
+            value={g}
+            label={g}
+            checked={value.gender === g}
+            onChange={() => set({ gender: g })}
+          />
+        ))}
       </div>
 
       <div className="sm:col-span-3">

@@ -15,13 +15,14 @@ interface Props {
 }
 
 /**
- * A fixed-size box for a student photo (passport 3:4) or signature (wide): click the box to pick an image
- * (PNG/JPG/WEBP under 2 MB, read as a data: URL). The box never changes size, so the form around it stays put.
+ * A fixed-size box for a student photo (passport 3:4, 96x128) or signature (56px tall, as wide as its column):
+ * click the box to pick an image (PNG/JPG/WEBP under 2 MB, read as a data: URL). The box never changes size
+ * with the picture, so the form around it stays put.
  */
 const StudentImagePicker = ({ label, value, savedPath, onChange, onError }: Props) => {
   const input = useRef<HTMLInputElement>(null);
   const isPhoto = label === "Photo";
-  const box = isPhoto ? "h-32 w-24" : "h-14 w-44";
+  const box = isPhoto ? "h-32 w-24" : "h-14 w-full";
   const shown = value ?? savedPath ?? null;
 
   const pick = (file: File | undefined) => {
@@ -34,7 +35,7 @@ const StudentImagePicker = ({ label, value, savedPath, onChange, onError }: Prop
   };
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className={`flex flex-col items-center gap-1.5 ${isPhoto ? "shrink-0" : "w-full"}`}>
       <button
         type="button"
         onClick={() => input.current?.click()}
@@ -58,7 +59,7 @@ const StudentImagePicker = ({ label, value, savedPath, onChange, onError }: Prop
           </span>
         )}
       </button>
-      <div className="flex h-4 items-center gap-2 text-xs text-gray-500">
+      <div className="flex h-4 items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
         <span>{label}</span>
         {value && (
           <button type="button" onClick={() => onChange(null)} className="text-brand-500 hover:underline">
