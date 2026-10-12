@@ -1375,7 +1375,7 @@ export default function SubjectMaster() {
             maxLength={80}
             onChange={(e) => {
               const value = e.target.value;
-              if (/^[a-zA-Z0-9-_\s]*$/.test(value)) {
+              if (/^[a-zA-Z0-9-_&()\s]*$/.test(value)) {
                 setSubjectName(value);
               }
             }}
