@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { queryClient } from '../data/queryClient';
+import { appStorage } from "../utils/appStorage";
 
 const apiClient = axios.create({
   // Production: the API's IIS path from the build mode's .env (VITE_API_BASE); the demo build uses /ExamAPI.
@@ -11,7 +12,7 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken'); 
+    const token = appStorage.get('authToken'); 
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -39,10 +40,10 @@ apiClient.interceptors.response.use(
 
     if (error?.response?.status === 401 && !isAuthCall) {
       // Same session teardown as AuthContext.logout().
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('authUser');
-      localStorage.removeItem('academicYear');
-      localStorage.clear();
+      appStorage.remove('authToken');
+      appStorage.remove('authUser');
+      appStorage.remove('academicYear');
+      appStorage.clear();
       queryClient.clear(); // no cached lookup data may survive into the next session
 
       // Router basename is derived from Vite's base path in App.tsx; keep them in sync.

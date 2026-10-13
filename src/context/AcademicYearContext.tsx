@@ -6,6 +6,7 @@ import { useAuth } from "./AuthContext";
 import { useBootstrap, useCollegeId } from "../data/useBootstrap";
 import type { LookupAcademicYear } from "../data/lookupApi";
 import { lookupKeys } from "../data/queryKeys";
+import { appStorage } from "../utils/appStorage";
 
 /**
  * The one place that knows which academic year is selected.
@@ -65,7 +66,7 @@ export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return NO_YEARS;
   }, [bootstrap.data, legacy.data]);
 
-  const [selected, setSelected] = useState<string>(() => localStorage.getItem("academicYear") || "");
+  const [selected, setSelected] = useState<string>(() => appStorage.get("academicYear") || "");
 
   // Forget the selection when the user signs out, so the next login starts from that college's current year.
   const hadUser = useRef(false);
@@ -84,7 +85,7 @@ export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const match = years.find((y) => y.shortDuration === yearString);
     if (!match) return;
     setSelected(match.shortDuration);
-    localStorage.setItem("academicYear", match.shortDuration);
+    appStorage.set("academicYear", match.shortDuration);
   };
 
   const isLoading = !!collegeId && !resolved && (bootstrap.isPending || (bootstrap.isError && legacy.isPending));

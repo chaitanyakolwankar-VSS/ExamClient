@@ -4,6 +4,7 @@ import { screenKeysFromForms, canAccessScreen } from "../config/screens";
 import type { Screen } from "../config/screens";
 import { prefetchBootstrap, clearLookupCache } from "../data/bootstrapQuery";
 import { readCollegeId, readIsPlatformAdmin } from "../data/session";
+import { appStorage } from "../utils/appStorage";
 
 // Define the shape of your User object (adjust based on your API response)
 interface User {
@@ -70,8 +71,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Initialize state from localStorage on app load
   useEffect(() => {
-    const storedToken = localStorage.getItem("authToken");
-    const storedUser = localStorage.getItem("authUser");
+    const storedToken = appStorage.get("authToken");
+    const storedUser = appStorage.get("authUser");
 
     if (storedToken && storedUser) {
       setToken(storedToken);
@@ -79,7 +80,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(JSON.parse(storedUser));
       } catch (error) {
         console.error("Failed to parse user data", error);
-        localStorage.removeItem("authUser");
+        appStorage.remove("authUser");
       }
     }
     setIsLoading(false);
@@ -88,8 +89,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
-    localStorage.setItem("authToken", newToken);
-    localStorage.setItem("authUser", JSON.stringify(newUser));
+    appStorage.set("authToken", newToken);
+    appStorage.set("authUser", JSON.stringify(newUser));
     // Warm the lookup cache now so the first screen opens instantly (after the token is stored: the axios
     // interceptor reads it from localStorage). Platform admin has no college: skip.
     const collegeId = readCollegeId(newToken, newUser);
@@ -148,10 +149,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     clearLookupCache();
     setToken(null);
     setUser(null);
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("authUser");
-    localStorage.removeItem("academicYear");
-    localStorage.clear();
+    appStorage.remove("authToken");
+    appStorage.remove("authUser");
+    appStorage.remove("academicYear");
+    appStorage.clear();
   };
 
   return (

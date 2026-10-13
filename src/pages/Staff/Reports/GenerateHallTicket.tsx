@@ -21,6 +21,7 @@ import { Save, Printer, Loader2 } from "lucide-react";
 import Switch from "../../../components/form/switch/Switch";
 import Alert from "../../../components/ui/alert/Alert";
 import Button from "../../../components/ui/button/Button";
+import { appStorage } from "../../../utils/appStorage";
 
 export type RenderResult = {
   content?: React.ReactNode;
@@ -384,7 +385,7 @@ export default function GenerateHallTicket() {
       });
     }
     
-    localStorage.setItem("hallTicketData", JSON.stringify(hallTicketData));
+    appStorage.set("hallTicketData", JSON.stringify(hallTicketData));
     window.open(`${import.meta.env.BASE_URL}hallticket`, "_blank");
   };
 

@@ -1,5 +1,6 @@
 import React from "react";
 import AuthImage from "../common/AuthImage";
+import { appStorage } from "../../utils/appStorage";
 
 // ================= TYPES =================
 interface Subject {
@@ -331,7 +332,7 @@ const HallTicketCard = ({
 
 // ================= PAGE =================
 export default function HallTicketPage() {
-  const storedData = localStorage.getItem("hallTicketData");
+  const storedData = appStorage.get("hallTicketData");
 
   const parsedData: HallTicketData | null = storedData
     ? JSON.parse(storedData)
