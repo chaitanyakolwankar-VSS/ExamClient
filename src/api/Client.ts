@@ -1,7 +1,10 @@
 import axios from 'axios';
+import { queryClient } from '../data/queryClient';
+import { appStorage } from "../utils/appStorage";
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.DEV ? 'https://localhost:7225/api' : '/ExamAPI/api',
+  // Production: the API's IIS path from the build mode's .env (VITE_API_BASE); the demo build uses /ExamAPI.
+  baseURL: import.meta.env.DEV ? 'https://localhost:7225/api' : `${(import.meta.env.VITE_API_BASE || '/ExamAPI').replace(/\/+$/, '')}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -9,14 +12,52 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken'); 
+    const token = appStorage.get('authToken'); 
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // A file upload must not go out under the default JSON Content-Type: axios would turn the form into
+    // JSON and drop the file. Without the header the browser sends multipart/form-data with its boundary.
+    if (config.data instanceof FormData) {
+      config.headers.delete('Content-Type');
+    }
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Endpoints where a 401 is an expected answer (bad credentials / OTP flow), not an expired session.
+const AUTH_EXEMPT_URLS = ['/Auth/', '/SendResetOtp/'];
+
+let redirectingToSignIn = false;
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const url: string = error?.config?.url ?? '';
+    const isAuthCall = AUTH_EXEMPT_URLS.some((p) => url.includes(p));
+
+    if (error?.response?.status === 401 && !isAuthCall) {
+      // Same session teardown as AuthContext.logout().
+      appStorage.remove('authToken');
+      appStorage.remove('authUser');
+      appStorage.remove('academicYear');
+      appStorage.clear();
+      queryClient.clear(); // no cached lookup data may survive into the next session
+
+      // Router basename is derived from Vite's base path in App.tsx; keep them in sync.
+      const basename = import.meta.env.BASE_URL.replace(/\/$/, '');
+      const signInPath = `${basename}/signin`;
+      const onSignIn = window.location.pathname.replace(/\/$/, '').toLowerCase() === signInPath.toLowerCase();
+
+      if (!onSignIn && !redirectingToSignIn) {
+        redirectingToSignIn = true;
+        window.location.assign(signInPath);
+      }
+    }
+    return Promise.reject(error);
+  }
 );
 
 export default apiClient;

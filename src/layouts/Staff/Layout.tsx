@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import PageFallback from "../../components/common/PageFallback";
 import { SidebarProvider, useSidebar } from "../../context/SidebarContext";
 import { Outlet } from "react-router";
 import AppHeader from "./Header";
@@ -24,7 +26,9 @@ const LayoutContent: React.FC = () => {
         <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
           <AnimatePresence mode="wait">
             <PageTransition key={location.pathname}>
-              <Outlet />
+              <Suspense fallback={<PageFallback />}>
+                <Outlet />
+              </Suspense>
             </PageTransition>
           </AnimatePresence>
         </div>

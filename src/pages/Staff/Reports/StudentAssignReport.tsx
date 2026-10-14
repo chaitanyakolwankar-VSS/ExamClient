@@ -1,13 +1,17 @@
 import React, { useEffect, useState, useMemo } from "react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
-import { CourseApiResponse, CourseService } from "../../../services/Course";
-import { PatternApiResponse, PatternService } from "../../../services/Pattern";
 import {
-  ExamApiRequest,
-  ExamApiResponse,
-} from "../../../services/GenerateHallTicketService";
-import { RegularExamService } from "../../../services/RegularExamService";
+  useAcademicYear,
+  useCourses,
+  usePatterns,
+  useSemesters,
+  useExams,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+  toExamOptions,
+} from "../../../data";
 import Swal from "sweetalert2";
 import Button from "../../../components/ui/button/Button";
 import { Search } from "lucide-react";
@@ -18,16 +22,10 @@ import {
   StudentCreditReportResponse,
 } from "../../../services/StudentAssignRptService";
 import DataTable from "../../../components/ui/table/DataTable";
-import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
 type ReportType = "assign" | "credit";
-
-interface Option {
-  value: string;
-  label: string;
-}
 
 interface ReportColumn {
   key: string;
@@ -59,26 +57,33 @@ interface PivotedCreditRow {
 }
 
 const StudentAssignReport = () => {
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
+  const { ayid } = useAcademicYear();
+
   const [courseId, setCourseId] = useState("");
+  const courses = useCourses();
+  const courseOptions = useMemo(
+    () => toCourseOptions(courses.data),
+    [courses.data],
+  );
 
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
   const [pattern, setPattern] = useState("");
+  const patterns = usePatterns();
+  const patternOptions = useMemo(
+    () => toPatternOptions(patterns.data),
+    [patterns.data],
+  );
 
-  const [ExamOptions, setExamOptions] = useState<Option[]>([]);
-  const [Exam, setExam] = useState("");
-
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
   const [semester, setSemester] = useState("");
+  const semesters = useSemesters();
+  const semesterOptions = useMemo(
+    () => toSemesterOptions(semesters.data),
+    [semesters.data],
+  );
+
+  // Regular exams of the course for the selected academic year.
+  const [Exam, setExam] = useState("");
+  const exams = useExams({ courseId, purpose: "regular" });
+  const ExamOptions = useMemo(() => toExamOptions(exams.data), [exams.data]);
 
   // Report Data
   const [assignData, setAssignData] = useState<StudentAssignReportResponse[]>(
@@ -111,7 +116,6 @@ const StudentAssignReport = () => {
   useEffect(() => {
     if (semester) {
       setExam("");
-      fetchexam();
     }
   }, [semester]);
 
@@ -184,7 +188,7 @@ const StudentAssignReport = () => {
       Pattern: pattern,
       Semester: semester,
       ExamId: Exam,
-      Ayid: localStorage.getItem("AYID") || "",
+      Ayid: ayid ?? "",
     };
 
     try {
@@ -192,7 +196,6 @@ const StudentAssignReport = () => {
 
       if (type === "assign") {
         const data = await StudentAssignRptService.getReport(payload);
-        console.log("ASSIGN REPORT RESPONSE", data);
         setAssignData(data || []);
         setActiveReport("assign");
         setTableKey((k) => k + 1);
@@ -206,7 +209,6 @@ const StudentAssignReport = () => {
         }
       } else {
         const data = await StudentAssignRptService.getCreditReport(payload);
-        console.log("CREDIT REPORT RESPONSE", data);
         const rows = Array.isArray(data) ? data : [];
         setCreditRawData(rows);
         setActiveReport("credit");
@@ -229,7 +231,7 @@ const StudentAssignReport = () => {
     }
   };
 
-  // Distinct Subject-Head combinations sorted by Subject Name, Head Type, Head
+  // Distinct Subject-Head combinations in subject order (from the API), then Head Type, Head
   const creditHeads: CreditHead[] = useMemo(() => {
     const map = new Map<string, CreditHead>();
 
@@ -251,9 +253,30 @@ const StudentAssignReport = () => {
       }
     });
 
+    // Subject order comes from the API (rows arrive student by student, each in subject order).
+    // Build one column order from them: a subject first seen on a later student (because an
+    // earlier student did not take it) is slotted in right after the subject before it.
+    const subjectOrder: string[] = [];
+    let prevStudent: string | undefined;
+    let prevSubject: string | undefined;
+    creditRawData.forEach((item) => {
+      const subj = item.subjectName || "";
+      if (item.studentID !== prevStudent) {
+        prevStudent = item.studentID;
+        prevSubject = undefined;
+      }
+      if (!subjectOrder.includes(subj)) {
+        const at =
+          prevSubject === undefined ? 0 : subjectOrder.indexOf(prevSubject) + 1;
+        subjectOrder.splice(at, 0, subj);
+      }
+      prevSubject = subj;
+    });
+    const subjectPos = (s: string) => subjectOrder.indexOf(s);
+
     return Array.from(map.values()).sort((a, b) => {
       if (a.subject !== b.subject) {
-        return a.subject.localeCompare(b.subject);
+        return subjectPos(a.subject) - subjectPos(b.subject);
       }
       if (a.headType !== b.headType) {
         return a.headType.localeCompare(b.headType);
@@ -327,21 +350,14 @@ const StudentAssignReport = () => {
         return Swal.fire("No Data", "There is no data to download", "info");
       }
 
-      const rows = assignData.map((r) => ({
-        "Seat No.": r.seatNo,
-        "Student ID": r.studentID,
-        "Student Name": r.name,
-        "Subject Code": r.subjectCode,
-        "Subject Name": r.subjectName,
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      worksheet["!cols"] = [
-        { wch: 14 },
-        { wch: 16 },
-        { wch: 30 },
-        { wch: 16 },
-        { wch: 45 },
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Student Assign Report");
+      worksheet.columns = [
+        { header: "Seat No.", key: "seatNo", width: 14 },
+        { header: "Student ID", key: "studentID", width: 16 },
+        { header: "Student Name", key: "name", width: 30 },
+        { header: "Subject Code", key: "subjectCode", width: 16 },
+        { header: "Subject Name", key: "subjectName", width: 45 },
       ];
 
       const workbook = XLSX.utils.book_new();
@@ -356,7 +372,7 @@ const StudentAssignReport = () => {
           .replace(/[\\/:*?"<>|]/g, "")
           .replace(/\s+/g, "_");
 
-      XLSX.writeFile(workbook, fileName);
+      saveAs(new Blob([await workbook.xlsx.writeBuffer()]), fileName);
     } else {
       const dataToExport =
         filteredCreditRows.length > 0 ? filteredCreditRows : pivotedCreditRows;

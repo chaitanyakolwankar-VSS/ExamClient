@@ -1,18 +1,18 @@
 import PageMeta from "../../../components/common/PageMeta";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Select from "../../../components/form/Select";
-import { Plus, Trash2, Pencil, Save, CheckCircle, Eye, Copy } from "lucide-react";
+import { Plus, Trash2, Pencil, Save, CheckCircle, Eye, Copy, ListOrdered, ChevronUp, ChevronDown } from "lucide-react";
 import Button from "../../../components/ui/button/Button";
 import Checkbox from "../../../components/form/input/Checkbox";
 import { Table, TableBody, TableRow, TableCell, } from "../../../components/ui/table";
 import Swal from "sweetalert2";
 import { Modal } from "../../../components/ui/modal";
-import { CourseService, CourseApiResponse } from "../../../services/Course";
-import { PatternService, PatternApiResponse } from "../../../services/Pattern";
-import { GetSubject, SubjectApiResponse } from "../../../services/GetSubject";
 import Switch from "../../../components/form/switch/Switch";
 import { Subject, SubjectService, SaveCreditsPayload, GetCredits, PreviousCredits, DeleteCredits, DeleteSubject, PassingStrategy } from "../../../services/SubjectService";
-import { academicYearService } from "../../../services/academicYearService";
+import {
+  useCourses, usePatterns, useSemesters, useSubjects, useAcademicYear, useAcademicYears,
+  toCourseOptions, toPatternOptions, toSemesterOptions, invalidateSubjects,
+} from "../../../data";
 import Alert from "../../../components/ui/alert/Alert";
 import Input from "../../../components/form/input/InputField";
 import ComponentCard from "../../../components/common/ComponentCard";
@@ -57,32 +57,34 @@ export default function SubjectMaster() {
 
 
   const [isPreviousYear, setIsPreviousYear] = useState(false);
+  const { ayid } = useAcademicYear();
+  const { data: academicYears } = useAcademicYears();
   const [PreviousYearOptions, setPreviousYearOptions] = useState<Option[]>([]);
   const [PreviousYear, setPreviousYear] = useState("");
   const [PreviousCreditExist, setPreviousCreditExist] = useState(false);
   // 🔹 Course
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
+  const { data: courses } = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses), [courses]);
   const [courseId, setCourseId] = useState("");
 
   // 🔹 Pattern
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
+  const { data: patterns } = usePatterns();
+  // value = pattern NAME (what SubjectMaster.Pattern stores)
+  const patternOptions = useMemo(() => toPatternOptions(patterns, "name"), [patterns]);
   const [pattern, setPattern] = useState("");
 
-  // 🔹 Semester (hard coded)
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  // 🔹 Semester (shared list; value "Sem-N")
+  const { data: semesters } = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters), [semesters]);
   const [semester, setSemester] = useState("");
 
   // 🔹 Subject
-  const [subjectOptions, setSubjectOptions] = useState<Option[]>([]);
+  const { data: subjectList } = useSubjects({ courseId, pattern, semester });
+  // Label is the subject name only (as before); toSubjectOptions would prefix the code.
+  const subjectOptions = useMemo<Option[]>(
+    () => (subjectList ?? []).map((s) => ({ value: s.subjectId, label: s.name })),
+    [subjectList]
+  );
   const [subject, setSubject] = useState("");
 
   const [subjectName, setSubjectName] = useState("");
@@ -110,6 +112,15 @@ export default function SubjectMaster() {
 
 
   const [password, setpassword] = useState("");
+
+  // ---- Set subject order (pop-up) ----
+  interface OrderRow { subjectId: string; code: string; name: string; order: string }
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
+  const orderListRef = useRef<HTMLDivElement>(null);
+  // Which row/control to refocus (and scroll to) after a move re-orders the list.
+  const orderFocusRef = useRef<{ id: string; ctl: "input" | "up" | "down" } | null>(null);
+  const [orderSaving, setOrderSaving] = useState(false);
 
   const [creditInput, setCreditInput] = useState<string>("1");
 
@@ -157,85 +168,23 @@ export default function SubjectMaster() {
   }, [credits, isEditMode, IsViewMode]);
 
 
-  // 🔹 Load courses on page load
+  // 🔹 Reset dependent selections when the course is cleared
   useEffect(() => {
-    fetchCourses();
-  }, [PreviousYear, isPreviousYear]);
-
-
-  // 🔹 Load patterns when course changes
-  useEffect(() => {
-    if (courseId) {
-      fetchPatterns(courseId);
-    } else {
-      setPatternOptions([]);
+    if (!courseId) {
       setPattern("");
       setSemester("");
       setSubject("");
-      setSubjectOptions([]);
     }
   }, [courseId]);
 
-  // 🔹 Load subjects when semester changes
+  // 🔹 Clear the subject when the semester (or its parents) is cleared
   useEffect(() => {
-    if (courseId && pattern && semester) {
-      fetchSubjects(courseId, pattern, semester);
-    } else {
-      setSubjectOptions([]);
+    if (!(courseId && pattern && semester)) {
       setSubject("");
     }
   }, [semester]);
 
   // ================= API CALLS =================
-
-  const fetchCourses = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-
-      setCourseOptions(
-        data.map((c) => ({
-          value: c.courseid,
-          label: c.coursename,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch courses", error);
-    }
-  };
-
-  const fetchPatterns = async (courseId: string) => {
-    try {
-      const data: PatternApiResponse[] = await PatternService.getpattern();
-
-      setPatternOptions(
-        data.map((p) => ({
-          value: p.patternName,
-          label: p.patternName,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch patterns", error);
-    }
-  };
-
-  const fetchSubjects = async (
-    courseId: string,
-    pattern: string,
-    semester: string
-  ) => {
-    try {
-      const data: SubjectApiResponse[] = await GetSubject.getSubject({ courseId, pattern, semester });
-
-      setSubjectOptions(
-        data.map((s) => ({
-          value: s.subjectId,
-          label: s.subjectName,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch subjects", error);
-    }
-  };
 
   const handleSave = async () => {
     if (!subjectName || !subjectCode) {
@@ -271,7 +220,7 @@ export default function SubjectMaster() {
         });
 
         setIsModalOpen(false);
-        fetchSubjects(courseId, pattern, semester);
+        invalidateSubjects();
       }
       else {
         await Swal.fire("Failed!", res.message, "error");
@@ -284,7 +233,7 @@ export default function SubjectMaster() {
       setCredits(1);
       setCreditInput(String(1));
       setSubject("");
-    } catch (error) {
+    } catch {
       Swal.fire({
         title: "Failed!",
         text: "Something went wrong !!",
@@ -301,7 +250,6 @@ export default function SubjectMaster() {
 
   const handleSaveCredits = async () => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return setAlert({
           variant: "error",
@@ -321,7 +269,7 @@ export default function SubjectMaster() {
       const payload: SaveCreditsPayload = {
         subjectId: subject,
         ayid: ayid,
-        credits: creditData.map((item, index) => ({
+        credits: creditData.map((item) => ({
           creditId: item.creditId,
           // creditNo: String(index + 1),
           creditNo: String(item.creditNo),
@@ -345,7 +293,6 @@ export default function SubjectMaster() {
       };
 
       // 2️⃣ Debug (optional but recommended)
-      console.log("SAVE CREDITS PAYLOAD 👉", payload);
 
       // 3️⃣ API call
       const res = await SubjectService.saveCredits(payload);
@@ -371,7 +318,7 @@ export default function SubjectMaster() {
       setIsEditMode(false);
       setCredits(0);
       setCreditData([]);
-    } catch (error) {
+    } catch {
       Swal.fire({
         title: "Failed!",
         text: "Something went wrong while saving credits",
@@ -385,7 +332,6 @@ export default function SubjectMaster() {
 
   const handleUpdateCredits = async () => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return setAlert({
           variant: "error",
@@ -400,7 +346,7 @@ export default function SubjectMaster() {
       const payload: SaveCreditsPayload = {
         subjectId: subject,
         ayid: ayid,
-        credits: creditData.map((item, index) => ({
+        credits: creditData.map((item) => ({
           creditId: item.creditId,
           creditNo: String(item.creditNo),
 
@@ -424,7 +370,6 @@ export default function SubjectMaster() {
       };
 
       // 2️⃣ Debug (optional but recommended)
-      console.log("SAVE CREDITS PAYLOAD 👉", payload);
 
       // 3️⃣ API call
       const res = await SubjectService.UpdateCredits(payload);
@@ -452,7 +397,7 @@ export default function SubjectMaster() {
       setIsViewMode(false);
       setCredits(0);
       setCreditData([]);
-    } catch (error) {
+    } catch {
       return Swal.fire({
         title: "Error!",
         text: "Something went wrong while saving credits",
@@ -540,7 +485,6 @@ export default function SubjectMaster() {
       if (!result.isConfirmed) return;
 
 
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return setAlert({
           variant: "error",
@@ -552,7 +496,7 @@ export default function SubjectMaster() {
       const payload: DeleteCredits = {
         subjectId: subject,
         ayid: ayid,
-        credits: creditData.map((item, index) => ({
+        credits: creditData.map((item) => ({
           creditId: item.creditId,
         })),
       };
@@ -582,7 +526,7 @@ export default function SubjectMaster() {
       setCredits(1);
       setCreditInput(String(1));
     }
-    catch (error) {
+    catch {
       Swal.fire({
         title: "Error!",
         text: "Something went wrong !!",
@@ -609,7 +553,6 @@ export default function SubjectMaster() {
       // ❌ Cancel clicked
       if (!result.isConfirmed) return;
 
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year is missing", "error");
       }
@@ -632,7 +575,7 @@ export default function SubjectMaster() {
           timerProgressBar: true,
         });
 
-        fetchSubjects(courseId, pattern, semester);
+        invalidateSubjects();
         setSubject("");
       } else {
         Swal.fire({
@@ -644,7 +587,7 @@ export default function SubjectMaster() {
         });
       }
       resetCreditFlow();
-    } catch (error) {
+    } catch {
       Swal.fire({
         title: "Error!",
         text: "Something went wrong !!",
@@ -671,12 +614,9 @@ export default function SubjectMaster() {
     }
 
     // 🔹 Toggle ON
-    const years = await academicYearService.loadPreviousAcademicYears();
+    const years = academicYears ?? [];
 
-
-    const currentAyid = localStorage.getItem("AYID");
-
-    const currentYear = years.find(y => y.ayid === currentAyid);
+    const currentYear = years.find(y => y.ayid === ayid);
 
 
     const previousYearsFiltered = years
@@ -713,7 +653,6 @@ export default function SubjectMaster() {
       return;
     }
 
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) {
       return setAlert({
         variant: "error",
@@ -764,7 +703,6 @@ export default function SubjectMaster() {
     }
   };
   const CheckCredits = async (subjectId: string) => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) return;
 
     const payload: GetCredits = {
@@ -786,7 +724,6 @@ export default function SubjectMaster() {
   };
   
   const loadCredits = async (subjectId: string, mode: "view" | "edit") => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) return;
 
     const payload: GetCredits = {
@@ -832,7 +769,6 @@ export default function SubjectMaster() {
     }
   };
   const loadPreviousCredits = async (subjectId: string) => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) return;
 
     const payload: PreviousCredits = {
@@ -872,7 +808,7 @@ export default function SubjectMaster() {
           timer: 1000,
         });
       }
-    } catch (error) {
+    } catch {
       Swal.fire({
         title: "Failed!",
         text: "Something went wrong",
@@ -882,6 +818,95 @@ export default function SubjectMaster() {
       });
     }
   };
+  const openOrderModal = () => {
+    // The lookup already comes back in subject order. Numbers are always rewritten 1..n in that
+    // order, so duplicate or missing stored values are cleaned up as soon as the pop-up opens.
+    setOrderRows(
+      (subjectList ?? []).map((s, i) => ({
+        subjectId: s.subjectId,
+        code: s.code,
+        name: s.name,
+        order: String(i + 1),
+      }))
+    );
+    setIsOrderModalOpen(true);
+  };
+
+  const closeOrderModal = () => {
+    if (orderSaving) return;
+    setIsOrderModalOpen(false);
+  };
+
+  // Move the row at `from` to position `to` (1-based, clamped) and renumber every row 1..n.
+  const moveOrderRow = (from: number, to: number, ctl: "input" | "up" | "down" = "input") => {
+    const target = Math.min(Math.max(to, 1), orderRows.length) - 1;
+    const next = [...orderRows];
+    const [row] = next.splice(from, 1);
+    next.splice(target, 0, row);
+    if (target !== from) orderFocusRef.current = { id: row.subjectId, ctl };
+    setOrderRows(next.map((r, i) => ({ ...r, order: String(i + 1) })));
+  };
+
+  // Commit a typed position; empty or invalid text reverts to the row's current number.
+  const commitOrderInput = (index: number, refocus = false) => {
+    const n = parseInt(orderRows[index]?.order ?? "", 10);
+    if (!Number.isInteger(n) || n < 1) {
+      setOrderRows((prev) => prev.map((r, i) => (i === index ? { ...r, order: String(i + 1) } : r)));
+      return;
+    }
+    if (refocus) orderFocusRef.current = { id: orderRows[index].subjectId, ctl: "input" };
+    moveOrderRow(index, n, "input");
+  };
+
+  // After a move, keep the moved row in view and keep focus on the control that was used.
+  useLayoutEffect(() => {
+    const f = orderFocusRef.current;
+    if (!f) return;
+    orderFocusRef.current = null;
+    const root = orderListRef.current;
+    if (!root) return;
+    const el =
+      root.querySelector<HTMLElement>(`[data-row="${f.id}"] [data-ctl="${f.ctl}"]:not(:disabled)`) ??
+      root.querySelector<HTMLElement>(`[data-row="${f.id}"] [data-ctl="input"]`);
+    el?.focus();
+    if (el instanceof HTMLInputElement) el.select();
+    el?.closest("tr")?.scrollIntoView({ block: "nearest" });
+  }, [orderRows]);
+
+  const handleSaveOrder = async () => {
+    if (orderSaving) return;
+    // Rows are always unique and gapless, so the position in the list is the order.
+    const subjects = orderRows.map((r, i) => ({ subjectId: r.subjectId, sortOrder: i + 1 }));
+
+    try {
+      setOrderSaving(true);
+      const res = await SubjectService.setSubjectOrder({ subjects });
+      if (res.success) {
+        setIsOrderModalOpen(false);
+        invalidateSubjects();
+        await Swal.fire({
+          title: "Saved!",
+          text: res.message,
+          icon: "success",
+          showConfirmButton: false,
+          timer: 1000,
+        });
+      } else {
+        await Swal.fire("Failed!", res.message, "error");
+      }
+    } catch {
+      Swal.fire({
+        title: "Failed!",
+        text: "Something went wrong !!",
+        icon: "error",
+        showConfirmButton: false,
+        timer: 1000,
+      });
+    } finally {
+      setOrderSaving(false);
+    }
+  };
+
   const resetCreditFlow = () => {
     setPreviousCreditExist(false);
     setIsCreditDefined(false);
@@ -929,7 +954,7 @@ export default function SubjectMaster() {
           </div>
 
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-5">
+          <div className="grid grid-cols-1 gap-4 pt-5 sm:grid-cols-2 lg:grid-cols-4">
 
 
 
@@ -992,55 +1017,106 @@ export default function SubjectMaster() {
               />
             )}
 
+          </div>
 
-            <div className="grid grid-cols-2 gap-3 w-full">
-              {/* ➕ Add */}
-              {semester && (
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-center rounded-md bg-blue-600 py-2 text-white hover:bg-blue-700"
+          {/* Actions — one bar under the filters: credit actions on the left, subject actions on the right */}
+          {semester && (
+            <div className="flex flex-wrap items-center gap-3 pt-5">
+              {/* Credit actions for the selected subject */}
+              <div className="flex flex-wrap items-center gap-3">
+                {/* ✏️ Edit credit (password / view pop-up) */}
+                {(IsCreditDefined && !isEditMode && !isPreviousYear && subject) && (
+                  <Button
+                    size="sm"
+                    className="h-11"
+                    startIcon={<Pencil size={18} />}
+                    onClick={() => setIsEditCreditModalOpen(true)}
+                  >
+                    Edit Credit
+                  </Button>
+                )}
+
+                {/* 💾 Save credits (new) / Update credits (edit mode) */}
+                {(subject && !isPreviousYear && (!IsCreditDefined || (IsCreditDefined && isEditMode))) && (
+                  <Button
+                    size="sm"
+                    className="h-11"
+                    startIcon={<Save size={18} />}
+                    onClick={isEditMode ? handleUpdateCredits : handleSaveCredits}
+                  >
+                    {isEditMode ? "Update Credits" : "Save Credits"}
+                  </Button>
+                )}
+
+                {/* 🗑 Delete credit (edit mode only) */}
+                {(subject && !isPreviousYear && IsCreditDefined && isEditMode) && (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="h-11"
+                    startIcon={<Trash2 size={18} />}
+                    onClick={DeleteCredits}
+                  >
+                    Delete credit
+                  </Button>
+                )}
+
+                {/* Copy previous-year credits */}
+                {(PreviousCreditExist && subject) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-11"
+                    startIcon={<Copy size={18} />}
+                    onClick={handleCopyPreviousCredits}
+                  >
+                    Copy Credit
+                  </Button>
+                )}
+              </div>
+
+              {/* Subject actions */}
+              <div className="ml-auto flex flex-wrap items-center gap-3">
+                {/* 🔢 Set order */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-11"
+                  startIcon={<ListOrdered size={18} />}
+                  onClick={openOrderModal}
+                  disabled={!(courseId && pattern && semester) || !subjectList || subjectList.length === 0}
+                  title={
+                    !(courseId && pattern && semester) || !subjectList || subjectList.length === 0
+                      ? "Choose course, pattern and semester first"
+                      : undefined
+                  }
+                >
+                  Set order
+                </Button>
+
+                {/* 🗑 Delete subject */}
+                {subject && (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="h-11"
+                    startIcon={<Trash2 size={18} />}
+                    onClick={DeleteSubject}
+                  >
+                    Delete subject
+                  </Button>
+                )}
+
+                {/* ➕ Add */}
+                <Button
+                  size="sm"
+                  className="h-11"
+                  startIcon={<Plus size={18} />}
                   onClick={() => setIsModalOpen(true)}
                 >
-                  <Plus size={20} /><span>Add</span>
-                </button>
-              )}
-
-              {/* 🗑 Delete */}
-              {subject && (
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-center rounded-md bg-red-600 py-2 text-white hover:bg-red-700"
-                  onClick={DeleteSubject}
-                >
-                  <Trash2 size={18} /><span>Delete</span>
-                </button>
-              )}
-            </div>
-
-
-
-            {(PreviousCreditExist && subject) && (
-              <button
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2"
-                onClick={handleCopyPreviousCredits}
-              >
-                <Copy size={18} />
-                Copy Credit
-              </button>
-            )}
-          </div>
-          {(IsCreditDefined && !isEditMode && !isPreviousYear && subject) && (
-            <div className="flex justify-center pt-4">
-           
-              <button
-                className="min-w-64 bg-blue-600 text-white px-6 py-2 rounded-lg
-             flex items-center justify-center gap-2"
-                onClick={() => setIsEditCreditModalOpen(true)}
-              >
-                <Pencil size={20} />
-                <span>Edit Credit</span>
-              </button>
-
+                  Add
+                </Button>
+              </div>
             </div>
           )}
 
@@ -1049,40 +1125,8 @@ export default function SubjectMaster() {
 
               <div className="pt-5">
 
-                {/* 🔹 Buttons – CENTER */}
-                <div className="flex justify-center gap-4">
-                  <button
-                    className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg
-             flex items-center justify-center gap-2"
-                    onClick={isEditMode ? handleUpdateCredits : handleSaveCredits}
-                  >
-                    {isEditMode ? (
-                      <>
-                        <Save size={18} />
-                        <span>Update Credits</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save size={18} />
-                        <span>Save Credits</span>
-                      </>
-                    )}
-                  </button>
-
-                  {isEditMode && (
-                    <button
-                      className="min-w-64 bg-red-600 text-white px-4 py-2 rounded-lg
-             flex items-center justify-center gap-2"
-                      onClick={DeleteCredits}
-                    >
-                      <Trash2 size={18} />
-                      <span>Delete Credit</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* 🔹 Number of Credit – NEXT LINE & CENTERED */}
-                <div className="flex justify-left mt-4">
+                {/* 🔹 Number of Credit */}
+                <div className="flex justify-left">
                   <div className="w-full md:w-1/2 xl:w-1/4">
                     <Input
                       type="number"
@@ -1129,7 +1173,6 @@ export default function SubjectMaster() {
                 const isInternalSelected = Object.values(
                   creditData[index]?.internalType || {}
                 ).some(Boolean);
-                const isAnyTypeSelected = isExamSelected || isInternalSelected;
                 return (
                   <Table key={index} className="border border-gray-200">
                     <TableBody>
@@ -1449,7 +1492,7 @@ export default function SubjectMaster() {
             maxLength={80}
             onChange={(e) => {
               const value = e.target.value;
-              if (/^[a-zA-Z0-9-_\s]*$/.test(value)) {
+              if (/^[a-zA-Z0-9-_&()+\s]*$/.test(value)) {
                 setSubjectName(value);
               }
             }}
@@ -1494,6 +1537,98 @@ export default function SubjectMaster() {
           </Button>
         </div>
       </Modal>
+      {/* Set subject order */}
+      <Modal
+        isOpen={isOrderModalOpen}
+        onClose={closeOrderModal}
+        className="max-w-2xl p-4 sm:p-6"
+      >
+        <h2 className="mb-1 pr-8 text-xl font-semibold text-gray-800 dark:text-white/90">Set subject order</h2>
+        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+          Type a position or use the arrows; the other subjects move to make room.
+        </p>
+
+        <div ref={orderListRef} className="max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 z-10 bg-gray-50 text-left text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+              <tr>
+                <th scope="col" className="w-36 px-3 py-2 font-medium">Order</th>
+                <th scope="col" className="px-3 py-2 font-medium">Code</th>
+                <th scope="col" className="px-3 py-2 font-medium">Subject name</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {orderRows.map((r, i) => {
+                const label = `${r.code ? r.code + " " : ""}${r.name}`;
+                const arrowCls =
+                  "flex h-9 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 focus:outline-hidden focus-visible:ring-3 focus-visible:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-white/[0.05] dark:hover:text-gray-200";
+                return (
+                  <tr key={r.subjectId} data-row={r.subjectId}>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={3}
+                          data-ctl="input"
+                          aria-label={`Position of ${label}`}
+                          value={r.order}
+                          disabled={orderSaving}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const v = e.target.value.replace(/\D/g, "");
+                            setOrderRows((prev) => prev.map((x, j) => (j === i ? { ...x, order: v } : x)));
+                          }}
+                          onBlur={() => commitOrderInput(i)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              commitOrderInput(i, true);
+                            }
+                          }}
+                          className="h-9 w-14 rounded-lg border border-gray-300 bg-transparent px-2 text-center text-sm text-gray-800 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                        />
+                        <button
+                          type="button"
+                          data-ctl="up"
+                          className={arrowCls}
+                          aria-label={`Move ${label} up`}
+                          disabled={orderSaving || i === 0}
+                          onClick={() => moveOrderRow(i, i, "up")}
+                        >
+                          <ChevronUp size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          data-ctl="down"
+                          className={arrowCls}
+                          aria-label={`Move ${label} down`}
+                          disabled={orderSaving || i === orderRows.length - 1}
+                          onClick={() => moveOrderRow(i, i + 2, "down")}
+                        >
+                          <ChevronDown size={18} />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-700 dark:text-gray-300">{r.code}</td>
+                    <td className="px-3 py-2 text-gray-800 dark:text-white/90">{r.name}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={closeOrderModal} disabled={orderSaving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveOrder} disabled={orderSaving}>
+            {orderSaving ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </Modal>
+
       <Modal
         isOpen={isEditCreditModalOpen}
         onClose={() => { setIsEditCreditModalOpen(false); setpassword(""); }}

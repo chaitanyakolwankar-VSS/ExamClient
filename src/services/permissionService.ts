@@ -14,7 +14,19 @@ export interface PermissionGroup {
   }[];
 }
 
+export interface AllowedFormResponse {
+  permissionId: string;
+  permissionModuleName: string;
+  permissionFormName: string;
+}
+
 export const permissionService = {
+  /** Forms the signed-in user may open (role permissions + user permissions). Open to every signed-in user. */
+  async getMyAllowedForms(): Promise<AllowedFormResponse[]> {
+    const res = await apiClient.get<AllowedFormResponse[]>("/Permission/me");
+    return res.data;
+  },
+
   async getGroupedPermissions(): Promise<PermissionGroup[]> {
     const res = await apiClient.get("/Permission/grouped");
     return res.data;

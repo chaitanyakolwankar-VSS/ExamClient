@@ -5,6 +5,7 @@ import Button from "../../../components/ui/button/Button";
 import { Plus, Pencil, Trash2, ChevronLeft, Save } from "lucide-react";
 import { Modal } from "../../../components/ui/modal";
 import Input from "../../../components/form/input/InputField";
+import MultiSelect from "../../../components/form/MultiSelect";
 import DataTable from "../../../components/ui/table/DataTable";
 import Swal from "sweetalert2";
 import {
@@ -17,6 +18,7 @@ import {
   GradeMaster,
   GradeThreshold,
 } from "../../../services/OrdinanceService";
+import { invalidateBootstrap } from "../../../data";
 import Alert from "../../../components/ui/alert/Alert";
 // import Checkbox from "../../../components/form/input/Checkbox";
 import Switch from "../../../components/form/switch/Switch"; // Import Switch
@@ -62,6 +64,11 @@ const withCurrentValue = (
     ? [...options, { value, label: value }]
     : options;
 
+/** UpgradeGrade with no % (param 1), marks (param 2) or Max Limit spends a default pool on the API (UpgradeGradeHandler). */
+const UPGRADE_DEFAULT_POOL = 10;
+const usesDefaultUpgradePool = (a: Pick<RuleAction, "actionType" | "param1Value" | "param2Value" | "maxLimit">) =>
+  a.actionType === "UpgradeGrade" && !((a.param1Value ?? 0) > 0) && !((a.param2Value ?? 0) > 0) && !((a.maxLimit ?? 0) > 0);
+
 const GRADE_PRESETS = [
   { value: "10pt_cbgs", label: "10-Point Scale (CBGS)" },
   { value: "7pt", label: "7-Point Scale" },
@@ -73,6 +80,8 @@ export default function Ordinance() {
   const [metadataFacts, setMetadataFacts] = useState<Option[]>([]);
   const [metadataActions, setMetadataActions] = useState<Option[]>([]);
   const [metadataOperators, setMetadataOperators] = useState<Option[]>([]);
+  const [metadataScopes, setMetadataScopes] = useState<string[]>([]);
+  const [metadataHeadTypes, setMetadataHeadTypes] = useState<string[]>([]);
 
   const [patterns, setPatterns] = useState<PatternData[]>([]);
   const [patternOptions, setPatternOptions] = useState<Option[]>([]);
@@ -147,6 +156,40 @@ export default function Ordinance() {
 
   const filters = useMemo(() => ({}), []);
 
+  // The AllowExamAssignment action drives ATKT/Revaluation assignment, not result processing, so
+  // it is only meaningful on a KT or Revaluation rule set. Hide it from the action dropdown for
+  // every other exam type (e.g. Regular).
+  const availableActions = useMemo(() => {
+    const activeExamType = ruleSets.find((rs) => rs.ruleSetId === ruleSet)?.examType || "";
+    // Exam type labels vary ("KT", "A.T.K.T", "ATKT", "Revaluation"), so normalise before matching.
+    const normalisedExamType = activeExamType.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const allowsAssignment = ["KT", "ATKT", "REVAL", "REVALUATION"].includes(normalisedExamType);
+    return allowsAssignment
+      ? metadataActions
+      : metadataActions.filter((a) => a.value !== "AllowExamAssignment");
+  }, [metadataActions, ruleSets, ruleSet]);
+
+  // Target multiselect options: fixed subject scopes + this college's configured head labels.
+  const targetBaseOptions = useMemo(
+    () => [
+      ...metadataScopes.map((s) => ({ value: s, text: s })),
+      ...metadataHeadTypes.map((h) => ({ value: h, text: `Head: ${h}` })),
+    ],
+    [metadataScopes, metadataHeadTypes]
+  );
+
+  const parseTarget = (target?: string) =>
+    (target ?? "").split(",").map((t) => t.trim()).filter(Boolean);
+
+  /** Options for one action's Target, keeping any already-stored token that isn't in the base list. */
+  const targetOptionsFor = (target?: string) => {
+    const opts = [...targetBaseOptions];
+    parseTarget(target).forEach((tok) => {
+      if (!opts.some((o) => o.value.toLowerCase() === tok.toLowerCase())) opts.push({ value: tok, text: tok });
+    });
+    return opts;
+  };
+
   // --- Effects ---
   useEffect(() => {
     if (pageAlert) {
@@ -173,6 +216,8 @@ export default function Ordinance() {
       setMetadataFacts(data.facts.map((f: string) => ({ value: f, label: f })));
       setMetadataActions(data.actions.map((a: string) => ({ value: a, label: a })));
       setMetadataOperators(data.operators.map((o: string) => ({ value: o, label: o })));
+      setMetadataScopes(data.subjectScopes ?? []);
+      setMetadataHeadTypes(data.headTypes ?? []);
     } catch (error) {
       console.error(error);
     }
@@ -242,7 +287,7 @@ export default function Ordinance() {
           });
         }
       }
-    } catch (error) {
+    } catch {
       setPageAlert({ variant: "error", title: "Error", message: "Unexpected error linking Grade Master." });
     } finally {
       setIsLinkingGrade(false);
@@ -304,12 +349,13 @@ export default function Ordinance() {
       const response = await OrdinanceService.saveGradeMaster(currentGradeMaster);
       if (response.success) {
         setGradeModalAlert({ variant: "success", title: "Success", message: "Grading System created." });
+        invalidateBootstrap(); // grade scales are part of the shared lookup
         await fetchGradeMasters();
         setTimeout(() => setIsGradeModalOpen(false), 1000);
       } else {
         setGradeModalAlert({ variant: "error", title: "Error", message: response.message });
       }
-    } catch (error) {
+    } catch {
       setGradeModalAlert({ variant: "error", title: "Error", message: "Unexpected error occurred." });
     } finally {
       setIsGradeSubmitting(false);
@@ -407,7 +453,7 @@ export default function Ordinance() {
       setPatternOptions(
         data.map((p) => ({ value: p.patternId || "", label: p.patternName })),
       );
-    } catch (error) {
+    } catch {
       const alertPayload = {
         variant: "error" as const,
         title: "Error",
@@ -447,6 +493,7 @@ export default function Ordinance() {
           message: response.message,
         });
         resetPatternForm();
+        invalidateBootstrap(); // other screens' pattern drop-downs
         await fetchPatterns(true);
       } else {
         setPatternModalAlert({
@@ -455,7 +502,7 @@ export default function Ordinance() {
           message: response.message || "Operation failed.",
         });
       }
-    } catch (error) {
+    } catch {
       setPatternModalAlert({
         variant: "error",
         title: "Error!",
@@ -485,6 +532,7 @@ export default function Ordinance() {
               title: "Deleted!",
               message: response.message,
             });
+            invalidateBootstrap(); // other screens' pattern drop-downs
             fetchPatterns(true);
           } else {
             setPatternModalAlert({
@@ -493,7 +541,7 @@ export default function Ordinance() {
               message: response.message || "Failed to delete pattern.",
             });
           }
-        } catch (error) {
+        } catch {
           setPatternModalAlert({
             variant: "error",
             title: "Error!",
@@ -536,7 +584,7 @@ export default function Ordinance() {
           .filter((rs) => rs.isActive)
           .map((rs) => ({ value: rs.ruleSetId || "", label: rs.name })),
       );
-    } catch (error) {
+    } catch {
       const alertPayload = {
         variant: "error" as const,
         title: "Error",
@@ -619,7 +667,7 @@ export default function Ordinance() {
           message: response.message || "Operation failed.",
         });
       }
-    } catch (error) {
+    } catch {
       setRuleSetModalAlert({
         variant: "error",
         title: "Error!",
@@ -657,7 +705,7 @@ export default function Ordinance() {
               message: response.message || "Failed to delete ruleset.",
             });
           }
-        } catch (error) {
+        } catch {
           setRuleSetModalAlert({
             variant: "error",
             title: "Error!",
@@ -682,7 +730,7 @@ export default function Ordinance() {
     try {
       const data = await OrdinanceService.getRules(ruleSetId);
       setRules(data);
-    } catch (error) {
+    } catch {
       setPageAlert({
         variant: "error",
         title: "Error",
@@ -821,10 +869,11 @@ export default function Ordinance() {
         });
       }
     } catch (error) {
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setPageAlert({
         variant: "error",
         title: "Error",
-        message: "An unexpected error occurred while saving the rule.",
+        message: apiMessage || "An unexpected error occurred while saving the rule.",
       });
     } finally {
       setIsRuleSubmitting(false);
@@ -858,7 +907,7 @@ export default function Ordinance() {
               message: response.message || "Failed to delete rule.",
             });
           }
-        } catch (error) {
+        } catch {
           setPageAlert({
             variant: "error",
             title: "Error",
@@ -955,6 +1004,7 @@ export default function Ordinance() {
       if (a.param1Type !== "None") summary += ` (${a.param1Type}: ${a.param1Value ?? 0})`;
       summary += ` to ${a.target}`;
       if ((a.maxLimit ?? 0) > 0) summary += ` (Max: ${a.maxLimit})`;
+      else if (usesDefaultUpgradePool(a)) summary += ` (Max: ${UPGRADE_DEFAULT_POOL}, default)`;
       return summary;
     });
 
@@ -1326,7 +1376,7 @@ export default function Ordinance() {
                   <tr key={idx} className="bg-white align-top">
                     <td className="px-2 py-2">
                       <Select
-                        options={metadataActions}
+                        options={availableActions}
                         value={act.actionType}
                         onChange={(val) => updateAction(idx, "actionType", val)}
                       />
@@ -1396,6 +1446,11 @@ export default function Ordinance() {
                         value={act.maxLimit?.toString() ?? ""}
                         onChange={(e) => updateAction(idx, "maxLimit", parseFloat(e.target.value) || 0)}
                       />
+                      {usesDefaultUpgradePool(act) && (
+                        <p className="mt-1 text-xs text-gray-400" title="No % or marks limit and no Max Limit set">
+                          Default: {UPGRADE_DEFAULT_POOL} marks
+                        </p>
+                      )}
                     </td>
                     <td className="px-2 py-2">
                       <Input
@@ -1404,13 +1459,15 @@ export default function Ordinance() {
                         placeholder="[SubjectOutOf] * 0.01"
                       />
                     </td>
-                    <td className="px-2 py-2">
-                      <Input
-                        value={act.target}
-                        onChange={(event) => updateAction(idx, "target", event.target.value)}
-                        placeholder="Exact head name(s), comma separated"
+                    <td className="px-2 py-2 min-w-[230px]">
+                      <MultiSelect
+                        label=""
+                        options={targetOptionsFor(act.target)}
+                        value={parseTarget(act.target)}
+                        onChange={(sel) => updateAction(idx, "target", sel.join(", "))}
+                        placeholder="Every subject & head"
                       />
-                      <p className="mt-1 text-xs text-gray-500">Use the exact configured head name, such as ESE(TH), or a comma-separated list.</p>
+                      <p className="mt-1 text-xs text-gray-500">Empty = every subject &amp; head. Pick subject scopes and/or head names.</p>
                     </td>
                     <td className="px-2 py-2 text-right">
                       <button

@@ -144,12 +144,12 @@ const AppHeader: React.FC = () => {
 
           <Link to="/" className="lg:hidden">
             <img
-              className="dark:hidden"
+              className="h-8 w-auto dark:hidden"
               src={`${import.meta.env.BASE_URL}images/logo/logo.svg`}
               alt="Logo"
             />
             <img
-              className="hidden dark:block"
+              className="hidden h-8 w-auto dark:block"
               src={`${import.meta.env.BASE_URL}images/logo/logo-dark.svg`}
               alt="Logo"
             />

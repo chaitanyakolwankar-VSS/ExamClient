@@ -22,6 +22,12 @@ export interface DeclareExamApiResponse {
   isDeclare: boolean;
   declareDate?: string | null;
   pattern: string;
+  /** False when no DeclareResult row exists yet (the result is "not declared"). */
+  hasRecord?: boolean;
+  /** Bulk marksheets were generated at least once; the API refuses to declare before that. */
+  marksheetGenerated?: boolean;
+  /** The gazette was generated at least once. */
+  gazetteGenerated?: boolean;
 }
 
 export interface SaveDeclareExam {
@@ -45,7 +51,7 @@ export interface ToggleDeclareResult {
   Ayid: string;
   Semester: string;
   Pattern: string;
-  DeclareDate: string;
+  DeclareDate: string | null;
   IsDeclare: boolean;
 }
 

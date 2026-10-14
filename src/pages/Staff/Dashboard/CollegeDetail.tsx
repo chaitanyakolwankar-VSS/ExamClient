@@ -3,10 +3,13 @@ import Input from "../../../components/form/input/InputField";
 import { Pencil, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import Dropzone from "../../../components/form/input/DropZone";
+import AuthImage from "../../../components/common/AuthImage";
 import Button from "../../../components/ui/button/Button";
 import Alert from "../../../components/ui/alert/Alert";
 import collegedetailService from "../../../services/collegedetailService";
 import { Modal } from "../../../components/ui/modal";
+import { invalidateBootstrap } from "../../../data";
+import ReportSignatures from "./ReportSignatures";
 
 const CollegeDetail = () => {
   const [showLogo, setShowLogo] = useState(true);
@@ -159,6 +162,7 @@ const CollegeDetail = () => {
         setSavedBanner(bannerFile);
         showAlert("info", "Updated", "College updated successfully");
       }
+      invalidateBootstrap(); // college record is part of the shared lookup
       setIsSaved(true);
       setIsEditting(false);
     } catch (err) {
@@ -171,6 +175,15 @@ const CollegeDetail = () => {
     setIsEditting(false);
     setLogoFile(savedLogo);
     setBannerFile(savedBanner);
+  };
+
+  const [controllerSignUrl, setControllerSignUrl] = useState<string | null>(null);
+  const [principalSignUrl, setPrincipalSignUrl] = useState<string | null>(null);
+
+  const reloadSignatures = async () => {
+    const data = await collegedetailService.getCollege();
+    setControllerSignUrl(data?.controllerSignUrl ?? null);
+    setPrincipalSignUrl(data?.principalSignUrl ?? null);
   };
 
   useEffect(() => {
@@ -189,6 +202,8 @@ const CollegeDetail = () => {
 
           setLogoUrl(data.logoUrl);
           setBannerUrl(data.bannerUrl);
+          setControllerSignUrl(data.controllerSignUrl ?? null);
+          setPrincipalSignUrl(data.principalSignUrl ?? null);
 
           setIsSaved(true);
           setIsEditting(false);
@@ -310,7 +325,7 @@ const CollegeDetail = () => {
 
           {showLogo ? (
             logoPreview ? (
-              <img
+              <AuthImage
                 src={logoPreview}
                 alt="Logo Preview"
                 className="w-full h-47 object-contain rounded-md cursor-pointer"
@@ -326,7 +341,7 @@ const CollegeDetail = () => {
               />
             )
           ) : bannerPreview ? (
-            <img
+            <AuthImage
               src={bannerPreview}
               alt="Banner Preview"
               className="w-full h-47 object-contain rounded-md cursor-pointer"
@@ -391,7 +406,7 @@ const CollegeDetail = () => {
             <div className="flex-1 space-y-2">
               <p className="font-medium">Logo</p>
               {tempLogoPreview ? (
-                <img
+                <AuthImage
                   src={tempLogoPreview}
                   className="w-full h-47 object-contain border rounded-md cursor-pointer"
                   onClick={() => {
@@ -410,7 +425,7 @@ const CollegeDetail = () => {
             <div className="flex-1 space-y-2">
               <p className="font-medium">Banner</p>
               {tempBannerPreview ? (
-                <img
+                <AuthImage
                   src={tempBannerPreview}
                   className="w-full h-47 object-contain border rounded-md cursor-pointer"
                   onClick={() => {
@@ -450,6 +465,15 @@ const CollegeDetail = () => {
           </div>
         </div>
       </Modal>
+
+      <ReportSignatures
+        collegeId={isSaved && !isEditting ? collegeId : null}
+        college={{ name, collegeCode: code, collegeCenter: center, address, contactEmail: email, contactPhone: phone }}
+        controllerSignUrl={controllerSignUrl}
+        principalSignUrl={principalSignUrl}
+        onSaved={reloadSignatures}
+        onMessage={(variant, title, message) => showAlert(variant, title, message)}
+      />
     </ComponentCard>
   );
 };

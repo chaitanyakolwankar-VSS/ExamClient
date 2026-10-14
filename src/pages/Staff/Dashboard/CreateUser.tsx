@@ -21,6 +21,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import DataTable from "../../../components/ui/table/DataTable";
 import Alert from "../../../components/ui/alert/Alert";
 import { ResetPasswordModal } from "../../../components/ui/modal/ResetPasswordModal";
+import { appStorage } from "../../../utils/appStorage";
 const dummyFilters = {};
 const CreateUser = () => {
   const [alertData, setAlertData] = useState<{
@@ -225,7 +226,7 @@ const CreateUser = () => {
     }
 
     try {
-      const authUserString = localStorage.getItem("authUser");
+      const authUserString = appStorage.get("authUser");
       let extractedCollegeId: string | null = null;
 
       if (authUserString) {
@@ -252,7 +253,6 @@ const CreateUser = () => {
       setConfirmPassword("");
       setSelectedRole("");
     } catch (error: any) {
-      console.log("FULL ERROR:", error.response?.data);
       showAlert("error", "Failed", JSON.stringify(error.response?.data));
     }
   };

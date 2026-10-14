@@ -49,12 +49,6 @@ studentId:string;
 
 
 export const RegularExamService = {
-    async getExam(params: ExamApiRequest): Promise<ExamApiResponse[]> {
-        const response = await apiClient.get<ExamApiResponse[]>(
-            "/RegularExam/get-exam", { params }
-        );
-        return response.data;
-    },
     // async CheckCredit(params: RegularCredits): Promise<Response> {
     //     const response = await apiClient.get<Response>(
     //         "/RegularExam/get-credit", { params }

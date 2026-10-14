@@ -12,13 +12,16 @@ import {
   OverallMarksService,
   ResultData,
 } from "../../../services/OverallMarksService";
-import { CourseService } from "../../../services/Course";
-import { OrdinanceService } from "../../../services/OrdinanceService";
-
-interface Option {
-  value: string;
-  label: string;
-}
+import {
+  useCourses,
+  usePatterns,
+  useSemesters,
+  useExams,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+  toExamOptions,
+} from "../../../data";
 
 type AlertInfo = {
   variant: "success" | "warning" | "error" | "info";
@@ -28,16 +31,12 @@ type AlertInfo = {
 
 export default function OverallMarksEntry() {
   // Filter States
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
 
-  const [semesterOptions, setSemesterOptions] = useState<Option[]>([]);
   const [selectedSemester, setSelectedSemester] = useState("");
 
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
   const [selectedPattern, setSelectedPattern] = useState("");
 
-  const [examOptions, setExamOptions] = useState<Option[]>([]);
   const [selectedExam, setSelectedExam] = useState("");
 
   const [isSingleStudent, setIsSingleStudent] = useState(false);
@@ -45,31 +44,32 @@ export default function OverallMarksEntry() {
 
   // Data States
   const [results, setResults] = useState<ResultData[]>([]);
+  // SubjectMarks keys in subject order, from the API (empty = fall back to alphabetical).
+  const [subjectOrder, setSubjectOrder] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [pageAlert, setPageAlert] = useState<AlertInfo | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
 
-  // Initial Data Load
+  // Lookup data comes from the shared cached hooks (src/data); useExams reads the academic year from context.
+  const courses = useCourses();
+  const patterns = usePatterns();
+  const semesters = useSemesters();
+  const exams = useExams({ courseId: selectedCourse, purpose: "process" });
+
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
+  // Value is the pattern name, which is what the process/results calls take as `pattern`.
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
+  const examOptions = useMemo(() => toExamOptions(exams.data), [exams.data]);
+
+  const initialDataFailed = courses.isError || patterns.isError || semesters.isError;
   useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const [courseData, patternData, semData] = await Promise.all([
-          CourseService.getCourse(),
-          OrdinanceService.getPatterns(),
-          OverallMarksService.getSemesters(),
-        ]);
-        setCourseOptions(courseData.map(c => ({ value: c.courseid, label: c.coursename })));
-        setPatternOptions(patternData.map(p => ({ value: p.patternName, label: p.patternName })));
-        setSemesterOptions(semData.map(s => ({ value: s.value, label: s.label })));
-      } catch (error) {
-        console.error("Error fetching initial data:", error);
-        setPageAlert({ variant: "error", title: "Error", message: "Failed to load initial data." });
-      }
-    };
-    fetchInitialData();
-  }, []);
+    if (initialDataFailed) {
+      setPageAlert({ variant: "error", title: "Error", message: "Failed to load initial data." });
+    }
+  }, [initialDataFailed]);
 
   // Auto-clear alert timer
   useEffect(() => {
@@ -115,24 +115,6 @@ export default function OverallMarksEntry() {
     setSearchQuery("");
     setPageAlert(null);
   };
-
-  // Cascading Filters
-  useEffect(() => {
-    if (selectedCourse && selectedSemester && selectedPattern) {
-      const fetchExams = async () => {
-        try {
-          const ayid = localStorage.getItem("AYID");
-          const examData = await OverallMarksService.getExams(selectedCourse, selectedSemester, selectedPattern, ayid || undefined);
-          setExamOptions(examData.map(e => ({ value: e.examId, label: e.examName })));
-        } catch (error) {
-          console.error("Error fetching exams:", error);
-        }
-      };
-      fetchExams();
-    } else {
-      setExamOptions([]);
-    }
-  }, [selectedCourse, selectedSemester, selectedPattern]);
 
   // Handlers
   const handleInsert = async () => {
@@ -189,6 +171,7 @@ export default function OverallMarksEntry() {
       });
       if (response.success && response.data) {
         setResults(response.data);
+        setSubjectOrder(response.subjectOrder ?? []);
         if (response.data.length === 0) {
             setPageAlert({ variant: "info", title: "No Data", message: "No processed results found for the selected filters." });
         }
@@ -218,7 +201,7 @@ export default function OverallMarksEntry() {
             isSingleStudent,
         });
         setIsReportModalOpen(false);
-    } catch (error: any) {
+    } catch {
         setPageAlert({ variant: "error", title: "Export Error", message: "Failed to export Excel report." });
     } finally {
         setReportLoading(false);
@@ -238,7 +221,7 @@ export default function OverallMarksEntry() {
             isSingleStudent,
         });
         setIsReportModalOpen(false);
-    } catch (error: any) {
+    } catch {
         setPageAlert({ variant: "error", title: "Export Error", message: "Failed to export PDF report." });
     } finally {
         setReportLoading(false);
@@ -258,19 +241,37 @@ export default function OverallMarksEntry() {
       Object.keys(r.subjectMarks).forEach(k => keys.add(k));
     });
 
-    return Array.from(keys).map(k => {
+    const parsed = Array.from(keys).map(k => {
       const match = k.match(/^(.+?)\s*\((.+?)\)$/);
       if (match) {
         return { key: k, subject: match[1], head: match[2] };
       }
       return { key: k, subject: k, head: "" };
-    }).sort((a, b) => {
+    });
+
+    // Subject position = earliest index of any of its keys in the API's subjectOrder.
+    const keyIndex = new Map<string, number>();
+    subjectOrder.forEach((k, i) => { if (!keyIndex.has(k)) keyIndex.set(k, i); });
+    const subjectIndex = new Map<string, number>();
+    parsed.forEach(p => {
+      const idx = keyIndex.get(p.key);
+      if (idx === undefined) return;
+      const cur = subjectIndex.get(p.subject);
+      if (cur === undefined || idx < cur) subjectIndex.set(p.subject, idx);
+    });
+    const posOf = (subject: string) => subjectIndex.get(subject) ?? Number.MAX_SAFE_INTEGER;
+
+    return parsed.sort((a, b) => {
       if (a.subject !== b.subject) {
+        const pa = posOf(a.subject);
+        const pb = posOf(b.subject);
+        if (pa !== pb) return pa - pb;
+        // No API order for these (older API / unlisted key): alphabetical as before.
         return a.subject.localeCompare(b.subject);
       }
       return a.head.localeCompare(b.head);
     });
-  }, [results]);
+  }, [results, subjectOrder]);
 
   const subjectsGrouped = useMemo(() => {
     const groups: { subject: string; heads: SubjectHead[] }[] = [];

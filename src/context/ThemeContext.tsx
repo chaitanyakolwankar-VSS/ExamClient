@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { createContext, useState, useContext, useEffect } from "react";
+import { appStorage } from "../utils/appStorage";
 
 type Theme = "light" | "dark";
 
@@ -20,7 +21,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     // This code will only run on the client side
-    const savedTheme = localStorage.getItem("theme") as Theme | null;
+    const savedTheme = appStorage.get("theme") as Theme | null;
     const initialTheme = savedTheme || "light"; // Default to light theme
 
     setTheme(initialTheme);
@@ -29,7 +30,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     if (isInitialized) {
-      localStorage.setItem("theme", theme);
+      appStorage.set("theme", theme);
       if (theme === "dark") {
         document.documentElement.classList.add("dark");
       } else {

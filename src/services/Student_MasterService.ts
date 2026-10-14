@@ -1,32 +1,96 @@
 // services/CourseMasterService.ts
 import apiClient from "../api/Client";
 
-export interface StudentMasterDto {
-  name: string;
-  courseId: string;
-}
-
+// The academic year is passed in by the screen (useAcademicYear().ayid) instead of being read from localStorage.
 export const StudentMasterService = {
-  async GetData(): Promise<StudentMasterDto[]> {
-    const ayid = localStorage.getItem("AYID") ?? "";
-    const response = await apiClient.get<StudentMasterDto[]>(`/StudentMaster/GetData?ayid=${ayid}`);
-    return response.data;
-  },
-
    SaveStudent: async (payload: any) => {
     return apiClient.post("/StudentMaster/SaveStudent", payload);
   },
-   GetByCourse: async (courseId: string) => {
-    const ayid = localStorage.getItem("AYID") ?? "";
+   GetByCourse: async (courseId: string, ayid: string) => {
     const res = await apiClient.get(`/StudentMaster/Getbycourse?courseId=${courseId}&ayid=${ayid}`);
     return res.data;
   },
-  SearchStudents(payload: any) {
-    const ayid = localStorage.getItem("AYID") ?? "";
+  /** Sets a student's photo and/or signature (data: URLs); other fields are untouched. */
+  UpdateImages: async (studentId: string, images: { photo?: string | null; sign?: string | null }) => {
+    const res = await apiClient.put<{ photoUrl: string | null; signUrl: string | null }>("/StudentMaster/UpdateImages", {
+      studentId,
+      photo: images.photo ?? null,
+      sign: images.sign ?? null,
+    });
+    return res.data;
+  },
+  /** One student with their enrolment in the given academic year (null when not enrolled that year). */
+  GetStudentById: async (studentId: string, ayid: string): Promise<StudentDetails | null> => {
+    const res = await apiClient.get<StudentDetails | null>("/StudentMaster/GetStudentById", { params: { studentId, ayid } });
+    return res.data ?? null;
+  },
+  /** Updates details and the year's enrolment; photoUrl / signUrl only when a new data: URL is given. */
+  UpdateStudent: async (payload: StudentDetails & { ayid: string }) => {
+    return apiClient.put("/StudentMaster/UpdateStudent", payload);
+  },
+  DeleteStudent: async (studentId: string) => {
+    return apiClient.delete("/StudentMaster/DeleteStudent", { params: { studentId } });
+  },
+  SearchStudents(payload: any, ayid: string) {
     return apiClient.post("/StudentMaster/SearchStudents", { ...payload, AYID: ayid })
       .then(res => res.data);
-  }
+  },
+  /** The Excel template for one branch + semester + pattern + year; returns the file and the API's file name. */
+  async DownloadTemplate(p: StudentBatch): Promise<{ blob: Blob; fileName: string }> {
+    const res = await apiClient.get<Blob>("/StudentMaster/DownloadExcelTemplate", {
+      params: { CourseId: p.courseId, SemesterId: p.semesterId, Pattern: p.pattern, AYID: p.ayid },
+      responseType: "blob",
+    });
+    const disposition = String(res.headers["content-disposition"] ?? "");
+    const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+    return { blob: res.data, fileName: match ? decodeURIComponent(match[1]) : "Students.xlsx" };
+  },
+  /** Imports the filled-in template; nothing is saved unless every row is valid. */
+  async ImportStudents(p: StudentBatch, file: File): Promise<StudentImportResult> {
+    const form = new FormData();
+    form.append("File", file);
+    form.append("CourseId", p.courseId);
+    form.append("SemesterId", p.semesterId);
+    form.append("Pattern", p.pattern);
+    form.append("AYID", p.ayid);
+    const res = await apiClient.post<StudentImportResult>("/StudentMaster/ImportStudents", form);
+    return res.data;
+  },
 };
+
+/** A student as GET /StudentMaster/GetStudentById returns it (and UpdateStudent takes it). */
+export interface StudentDetails {
+  studentId: string;
+  courseId: string;
+  semesterId: string;
+  pattern: string | null;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  motherName: string | null;
+  gender: string | null;
+  studentType: string | null;
+  category: string | null;
+  studentPRN: string | null;
+  photoUrl: string | null;
+  signUrl: string | null;
+  dyslexia: boolean;
+}
+
+/** Where a batch of students is enrolled: branch, semester, pattern and academic year. */
+export interface StudentBatch {
+  courseId: string;
+  semesterId: string;
+  pattern: string;
+  ayid: string;
+}
+
+export interface StudentImportResult {
+  success: boolean;
+  message: string;
+  /** One line per problem row, e.g. "Row 5: gender must be Male or Female." */
+  errors: string[];
+}
 
 
  

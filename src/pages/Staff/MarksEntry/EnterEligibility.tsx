@@ -2,37 +2,23 @@ import PageMeta from "../../../components/common/PageMeta";
 import { useState, useEffect, useMemo, useRef } from "react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
-import { CourseService, CourseApiResponse } from "../../../services/Course";
-import Switch from "../../../components/form/switch/Switch";
-import { Plus, Trash2, Edit, X, Pencil, Save, RefreshCcw, CheckCircle, Eye, Copy, Delete } from "lucide-react";
+import { useCourses, useSemesters, useAcademicYear, toCourseOptions, toSemesterOptions } from "../../../data";
+import { Save } from "lucide-react";
 import Checkbox from "../../../components/form/input/Checkbox";
 import DataTable from "../../../components/ui/table/DataTable";
 import { SemesterData, EligibilityStudents, EligibilityService, GetEligibilityStudents } from "../../../services/EligibilityService";
 import Swal from "sweetalert2";
-//import * as XLSX from "xlsx";
 import Alert from "../../../components/ui/alert/Alert";
-import * as XLSX from "xlsx";
+import { readExcelObjects } from "../../../utils/readExcel";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
-interface Option {
-  value: string;
-  label: string;
-}
 export type RenderResult = {
   content?: React.ReactNode;
   rowSpan?: number;
   colSpan?: number;
   skip?: boolean;
 };
-interface Column<T = any> {
-  key: string;
-  label: string;
-  className?: string;
-  sortable?: boolean;
-  group?: boolean;
-  render?: (row: T) => React.ReactNode | RenderResult;
-}
 type AlertVariant = "success" | "warning" | "error" | "info";
 interface AlertState {
   variant: AlertVariant;
@@ -46,24 +32,18 @@ export default function EnterEligibility() {
 
 
   // 🔹 Course
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
+  const { data: courses } = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses), [courses]);
+  const { ayid } = useAcademicYear();
   const [courseId, setCourseId] = useState("");
   const [courseName, setCourseName] = useState("");
 
   //Eligibility Students
   const [EligibilityStudents, setEligibilityStudents] = useState<EligibilityStudents[]>([]);
 
-  // 🔹 Semester (hard coded)
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  // 🔹 Semester (shared list; value "Sem-N")
+  const { data: semesters } = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters), [semesters]);
   const [semester, setSemester] = useState("");
   const [semesterName,setsemesterName]=useState("");
 
@@ -79,7 +59,7 @@ export default function EnterEligibility() {
 
   const filters = useMemo(() => ({}), []);
   const selectedSems = useMemo(() => {
-    let sems: number[] = [];
+    const sems: number[] = [];
 
     if (FirstYear_checked) {
       sems.push(1, 2);
@@ -277,10 +257,6 @@ setEligibilityStudents([]);
 
 
   useEffect(() => {
-    fetchCourses();
-
-  }, []);
-  useEffect(() => {
     setEligibilityStudents([]);
     setSemester("");
   }, [courseId]);
@@ -400,21 +376,9 @@ const exportToCSV = async () => {
     );
     return;
   }
-    const reader = new FileReader();
-
-    reader.onload = (evt: any) => {
-      const data = new Uint8Array(evt.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData: any[] = XLSX.utils.sheet_to_json(sheet);
-
-      console.log("Excel Data 👉", jsonData);
-
-      convertToEligibility(jsonData);
-    };
-
-    reader.readAsArrayBuffer(file);
+    readExcelObjects(file)
+      .then(convertToEligibility)
+      .catch(() => Swal.fire("Error", "The file could not be read. Use the downloaded .xlsx template.", "error"));
   };
   const convertToEligibility = (rows: any[]) => {
     const result: EligibilityStudents[] = [];
@@ -470,7 +434,6 @@ const exportToCSV = async () => {
     const missing = [...existingIds].filter((id) => !excelIds.has(id));
 
     if (notFound.length > 0 || missing.length > 0) {
-      console.log("Mismatch ❌", { notFound, missing });
 
       Swal.fire(
         "Error",
@@ -480,7 +443,6 @@ const exportToCSV = async () => {
 
       return; // ❌ stop here
     }
-    console.log("Converted 👉", result);
 
     setEligibilityStudents(result);
    if (fileInputRef.current) {
@@ -489,22 +451,7 @@ const exportToCSV = async () => {
   };
   // ================= API CALLS =================
 
-  const fetchCourses = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-
-      setCourseOptions(
-        data.map((c) => ({
-          value: c.courseid,
-          label: c.coursename,
-        }))
-      );
-    } catch (error) {
-      console.error("Failed to fetch courses", error);
-    }
-  };
   const GeStudentData = async () => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) {
       return Swal.fire("Error", "Academic Year is missing", "error");
     }
@@ -643,7 +590,7 @@ const exportToCSV = async () => {
           )}
           <input
             type="file"
-            accept=".xlsx, .xls, .csv"
+            accept=".xlsx"
             ref={fileInputRef}
             style={{ display: "none" }}
             onChange={handleFileUpload}

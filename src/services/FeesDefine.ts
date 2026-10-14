@@ -53,13 +53,6 @@ export const FeesService = {
   },
 
   
-async getFees(examId: string, category: string, courseId: string, semId: string, examType: string): Promise<any[]> {
-  const response = await apiClient.get("/Fees/get-fees", {
-    params: { examId, category, courseId, semId, examType }
-  });
-  return response.data;
-},
-
 async deleteFees(payload: DeleteFeesPayload): Promise<FeesResponse> {
   const response = await apiClient.delete<FeesResponse>("/Fees/delete-fees", { 
     params: payload 

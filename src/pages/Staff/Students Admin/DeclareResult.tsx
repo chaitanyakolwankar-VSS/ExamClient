@@ -1,9 +1,8 @@
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
 import { Eye, EyeOff } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { CourseApiResponse, CourseService } from "../../../services/Course";
-import { PatternApiResponse, PatternService } from "../../../services/Pattern";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useCourses, usePatterns, useSemesters, useAcademicYear, toCourseOptions, toPatternOptions, toSemesterOptions } from "../../../data";
 import {
   DeclareExamApiResponse,
   DeclareResultService,
@@ -22,25 +21,22 @@ interface ExamRow {
   semester: string;
   declareDate: string;
   isDeclare: boolean;
+  /** Bulk marksheets generated at least once; required before declaring. */
+  marksheetGenerated: boolean;
 }
 
 const DeclareResult = () => {
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
+  const { ayid } = useAcademicYear();
+  const courses = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
   const [courseId, setCourseId] = useState("");
 
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
+  const patterns = usePatterns();
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
   const [pattern, setPattern] = useState("");
 
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  const semesters = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
   const [semester, setSemester] = useState("");
 
   const [examOptions, setExamOptions] = useState<Option[]>([]);
@@ -52,43 +48,9 @@ const DeclareResult = () => {
 
   const dateInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const fetchCourse = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-      setCourseOptions(
-        data.map((course) => ({
-          value: course.courseid,
-          label: course.coursename,
-        })),
-      );
-    } catch (error) {
-      console.error("Error fetching courses:", error);
-    }
-  };
-
-  const fetchPatterns = async (courseId: string) => {
-    try {
-      const data: PatternApiResponse[] = await PatternService.getpattern();
-      setPatternOptions(
-        data.map((p) => ({
-          value: p.patternName,
-          label: p.patternName,
-        })),
-      );
-    } catch (error) {
-      console.error("Failed to fetch patterns", error);
-    }
-  };
 
   useEffect(() => {
-    fetchCourse();
-  }, []);
-
-  useEffect(() => {
-    if (courseId) {
-      fetchPatterns(courseId);
-    } else {
-      setPatternOptions([]);
+    if (!courseId) {
       setPattern("");
       setSemester("");
       setExamOptions([]);
@@ -115,7 +77,6 @@ const DeclareResult = () => {
   }, [semester]);
 
   const fetchExamOptions = async () => {
-    const ayid = localStorage.getItem("AYID");
     if (!courseId || !semester || !ayid) return;
 
     try {
@@ -153,7 +114,6 @@ const DeclareResult = () => {
   }, [courseId, pattern, semester]);
 
   const fetchTableRow = async () => {
-    const ayid = localStorage.getItem("AYID");
     if (!courseId || !semester || !ayid || !examId) {
       setTableRow(null);
       return;
@@ -178,6 +138,7 @@ const DeclareResult = () => {
           semester,
           declareDate: exam.declareDate ? exam.declareDate.split("T")[0] : "",
           isDeclare: exam.isDeclare ?? false,
+          marksheetGenerated: exam.marksheetGenerated ?? false,
         });
       } else {
         setTableRow(null);
@@ -212,7 +173,6 @@ const DeclareResult = () => {
   };
 
   const handleToggleDeclare = async (row: ExamRow) => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) return;
 
     const willDeclare = !row.isDeclare;
@@ -242,7 +202,7 @@ const DeclareResult = () => {
         CourseId: courseId,
         Ayid: ayid,
         Semester: semester,
-        DeclareDate: row.declareDate,
+        DeclareDate: willDeclare ? row.declareDate : null,
         IsDeclare: willDeclare,
         Pattern: pattern,
       });
@@ -260,10 +220,11 @@ const DeclareResult = () => {
           ? { ...prev, isDeclare: row.isDeclare, declareDate: row.declareDate }
           : prev,
       );
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
       showAlert(
         "error",
         "Error",
-        "Failed to update declare status. Please try again.",
+        apiMessage ?? "Failed to update declare status. Please try again.",
       );
     }
   };
@@ -307,13 +268,27 @@ const DeclareResult = () => {
           }}
           type="date"
           className={`border rounded px-2 py-1 w-full ${
-            row.isDeclare ? "bg-gray-100 cursor-not-allowed" : ""
+            row.isDeclare || !row.marksheetGenerated ? "bg-gray-100 cursor-not-allowed" : ""
           }`}
           value={row.declareDate}
-          disabled={row.isDeclare}
-          onClick={() => !row.isDeclare && handleDateFieldClick(row.examId)}
+          disabled={row.isDeclare || !row.marksheetGenerated}
+          onClick={() => !row.isDeclare && row.marksheetGenerated && handleDateFieldClick(row.examId)}
           onChange={(e) => handleDateChange(row.examId, e.target.value)}
         />
+      ),
+    },
+    {
+      key: "isDeclare",
+      label: "Status",
+      sortable: false,
+      render: (row: ExamRow) => (
+        <span className={row.isDeclare ? "text-green-600" : row.marksheetGenerated ? "text-gray-500" : "text-amber-600"}>
+          {row.isDeclare
+            ? "Declared"
+            : row.marksheetGenerated
+              ? "Not declared"
+              : "Not declared (generate the marksheets first)"}
+        </span>
       ),
     },
     {
@@ -327,11 +302,13 @@ const DeclareResult = () => {
           <button
             type="button"
             onClick={() => handleToggleDeclare(row)}
-            disabled={!row.isDeclare && !row.declareDate}
+            disabled={!row.isDeclare && (!row.marksheetGenerated || !row.declareDate)}
             title={
               row.isDeclare
                 ? "Declared (click to undeclare)"
-                : !row.declareDate
+                : !row.marksheetGenerated
+                  ? "Generate the marksheets first (Reports > Generate Result)"
+                  : !row.declareDate
                   ? "Select a declare date first"
                   : "Not declared (click to declare)"
             }
@@ -340,7 +317,7 @@ const DeclareResult = () => {
               <Eye className="w-7 h-7 text-green-600" />
             ) : (
               <EyeOff
-                className={`w-7 h-7 ${!row.declareDate ? "text-gray-200" : "text-gray-400"}`}
+                className={`w-7 h-7 ${!row.marksheetGenerated || !row.declareDate ? "text-gray-200" : "text-gray-400"}`}
               />
             )}
           </button>

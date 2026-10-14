@@ -1,1021 +1,646 @@
-// import { useEffect, useState } from "react";
-// import ComponentCard from "../../../components/common/ComponentCard";
-// import Select from "../../../components/form/Select";
-// import { StudentMasterService } from "../../../services/Student_MasterService";
-// import Input from "../../../components/form/input/InputField";
-// import Radio from "../../../components/form/input/Radio";
-// import Switch from "../../../components/form/switch/Switch";
-// import Button from "../../../components/ui/button/Button";
-// import Alert from "../../../components/ui/alert/Alert";
-// import Swal from "sweetalert2";
-
-// interface SelectOption {
-//   value: string;
-//   label: string;
-// }
-
-// export default function StudentMaster() {
-//   const [loading, setLoading] = useState(false);
-//   //save card
-//   const [courseOptions, setCourseOptions] = useState<SelectOption[]>([]);
-//   const [selectedCourse, setSelectedCourse] = useState("");
-//   const [selectedSemester, setSelectedSemester] = useState("");
-//   const [firstname, setFirstName] = useState("");
-//   const [middlename, setMidleName] = useState("");
-//   const [lastname, setLastName] = useState("");
-//   const [category, setCategory] = useState("");
-//   const [prn, setPrn] = useState("");
-//   const [gender, setGender] = useState<"Male" | "Female" | "">("");
-//   const [Dyslexia, setDyslexia] = useState(false);
-//   //search card
-//   const [searchCourse, setSearchCourse] = useState("");
-//   const [studentId, setStudentId] = useState("");
-//   const [Fname, setfname] = useState("");
-//   const [Mname, setMname] = useState("");
-//   const [Lname, setLname] = useState("");
-//   const [searchPrn, setSearchPrn] = useState("");
-// //Refresh
-// const [refreshKey, setRefreshKey] = useState(0);
-
-// const handleRefresh = () => {
-//   setSelectedCourse("");
-//   setSelectedSemester("");
-//   setFirstName("");
-//   setMidleName("");
-//   setLastName("");
-//   setCategory("");
-//   setPrn("");
-//   setGender("");
-//   setDyslexia(false);
-//   setRefreshKey(prev => prev + 1);
-// };
-
-// // //Fetch Detail
-// // const handleSearch = async () => {
-// //   if (
-// //     !searchCourse &&
-// //     !studentId &&
-// //     !searchPrn &&
-// //     !Fname &&
-// //     !Mname &&
-// //     !Lname
-// //   ) {
-// //     setAlert({
-// //       variant: "warning",
-// //       title: "Permission Required",
-// //       message: "Enter at least one search field",
-// //     });
-// //     return;
-// //   }
-
-// //   let payload: any = {};
-
-// //   // If branch selected → ignore other fields
-// //   if (searchCourse) {
-// //     payload.branch = searchCourse;
-// //   } else {
-// //     if (studentId) payload.studentId = studentId;
-// //     if (searchPrn) payload.prn = searchPrn;
-// //     if (Fname) payload.firstname = Fname;
-// //     if (Mname) payload.middlename = Mname;
-// //     if (Lname) payload.lastname = Lname;
-// //   }
-
-// //   console.log("Search Payload:", payload);
-
-// //   // Later call API here
-// //   // const res = await StudentMasterService.SearchStudent(payload);
-// // };
-
-//   // toggle switch
-//   const [mode, setMode] = useState<"new" | "search">("new");
-
-//   const semesterOptions: SelectOption[] = [
-//     { value: "Semester I", label: "Semester I" },
-//     { value: "Semester II", label: "Semester II" },
-//     { value: "Semester III", label: "Semester III" },
-//     { value: "Semester IV", label: "Semester IV" },
-//   ];
-
-//   const fetchCourses = async () => {
-//     setLoading(true);
-//     try {
-//       const data = await StudentMasterService.GetData();
-//       const formatted = (data ?? []).map((c) => ({
-//         value: c.courseId,
-//         label: c.name,
-//       }));
-
-//       setCourseOptions(formatted);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const [alert, setAlert] = useState<{
-//     variant: "warning";
-//     title: string;
-//     message: string;
-//   } | null>(null);
-
-//   useEffect(() => {
-//     if (alert) {
-//       const timer = setTimeout(() => setAlert(null), 3000);
-//       return () => clearTimeout(timer);
-//     }
-//   }, [alert]);
-
-//   const handleSave = async () => {
-//     if (!selectedCourse || !selectedSemester || !firstname || !lastname || !category || !prn || !gender
-//     ) {
-//       setAlert({
-//         variant: "warning",
-//         title: "Permission Required",
-//         message: "Fill all the Required Fields ",
-//       });
-//       return;
-//     }
-//     const payload = {
-//       courseId: selectedCourse,
-//       semesterId: selectedSemester,
-//       firstname: firstname,
-//       middlename: middlename || null,
-//       lastname: lastname,
-//       category: category || null,
-//       studentprn: prn,
-//       gender: gender,
-//       dyslexia: Dyslexia,
-//     };
-//     try {
-// const res = await StudentMasterService.SaveStudent(payload);
-
-// const studentId = res.data.studentId;
-
-//       await Swal.fire({
-//         icon: "success",
-//         title: "Saved Successfully!",
-//         text: `Student ID: ${studentId}`,
-
-//         confirmButtonText: "OK"
-//       });
-//      window.location.reload();
-//     } catch (err) {
-//       console.error(err);
-
-//       await Swal.fire({
-//         icon: "error",
-//         title: "Save Failed",
-//         text: "Error saving student. Please try again.",
-//         confirmButtonText: "OK"
-//       });
-//       window.location.reload();
-//     }
-
-//   };
-
-//   useEffect(() => {
-//     fetchCourses();
-//   }, []);
-
-//   return (
-//     <>
-//       <div className="relative">
-//         <div className="static mb-4 flex justify-end md:absolute md:top-5 md:right-6 md:mb-0 z-10">
-//           <div className="flex w-full md:w-auto rounded-lg border border-blue-600 overflow-hidden">
-//             <button
-//               onClick={() => setMode("new")}
-//               className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium ${mode === "new"
-//                 ? "bg-blue-600 text-white"
-//                 : "bg-white text-blue-600"
-//                 }`}
-//             >
-//               New Student
-//             </button>
-//             <button
-//               onClick={() => setMode("search")}
-//               className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium border-l border-blue-600 ${mode === "search"
-//                 ? "bg-blue-600 text-white"
-//                 : "bg-white text-blue-600"
-//                 }`}
-//             >
-//               Search Student
-//             </button>
-//           </div>
-//         </div>
-
-//         <ComponentCard title="Student Master">
-//           {alert && (
-//             <Alert
-//               variant={alert.variant}
-//               title={alert.title}
-//               message={alert.message}
-//             />
-//           )}
-//           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-//             <Select
-//               options={courseOptions}
-//               placeholder="Select Branch"
-//               value={selectedCourse}
-//               onChange={(value) => {
-//                 setSelectedCourse(value);
-//               }}
-//             />
-//             <Select
-//               options={semesterOptions}
-//               placeholder="Select Semester"
-//               value={selectedSemester}
-//               onChange={setSelectedSemester}
-//             />
-//           </div>
-
-//           <div className="mt-6 grid grid-cols-1 md:grid-cols-6 gap-4">
-//             <Input
-//               label="Enter FirstName"
-//               value={firstname}
-//               onChange={(e) => {
-//                 const value = e.target.value;
-//                 if (/^[A-Za-z ]*$/.test(value) && value.length <= 10) {
-//                   setFirstName(value);
-//                 }
-//               }}
-//             />
-//             <Input
-//               label="Enter MiddleName"
-//               value={middlename}
-//               onChange={(e) => {
-//                 const value = e.target.value;
-//                 if (/^[A-Za-z ]*$/.test(value) && value.length <= 15) {
-//                   setMidleName(value);
-//                 }
-//               }}
-//             />
-//             <Input
-//               label="Enter LastName"
-//               value={lastname}
-//               onChange={(e) => {
-//                 const value = e.target.value;
-//                 if (/^[A-Za-z ]*$/.test(value) && value.length <= 15) {
-//                   setLastName(value);
-//                 }
-//               }}
-//             />
-//             <Input
-//               label="Enter Category"
-//               value={category}
-//               onChange={(e) => {
-//                 const value = e.target.value;
-//                 if (/^[A-Za-z ]*$/.test(value) && value.length <= 20) {
-//                   setCategory(value);
-//                 }
-//               }}
-//             />
-//             <Input
-//               label="Enter PRN"
-//               value={prn}
-//               onChange={(e) => {
-//                 const value = e.target.value;
-//                 if (/^\d*$/.test(value) && value.length <= 15) {
-//                   setPrn(value);
-//                 }
-//               }}
-//             />
-//           </div>
-//           <div className="mt-6 grid grid-cols-1 md:grid-cols-6 gap-4">
-//             <div className="flex items-center gap-5">
-//               <Radio
-//                 id="male"
-//                 name="gender"
-//                 value="Male"
-//                 label="Male"
-//                 checked={gender === "Male"}
-//                 onChange={(value) => setGender(value as "Male")}
-//               />
-//               <Radio
-//                 id="female"
-//                 name="gender"
-//                 value="Female"
-//                 label="Female"
-//                 checked={gender === "Female"}
-//                 onChange={(value) => setGender(value as "Female")}
-//               />
-
-//               <div className="flex items-center gap-2 whitespace-nowrap">
-//                 {/* <Switch
-//                   label="Dyslexia Student"
-//                   defaultChecked={Dyslexia}
-//                   onChange={(checked) => setDyslexia(checked)}
-//                 /> */}
-//                 <Switch
-//   key={refreshKey}
-//   label="Dyslexia Student"
-//   defaultChecked={Dyslexia}
-//   onChange={(checked) => setDyslexia(checked)}
-// />
-//               </div>
-//             </div>
-//           </div>
-
-//           <div className="mt-4 grid grid-cols-6 gap-4">
-//             <div className="col-start-3 flex gap-3">
-//               <Button variant="primary" onClick={handleSave}>Save</Button>
-//              <Button variant="outline" onClick={handleRefresh}>Refresh</Button>
-//             </div>
-//           </div>
-//         </ComponentCard>
-//       </div>
-
-//       {/* ================= SEARCH CARD ================= */}
-//       {mode === "search" && (
-//         <ComponentCard title="" className="mt-2 dark:border-white">
-//           {/* Pull content up to remove top border */}
-//           <div className="-mt-4 grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-//             <Select
-//               options={courseOptions}
-//               placeholder="Select Branch"
-//               value={searchCourse}
-//               onChange={setSearchCourse}
-//               disabled={loading}
-//             />
-
-//             <Input
-//               label="Enter Student ID"
-//               value={studentId}
-//               onChange={(e) => {
-//                 const value = e.target.value;
-//                 if (/^[A-Za-z0-9]*$/.test(value) && value.length <= 8) {
-//                   setStudentId(value);
-//                 }
-//               }}
-//               disabled={!!searchCourse}
-//             />
-
-//             <Input
-//               label="Enter FirstName"
-//               value={Fname}
-//               onChange={(e) => {
-//                 const value = e.target.value;
-//                 if (/^[A-Za-z ]*$/.test(value) && value.length <= 20) {
-//                   setfname(value);
-//                 }
-//               }}
-//               disabled={!!searchCourse}
-//             />
-
-//             <Input
-//               label="Enter MiddleName"
-//               value={Mname}
-//               onChange={(e) => {
-//                 const value = e.target.value;
-//                 if (/^[A-Za-z ]*$/.test(value) && value.length <= 20) {
-//                   setMname(value);
-//                 }
-//               }}
-//               disabled={!!searchCourse}
-//             />
-
-//             <Input
-//               label="Enter LastName"
-//               value={Lname}
-//               onChange={(e) => {
-//                 const value = e.target.value;
-//                 if (/^[A-Za-z ]*$/.test(value) && value.length <= 20) {
-//                   setLname(value);
-//                 }
-//               }}
-//               disabled={!!searchCourse}
-//             />
-
-//             <Input
-//               label="Enter PRN"
-//               value={searchPrn}
-//               onChange={(e) => {
-//                 const value = e.target.value;
-//                 if (/^\d*$/.test(value) && value.length <= 15) {
-//                   setSearchPrn(value);
-//                 }
-//               }}
-//               disabled={!!searchCourse}
-//             />
-//           </div>
-
-//           <Button
-//             variant="primary"
-//             className="col-start-3 flex gap-3"
-
-//           >
-//             GetData
-//           </Button>
-//         </ComponentCard>
-//       )}
-
-//     </>
-//   );
-// }
-//===============================================================
-import { useEffect, useState, useMemo } from "react";
-import ComponentCard from "../../../components/common/ComponentCard";
-import Select from "../../../components/form/Select";
-import { StudentMasterService } from "../../../services/Student_MasterService";
-import Input from "../../../components/form/input/InputField";
-import Radio from "../../../components/form/input/Radio";
-import Switch from "../../../components/form/switch/Switch";
-import Button from "../../../components/ui/button/Button";
-import Alert from "../../../components/ui/alert/Alert";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { saveAs } from "file-saver";
 import Swal from "sweetalert2";
+import { Download, FileSpreadsheet, Pencil, Search, Trash2, Upload, User, UserPlus } from "lucide-react";
+import PageMeta from "../../../components/common/PageMeta";
+import ComponentCard from "../../../components/common/ComponentCard";
+import AuthImage from "../../../components/common/AuthImage";
+import Select from "../../../components/form/Select";
+import Input from "../../../components/form/input/InputField";
+import Button from "../../../components/ui/button/Button";
 import DataTable from "../../../components/ui/table/DataTable";
-import { FaFileExcel } from "react-icons/fa";
+import { Modal } from "../../../components/ui/modal";
+import {
+  useAcademicYear,
+  useCourses,
+  usePatterns,
+  useSemesters,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+} from "../../../data";
+import { StudentMasterService } from "../../../services/Student_MasterService";
+import type { StudentBatch, StudentImportResult } from "../../../services/Student_MasterService";
+import StudentForm from "./StudentForm";
+import { checkStudentFields, emptyStudentFields } from "./studentFields";
+import type { StudentFields } from "./studentFields";
 
-interface SelectOption {
-  value: string;
-  label: string;
-}
-
-interface FetchData {
-  name: string;
+/** A row of the "Find students" list (GET Getbycourse / POST SearchStudents). */
+interface StudentRow {
+  name: string; // branch name
   studentId: string;
-  firstName: string;
-  lastName: string;
-  studentNmae: string;
+  studentName?: string;
   semesterId: string;
   studentPRN: string;
+  photoUrl?: string | null;
+  signUrl?: string | null;
 }
 
+/** The API's reason from an axios error ({ message } or a plain string), else the fallback. */
+const apiReason = (err: unknown, fallback: string): string => {
+  const data = (err as { response?: { data?: unknown } })?.response?.data;
+  if (typeof data === "string" && data.trim()) return data;
+  return (data as { message?: string } | undefined)?.message || fallback;
+};
+
+/** Segmented-toggle button: the page tabs (py-2) and the "Single student / Excel import" switch (py-2.5, as tall as the selects). */
+const tabClass = (active: boolean, tall = false) =>
+  `flex items-center justify-center gap-2 px-4 ${tall ? "py-2.5" : "py-2"} text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden focus-visible:ring-inset ${
+    active ? "bg-brand-500 text-white" : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/[0.03]"
+  }`;
+
 export default function StudentMaster() {
-  const [loading, setLoading] = useState(false);
-  //save card
-  const [courseOptions, setCourseOptions] = useState<SelectOption[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState("");
-  const [selectedSemester, setSelectedSemester] = useState("");
-  const [firstname, setFirstName] = useState("");
-  const [middlename, setMidleName] = useState("");
-  const [lastname, setLastName] = useState("");
-  const [category, setCategory] = useState("");
-  const [prn, setPrn] = useState("");
-  const [gender, setGender] = useState<"Male" | "Female" | "">("");
-  const [Dyslexia, setDyslexia] = useState(false);
-  //search card
-  const [searchCourse, setSearchCourse] = useState("");
-  const [studentId, setStudentId] = useState("");
-  const [Fname, setfname] = useState("");
-  const [Mname, setMname] = useState("");
-  const [Lname, setLname] = useState("");
-  const [searchPrn, setSearchPrn] = useState("");
-  //Refresh
-  const [refreshKey, setRefreshKey] = useState(0);
+  const { ayid: selectedAyid, academicYear } = useAcademicYear();
+  const ayid = selectedAyid ?? "";
 
-  const handleRefresh = () => {
-    setSelectedCourse("");
-    setSelectedSemester("");
-    setFirstName("");
-    setMidleName("");
-    setLastName("");
-    setCategory("");
-    setPrn("");
-    setGender("");
-    setDyslexia(false);
-    setRefreshKey((prev) => prev + 1);
-    setSearchPrn("");
-    setLname("");
-    setMname("");
-    setfname("");
-    setStudentId("");
-    setSearchCourse("");
-    setDataList([]);
-    setSearched(false);
-    setMode("new");
-  };
-  //clear field
-  const clearAllFields = () => {
-    // New Student Fields
-    setSelectedCourse("");
-    setSelectedSemester("");
-    setFirstName("");
-    setMidleName("");
-    setLastName("");
-    setCategory("");
-    setPrn("");
-    setGender("");
-    setDyslexia(false);
-    setRefreshKey((prev) => prev + 1);
+  const { data: courses } = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses), [courses]);
+  const { data: semesters } = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters), [semesters]);
+  const { data: patterns } = usePatterns();
+  const patternOptions = useMemo(() => toPatternOptions(patterns), [patterns]);
+  const onlyPattern = patternOptions.length === 1 ? patternOptions[0].value : "";
 
-    // Search Student Fields
-    setSearchCourse("");
-    setStudentId("");
-    setfname("");
-    setMname("");
-    setLname("");
-    setSearchPrn("");
-    setDataList([]);
-    setSearched(false);
-  };
+  const [tab, setTab] = useState<"add" | "find">("add");
+  const [mode, setMode] = useState<"single" | "excel">("single");
 
-  //
-
-  // toggle switch
-  const [mode, setMode] = useState<"new" | "search">("new");
-
-  const semesterOptions: SelectOption[] = [
-    { value: "Semester I", label: "Semester I" },
-    { value: "Semester II", label: "Semester II" },
-    { value: "Semester III", label: "Semester III" },
-    { value: "Semester IV", label: "Semester IV" },
-  ];
-
-  const fetchCourses = async () => {
-    setLoading(true);
-    try {
-      const data = await StudentMasterService.GetData();
-      const formatted = (data ?? []).map((c) => ({
-        value: c.courseId,
-        label: c.name,
-      }));
-
-      setCourseOptions(formatted);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  //fiter
-  const filters = useMemo(() => ({}), []);
-
-  const [alert, setAlert] = useState<{
-    variant: "warning";
-    title: string;
-    message: string;
-  } | null>(null);
-
+  // ---- Enrol into: shared by "Single student" and "Excel import" ----
+  const [course, setCourse] = useState("");
+  const [semester, setSemester] = useState("");
+  const [pattern, setPattern] = useState("");
   useEffect(() => {
-    if (alert) {
-      const timer = setTimeout(() => setAlert(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [alert]);
+    if (!pattern && onlyPattern) setPattern(onlyPattern);
+  }, [pattern, onlyPattern]);
 
-  const handleSave = async () => {
-    if (
-      !selectedCourse ||
-      !selectedSemester ||
-      !firstname ||
-      !lastname ||
-      !category ||
-      !prn ||
-      !gender
-    ) {
-      setAlert({
-        variant: "warning",
-        title: "Permission Required",
-        message: "Fill all the Required Fields ",
-      });
+  const courseName = courseOptions.find((c) => c.value === course)?.label ?? "";
+  const semesterName = semesterOptions.find((s) => s.value === semester)?.label ?? semester;
+
+  /** Branch + semester + pattern + year, or null (with a message) when something is missing. */
+  const batch = (): StudentBatch | null => {
+    if (!course || !semester || !pattern) {
+      Swal.fire("Enrol into", "Choose the branch, semester and pattern first.", "warning");
+      return null;
+    }
+    if (!ayid) {
+      Swal.fire("Academic year", "Choose the academic year in the header first.", "warning");
+      return null;
+    }
+    return { courseId: course, semesterId: semester, pattern, ayid };
+  };
+
+  const imageError = (message: string) => Swal.fire("Image", message, "warning");
+
+  // ---- One student ----
+  const [fields, setFields] = useState<StudentFields>(emptyStudentFields);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [sign, setSign] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const clearStudent = () => {
+    setFields(emptyStudentFields());
+    setPhoto(null);
+    setSign(null);
+  };
+
+  const saveStudent = async () => {
+    const b = batch();
+    if (!b) return;
+    const problem = checkStudentFields(fields);
+    if (problem) {
+      Swal.fire("Student details", problem, "warning");
       return;
     }
-    const ayid = localStorage.getItem("AYID") ?? "";
-    const payload = {
-      courseId: selectedCourse,
-      semesterId: selectedSemester,
-      firstname: firstname,
-      middlename: middlename || null,
-      lastname: lastname,
-      category: category || null,
-      studentprn: prn,
-      gender: gender,
-      dyslexia: Dyslexia,
-      ayid: ayid,
-    };
+    setSaving(true);
     try {
-      const res = await StudentMasterService.SaveStudent(payload);
-
-      const studentId = res.data.studentId;
-
-      await Swal.fire({
-        icon: "success",
-        title: "Saved Successfully!",
-        text: `Student ID: ${studentId}`,
-
-        confirmButtonText: "OK",
+      const res = await StudentMasterService.SaveStudent({
+        courseId: b.courseId,
+        semesterId: b.semesterId,
+        pattern: b.pattern,
+        ayid: b.ayid,
+        firstName: fields.firstName.trim(),
+        middleName: fields.middleName.trim() || null,
+        lastName: fields.lastName.trim(),
+        motherName: fields.motherName.trim(),
+        category: fields.category,
+        studentPRN: fields.prn.trim() || null,
+        gender: fields.gender,
+        studentType: fields.studentType,
+        dyslexia: fields.dyslexia,
+        photoUrl: photo,
+        signUrl: sign,
       });
-      window.location.reload();
+      const studentId = typeof res.data === "string" ? res.data : res.data?.studentId;
+      clearStudent(); // branch, semester and pattern stay for the next student
+      Swal.fire({ icon: "success", title: "Student saved", text: `Student ID: ${studentId}`, timer: 2500 });
     } catch (err) {
-      console.error(err);
-
-      await Swal.fire({
-        icon: "error",
-        title: "Save Failed",
-        text: "Error saving student. Please try again.",
-        confirmButtonText: "OK",
-      });
-      window.location.reload();
+      Swal.fire("Not saved", apiReason(err, "The student could not be saved."), "error");
+    } finally {
+      setSaving(false);
     }
   };
 
-  useEffect(() => {
-    fetchCourses();
-  }, []);
+  // ---- Excel import (uses the branch, semester and pattern chosen above) ----
+  const importInput = useRef<HTMLInputElement>(null);
+  const [excelBusy, setExcelBusy] = useState(false);
+  const [importResult, setImportResult] = useState<(StudentImportResult & { fileName: string }) | null>(null);
 
-  //searchbycourse
-  const [dataList, setDataList] = useState<FetchData[]>([]);
+  const downloadTemplate = async () => {
+    const b = batch();
+    if (!b) return;
+    setExcelBusy(true);
+    try {
+      const { blob, fileName } = await StudentMasterService.DownloadTemplate(b);
+      saveAs(blob, fileName);
+    } catch (err) {
+      // responseType "blob": the API's error body is a Blob too.
+      let message = "The template could not be downloaded.";
+      const data = (err as { response?: { data?: unknown } })?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          message = JSON.parse(await data.text()).message || message;
+        } catch {
+          /* keep the generic message */
+        }
+      }
+      Swal.fire("Download failed", message, "error");
+    } finally {
+      setExcelBusy(false);
+    }
+  };
+
+  const importFile = async (file: File | undefined) => {
+    const b = batch();
+    if (!file || !b) return;
+    if (!/\.xlsx$/i.test(file.name)) {
+      Swal.fire("Wrong file", "Choose the filled-in template (.xlsx).", "warning");
+      return;
+    }
+    const ok = await Swal.fire({
+      icon: "question",
+      title: "Import students?",
+      text: `${file.name} → ${courseName}, ${semesterName}, ${pattern}, ${academicYear}`,
+      showCancelButton: true,
+      confirmButtonText: "Import",
+    });
+    if (!ok.isConfirmed) return;
+
+    setExcelBusy(true);
+    setImportResult(null);
+    try {
+      const result = await StudentMasterService.ImportStudents(b, file);
+      setImportResult({ ...result, fileName: file.name });
+    } catch (err) {
+      setImportResult({ success: false, message: apiReason(err, "The file could not be imported."), errors: [], fileName: file.name });
+    } finally {
+      setExcelBusy(false);
+    }
+  };
+
+  // ---- Find students ----
+  const [findCourse, setFindCourse] = useState("");
+  const [findId, setFindId] = useState("");
+  const [findFirst, setFindFirst] = useState("");
+  const [findLast, setFindLast] = useState("");
+  const [findPrn, setFindPrn] = useState("");
+  const [rows, setRows] = useState<StudentRow[]>([]);
+  const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const [alert2, setAlert2] = useState<{
-    variant: "warning";
-    title: string;
-    message: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (alert2) {
-      const timer = setTimeout(() => setAlert2(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [alert2]);
-
-  // ✅ SEARCH FUNCTION (NOT another export)
-  // const handleSearch = async () => {
-  //   if (!searchCourse) {
-  //     setAlert2({
-  //       variant: "warning",
-  //       title: "Course Required",
-  //       message: "Please select or Enter atleast one field",
-  //     });
-  //     return;
-  //   }
-
-  //   setLoading(true);
-
-  //   try {
-  //     const data = await StudentMasterService.GetByCourse(searchCourse);
-
-  //     setDataList(data ?? []);
-  //   } catch (err) {
-
-  //     setAlert2({
-  //       variant: "warning",
-  //       title: "Error",
-  //       message: "Failed to fetch data",
-  //     });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  //search with both
-  const handleSearch = async () => {
-    if (
-      !searchCourse &&
-      !studentId &&
-      !Fname &&
-      !Mname &&
-      !Lname &&
-      !searchPrn
-    ) {
-      setAlert2({
-        variant: "warning",
-        title: "Input Required",
-        message: "Please select branch OR enter search fields",
-      });
+  const search = async () => {
+    if (!findCourse && !findId && !findFirst && !findLast && !findPrn) {
+      Swal.fire("Find students", "Choose a branch, or enter a student ID, name or ERN.", "warning");
       return;
     }
-
-    setLoading(true);
+    setSearching(true);
     setSearched(true);
-
     try {
-      let data = [];
-
-      // ✅ CASE 1: Branch selected → use existing API
-      if (searchCourse) {
-        data = await StudentMasterService.GetByCourse(searchCourse);
-      }
-      // ✅ CASE 2: Search using fields
-      else {
-        data = await StudentMasterService.SearchStudents({
-          studentId,
-          firstName: Fname,
-          middleName: Mname,
-          lastName: Lname,
-          studentPRN: searchPrn,
-        });
-      }
-
-      setDataList(Array.isArray(data) ? data : []);
+      const data = findCourse
+        ? await StudentMasterService.GetByCourse(findCourse, ayid)
+        : await StudentMasterService.SearchStudents(
+            { studentId: findId, firstName: findFirst, middleName: "", lastName: findLast, studentPRN: findPrn },
+            ayid,
+          );
+      setRows(Array.isArray(data) ? data : []);
     } catch (err) {
-      setAlert2({
-        variant: "warning",
-        title: "Error",
-        message: "Failed to fetch data",
-      });
+      Swal.fire("Search failed", apiReason(err, "The students could not be loaded."), "error");
     } finally {
-      setLoading(false);
+      setSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setFindCourse("");
+    setFindId("");
+    setFindFirst("");
+    setFindLast("");
+    setFindPrn("");
+    setRows([]);
+    setSearched(false);
+  };
+
+  const deleteStudent = async (row: StudentRow) => {
+    const ok = await Swal.fire({
+      icon: "warning",
+      title: "Delete student?",
+      text: `${row.studentId} · ${row.studentName ?? ""}`,
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      confirmButtonColor: "#d92d20",
+    });
+    if (!ok.isConfirmed) return;
+    try {
+      await StudentMasterService.DeleteStudent(row.studentId);
+      setRows((list) => list.filter((r) => r.studentId !== row.studentId));
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      Swal.fire(
+        "Not deleted",
+        status === 403 ? "Only a college admin can delete students." : apiReason(err, "The student could not be deleted."),
+        "error",
+      );
+    }
+  };
+
+  // ---- Edit dialog ----
+  const [editing, setEditing] = useState<StudentRow | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editFields, setEditFields] = useState<StudentFields>(emptyStudentFields);
+  const [editCourse, setEditCourse] = useState("");
+  const [editSemester, setEditSemester] = useState("");
+  const [editPattern, setEditPattern] = useState("");
+  const [editPhoto, setEditPhoto] = useState<string | null>(null);
+  const [editSign, setEditSign] = useState<string | null>(null);
+  const [savedPhoto, setSavedPhoto] = useState<string | null>(null);
+  const [savedSign, setSavedSign] = useState<string | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+
+  const openEdit = async (row: StudentRow) => {
+    setEditing(row);
+    setEditLoading(true);
+    setEditPhoto(null);
+    setEditSign(null);
+    try {
+      const s = await StudentMasterService.GetStudentById(row.studentId, ayid);
+      if (!s) throw new Error("not enrolled");
+      setEditFields({
+        firstName: s.firstName ?? "",
+        middleName: s.middleName ?? "",
+        lastName: s.lastName ?? "",
+        motherName: s.motherName ?? "",
+        category: s.category ?? "",
+        prn: s.studentPRN ?? "",
+        gender: s.gender === "Male" || s.gender === "Female" ? s.gender : "",
+        studentType: s.studentType ?? "",
+        dyslexia: !!s.dyslexia,
+      });
+      setEditCourse(s.courseId ?? "");
+      setEditSemester(s.semesterId ?? "");
+      setEditPattern(s.pattern || onlyPattern);
+      setSavedPhoto(s.photoUrl);
+      setSavedSign(s.signUrl);
+    } catch {
+      setEditing(null);
+      Swal.fire("Edit", `${row.studentId} has no enrolment in ${academicYear}. Choose that student's academic year in the header.`, "warning");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    const problem = checkStudentFields(editFields) ?? (!editCourse || !editSemester || !editPattern ? "Choose the branch, semester and pattern." : null);
+    if (problem) {
+      Swal.fire("Student details", problem, "warning");
+      return;
+    }
+    setEditSaving(true);
+    try {
+      await StudentMasterService.UpdateStudent({
+        studentId: editing.studentId,
+        courseId: editCourse,
+        semesterId: editSemester,
+        pattern: editPattern,
+        ayid,
+        firstName: editFields.firstName.trim(),
+        middleName: editFields.middleName.trim() || null,
+        lastName: editFields.lastName.trim(),
+        motherName: editFields.motherName.trim(),
+        category: editFields.category,
+        studentPRN: editFields.prn.trim() || null,
+        gender: editFields.gender,
+        studentType: editFields.studentType,
+        dyslexia: editFields.dyslexia,
+        photoUrl: editPhoto, // only a new picture (data: URL) replaces the saved one
+        signUrl: editSign,
+      });
+      setEditing(null);
+      await search();
+      Swal.fire({ icon: "success", title: "Student updated", timer: 1500, showConfirmButton: false });
+    } catch (err) {
+      Swal.fire("Not saved", apiReason(err, "The changes could not be saved."), "error");
+    } finally {
+      setEditSaving(false);
     }
   };
 
   const columns = [
-    { key: "name", label: "Branch" },
-    { key: "studentId", label: "Student ID" },
-    { key: "studentName", label: "Student Name" },
-    { key: "semesterId", label: "Semester" },
-    { key: "studentPRN", label: "PRN" },
-    { key: "edit", label: "Edit" },
-    { key: "delete", label: "Delete" },
+    {
+      key: "photo",
+      label: "",
+      render: (row: StudentRow) => (
+        <div className="flex h-10 w-8 items-center justify-center overflow-hidden rounded border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-white/[0.03]">
+          {row.photoUrl ? (
+            <AuthImage src={row.photoUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-[10px] text-gray-400">—</span>
+          )}
+        </div>
+      ),
+    },
+    { key: "studentId", label: "Student ID", sortable: true },
+    { key: "studentName", label: "Name", sortable: true },
+    { key: "name", label: "Branch", sortable: true },
+    { key: "semesterId", label: "Semester", sortable: true },
+    { key: "studentPRN", label: "ERN" },
+    {
+      key: "actions",
+      label: "",
+      render: (row: StudentRow) => (
+        <div className="flex justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => openEdit(row)}
+            title="Edit details, photo and signature"
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-brand-500 dark:hover:bg-white/[0.05]"
+          >
+            <Pencil className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => deleteStudent(row)}
+            title="Delete student"
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-error-500 dark:hover:bg-white/[0.05]"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
+      ),
+    },
   ];
 
-  //
   return (
     <>
-      <div className="relative">
-        <div className="static mb-4 flex justify-end md:absolute md:top-5 md:right-6 md:mb-0 z-10">
-          {/* <div className="flex w-full md:w-auto rounded-lg border border-blue-600 overflow-hidden">
-            <button
-              onClick={() => setMode("new")}
-              className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium ${mode === "new"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-blue-600"
-                }`}
-            >
-              New Student
+      <PageMeta title="GradeSphere | Student Master" description="Add and find students" />
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">Student Master</h2>
+            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+              Academic year {academicYear || "not chosen (choose it in the header)"}
+            </p>
+          </div>
+          <div className="flex overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
+            <button type="button" className={tabClass(tab === "add")} onClick={() => setTab("add")}>
+              <UserPlus className="size-4" /> Add student
             </button>
-            <button
-              onClick={() => setMode("search")}
-              className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium border-l border-blue-600 ${mode === "search"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-blue-600"
-                }`}
-            >
-              Search Student
-            </button>
-          </div> */}
-          <div className="flex w-full md:w-auto rounded-lg border border-blue-600 overflow-hidden">
-            <button
-              onClick={() => {
-                clearAllFields(); // clear first
-                setMode("new"); // then switch to new student
-              }}
-              className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium ${
-                mode === "new"
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-blue-600"
-              }`}
-            >
-              New Student
-            </button>
-            <button
-              onClick={() => {
-                clearAllFields(); // clear first
-                setMode("search"); // then switch to search student
-              }}
-              className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium border-l border-blue-600 ${
-                mode === "search"
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-blue-600"
-              }`}
-            >
-              Search Student
+            <button type="button" className={`${tabClass(tab === "find")} border-l border-gray-300 dark:border-gray-700`} onClick={() => setTab("find")}>
+              <Search className="size-4" /> Find students
             </button>
           </div>
         </div>
 
-        <ComponentCard title="Student Master">
-          {alert && (
-            <Alert
-              variant={alert.variant}
-              title={alert.title}
-              message={alert.message}
-            />
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Select
-              options={courseOptions}
-              placeholder="Select Branch"
-              value={selectedCourse}
-              onChange={(value) => {
-                setSelectedCourse(value);
-              }}
-            />
-            <Select
-              options={semesterOptions}
-              placeholder="Select Semester"
-              value={selectedSemester}
-              onChange={setSelectedSemester}
-            />
-            <div className="flex">
-              <div className="flex rounded-lg border border-white-600 overflow-hidden">
-                <button className="flex items-center gap-4 px-4 py-2 text-sm font-medium bg-green-600 text-white">
-                  <FaFileExcel className="text-lg" />
-                  Excel
+        {tab === "add" && (
+          <div className="@container rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            {/* Toolbar: where every new student goes (single or imported), and how they are added. */}
+            <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-3 sm:px-5 @min-[860px]:flex-row @min-[860px]:items-center @min-[860px]:gap-4 dark:border-gray-800">
+              <span className="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Enrol into</span>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 @min-[860px]:flex-1">
+                <Select options={courseOptions} placeholder="Select Branch" value={course} onChange={setCourse} />
+                <Select options={semesterOptions} placeholder="Select Semester" value={semester} onChange={setSemester} />
+                <Select options={patternOptions} placeholder="Select Pattern" value={pattern} onChange={setPattern} />
+              </div>
+              <div
+                role="group"
+                aria-label="How to add students"
+                className="grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-gray-300 @min-[860px]:flex dark:border-gray-700"
+              >
+                <button type="button" aria-pressed={mode === "single"} className={tabClass(mode === "single", true)} onClick={() => setMode("single")}>
+                  <User className="size-4" aria-hidden="true" /> Single student
                 </button>
-                <button className="px-4 py-2 text-md font-medium border-l border-blue-600 bg-white text-blue-600">
-                  Import
+                <button
+                  type="button"
+                  aria-pressed={mode === "excel"}
+                  className={`${tabClass(mode === "excel", true)} border-l border-gray-300 dark:border-gray-700`}
+                  onClick={() => setMode("excel")}
+                >
+                  <FileSpreadsheet className="size-4" aria-hidden="true" /> Excel import
                 </button>
               </div>
             </div>
-          </div>
 
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-6 gap-4">
-            <Input
-              label="Enter FirstName"
-              value={firstname}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^[A-Za-z ]*$/.test(value) && value.length <= 10) {
-                  setFirstName(value);
+            {mode === "single" ? (
+              <StudentForm
+                fields={fields}
+                onFieldsChange={setFields}
+                photo={photo}
+                sign={sign}
+                onPhotoChange={setPhoto}
+                onSignChange={setSign}
+                onImageError={imageError}
+                actions={
+                  <>
+                    <Button variant="outline" onClick={clearStudent} disabled={saving}>
+                      Clear
+                    </Button>
+                    <Button onClick={saveStudent} disabled={saving}>
+                      {saving ? "Saving…" : "Save student"}
+                    </Button>
+                  </>
                 }
-              }}
-            />
-            <Input
-              label="Enter MiddleName"
-              value={middlename}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^[A-Za-z ]*$/.test(value) && value.length <= 15) {
-                  setMidleName(value);
-                }
-              }}
-            />
-            <Input
-              label="Enter LastName"
-              value={lastname}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^[A-Za-z ]*$/.test(value) && value.length <= 15) {
-                  setLastName(value);
-                }
-              }}
-            />
-            <Input
-              label="Enter Category"
-              value={category}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^[A-Za-z ]*$/.test(value) && value.length <= 20) {
-                  setCategory(value);
-                }
-              }}
-            />
-            <Input
-              label="Enter PRN"
-              value={prn}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^\d*$/.test(value) && value.length <= 15) {
-                  setPrn(value);
-                }
-              }}
-            />
-          </div>
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div className="flex items-center gap-5">
-              <Radio
-                id="male"
-                name="gender"
-                value="Male"
-                label="Male"
-                checked={gender === "Male"}
-                onChange={(value) => setGender(value as "Male")}
               />
-              <Radio
-                id="female"
-                name="gender"
-                value="Female"
-                label="Female"
-                checked={gender === "Female"}
-                onChange={(value) => setGender(value as "Female")}
-              />
+            ) : (
+              <div className="flex flex-col gap-4 p-4 sm:p-5">
+                <ol className="grid grid-cols-1 gap-4 @min-[860px]:grid-cols-3">
+                  <li className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                    <div className="flex items-start gap-3">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                        1
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-white/90">Download the template</p>
+                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Made for the branch, semester and pattern above.</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-auto self-start"
+                      onClick={downloadTemplate}
+                      disabled={excelBusy}
+                      startIcon={<Download className="size-4" />}
+                    >
+                      Download template
+                    </Button>
+                  </li>
+                  <li className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                    <div className="flex items-start gap-3">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                        2
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-white/90">Fill one row per student</p>
+                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                          First name, mother's name, gender and student type (E, D or M) are required; middle name, last name, category and ERN are optional. Photos are added later per student.
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                  <li className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                    <div className="flex items-start gap-3">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                        3
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-white/90">Import the file</p>
+                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                          Every row is checked first; nothing is saved unless all rows are right. Students get their IDs in the order of the rows.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="mt-auto self-start"
+                      onClick={() => batch() && importInput.current?.click()}
+                      disabled={excelBusy}
+                      startIcon={<Upload className="size-4" />}
+                    >
+                      {excelBusy ? "Working…" : "Import file"}
+                    </Button>
+                    <input
+                      ref={importInput}
+                      type="file"
+                      accept=".xlsx"
+                      aria-label="Filled-in template (.xlsx)"
+                      className="hidden"
+                      onChange={(e) => {
+                        importFile(e.target.files?.[0]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </li>
+                </ol>
 
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                {/* <Switch
-                  label="Dyslexia Student"
-                  defaultChecked={Dyslexia}
-                  onChange={(checked) => setDyslexia(checked)}
-                /> */}
-                <Switch
-                  key={refreshKey}
-                  label="Dyslexia Student"
-                  defaultChecked={Dyslexia}
-                  onChange={(checked) => setDyslexia(checked)}
-                />
+                {importResult && (
+                  <div
+                    role="status"
+                    className={`rounded-xl border p-4 text-sm ${
+                      importResult.success
+                        ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-400"
+                        : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400"
+                    }`}
+                  >
+                    <p className="flex items-start gap-2 font-medium">
+                      <FileSpreadsheet className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                      <span className="min-w-0 break-words">
+                        {importResult.fileName}: {importResult.message}
+                      </span>
+                    </p>
+                    {importResult.errors.length > 0 && (
+                      <ul className="mt-2 max-h-60 list-disc space-y-0.5 overflow-y-auto pl-5">
+                        {importResult.errors.map((e) => (
+                          <li key={e}>{e}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
+        )}
 
-          <div className="mt-4 grid grid-cols-6 gap-4">
-            <div className="col-start-3 flex gap-3">
-              <Button variant="primary" onClick={handleSave}>
-                Save
+        {tab === "find" && (
+          <ComponentCard title="Find students" desc={`Students enrolled in ${academicYear || "the academic year in the header"}. A branch lists all of its students; otherwise search by ID, name or ERN.`}>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+              <Select options={courseOptions} placeholder="Select Branch" value={findCourse} onChange={setFindCourse} />
+              <Input label="Student ID" value={findId} disabled={!!findCourse} onChange={(e) => setFindId(e.target.value.replace(/[^A-Za-z0-9]/g, ""))} />
+              <Input label="First name" value={findFirst} disabled={!!findCourse} onChange={(e) => setFindFirst(e.target.value)} />
+              <Input label="Last name" value={findLast} disabled={!!findCourse} onChange={(e) => setFindLast(e.target.value)} />
+              <Input label="ERN" value={findPrn} disabled={!!findCourse} onChange={(e) => setFindPrn(e.target.value.replace(/[^A-Za-z0-9]/g, ""))} />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={clearSearch} disabled={searching}>
+                Clear
               </Button>
-              <Button variant="outline" onClick={handleRefresh}>
-                Refresh
+              <Button onClick={search} disabled={searching} startIcon={<Search className="size-4" />}>
+                {searching ? "Searching…" : "Search"}
               </Button>
             </div>
-          </div>
-        </ComponentCard>
+
+            {rows.length > 0 && (
+              <DataTable
+                key={`${rows.length}-${findCourse}`}
+                data={rows}
+                columns={columns}
+                searchKeys={["studentId", "studentName", "studentPRN"]}
+                pageSizeOptions={[10, 20, 50, 100]}
+              />
+            )}
+            {!searching && searched && rows.length === 0 && (
+              <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                No students found for {academicYear}. Check the academic year in the header.
+              </p>
+            )}
+          </ComponentCard>
+        )}
       </div>
 
-      {/* ================= SEARCH CARD ================= */}
-      {mode === "search" && (
-        <ComponentCard title="" className="mt-2 dark:border-white">
-          {alert2 && (
-            <Alert
-              variant={alert2.variant}
-              title={alert2.title}
-              message={alert2.message}
-            />
-          )}
-          {/* Pull content up to remove top border */}
-          <div className="-mt-4 grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-            <Select
-              options={courseOptions}
-              placeholder="Select Branch"
-              value={searchCourse}
-              onChange={setSearchCourse}
-              disabled={loading}
-            />
-
-            <Input
-              label="Enter Student ID"
-              value={studentId}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^[A-Za-z0-9]*$/.test(value) && value.length <= 8) {
-                  setStudentId(value);
-                }
-              }}
-              disabled={!!searchCourse}
-            />
-
-            <Input
-              label="Enter FirstName"
-              value={Fname}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^[A-Za-z ]*$/.test(value) && value.length <= 20) {
-                  setfname(value);
-                }
-              }}
-              disabled={!!searchCourse}
-            />
-
-            <Input
-              label="Enter MiddleName"
-              value={Mname}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^[A-Za-z ]*$/.test(value) && value.length <= 20) {
-                  setMname(value);
-                }
-              }}
-              disabled={!!searchCourse}
-            />
-
-            <Input
-              label="Enter LastName"
-              value={Lname}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^[A-Za-z ]*$/.test(value) && value.length <= 20) {
-                  setLname(value);
-                }
-              }}
-              disabled={!!searchCourse}
-            />
-
-            <Input
-              label="Enter PRN"
-              value={searchPrn}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^\d*$/.test(value) && value.length <= 15) {
-                  setSearchPrn(value);
-                }
-              }}
-              disabled={!!searchCourse}
-            />
+      <Modal isOpen={!!editing} onClose={() => setEditing(null)} className="max-w-[960px] p-6">
+        {editing && (
+          <div className="flex flex-col gap-4">
+            <div className="pr-10">
+              <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">Edit student</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {editing.studentId} · {academicYear}
+              </p>
+            </div>
+            {editLoading ? (
+              <p className="py-10 text-center text-sm text-gray-500">Loading…</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <Select options={courseOptions} placeholder="Select Branch" value={editCourse} onChange={setEditCourse} />
+                  <Select options={semesterOptions} placeholder="Select Semester" value={editSemester} onChange={setEditSemester} />
+                  <Select options={patternOptions} placeholder="Select Pattern" value={editPattern} onChange={setEditPattern} />
+                </div>
+                <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
+                  <StudentForm
+                    fields={editFields}
+                    onFieldsChange={setEditFields}
+                    photo={editPhoto}
+                    sign={editSign}
+                    savedPhoto={savedPhoto}
+                    savedSign={savedSign}
+                    onPhotoChange={setEditPhoto}
+                    onSignChange={setEditSign}
+                    onImageError={imageError}
+                    actions={
+                      <>
+                        <Button variant="outline" onClick={() => setEditing(null)} disabled={editSaving}>
+                          Cancel
+                        </Button>
+                        <Button onClick={saveEdit} disabled={editSaving}>
+                          {editSaving ? "Saving…" : "Save changes"}
+                        </Button>
+                      </>
+                    }
+                  />
+                </div>
+              </>
+            )}
           </div>
-
-          <Button
-            variant="primary"
-            className="col-start-3 flex gap-3"
-            onClick={handleSearch}
-          >
-            GetData
-          </Button>
-          {!loading && dataList.length > 0 && (
-            <DataTable
-              key={`${dataList.length}-${searchCourse}`}
-              data={dataList}
-              columns={columns}
-              searchKeys={["studentId", "studentName", "studentPRN"]}
-              filters={filters}
-              pageSizeOptions={[5, 10, 20, 50]}
-            />
-          )}
-          {!loading && searched && dataList.length === 0 && (
-            <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-              No students found. Check that the Academic Year selected in the
-              header matches the students you are looking for.
-            </p>
-          )}
-        </ComponentCard>
-      )}
+        )}
+      </Modal>
     </>
   );
 }

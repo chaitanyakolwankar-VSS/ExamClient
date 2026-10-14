@@ -260,4 +260,6 @@ export interface EngineMetadata {
     facts: string[];
     actions: string[];
     operators: string[];
+    subjectScopes?: string[];
+    headTypes?: string[];
 }

@@ -4,17 +4,8 @@ export interface ApiResponse<T> {
     success: boolean;
     message: string;
     data?: T;
-}
-
-export interface SemesterOption {
-    value: string;
-    label: string;
-}
-
-export interface ExamOption {
-    examId: string;
-    examCode: string;
-    examName: string;
+    /** Results grid only: SubjectMarks keys in subject order (set in Subject Master). */
+    subjectOrder?: string[];
 }
 
 export interface ProcessResultRequest {
@@ -41,34 +32,6 @@ export interface ResultData {
 }
 
 export const OverallMarksService = {
-    getSemesters: async (): Promise<SemesterOption[]> => {
-        return [
-            { value: "Sem-1", label: "Semester I" },
-            { value: "Sem-2", label: "Semester II" },
-            { value: "Sem-3", label: "Semester III" },
-            { value: "Sem-4", label: "Semester IV" },
-            { value: "Sem-5", label: "Semester V" },
-            { value: "Sem-6", label: "Semester VI" },
-            { value: "Sem-7", label: "Semester VII" },
-            { value: "Sem-8", label: "Semester VIII" },
-        ];
-    },
-
-    getExams: async (branchId: string, semId: string, pattern: string, ayid?: string): Promise<ExamOption[]> => {
-        try {
-            const response = await Client.get<ApiResponse<ExamOption[]>>(`/OverallMarks/Exams`, {
-                params: { branchId, semId, pattern, ayid }
-            });
-            if (response.data.success && response.data.data) {
-                return response.data.data;
-            }
-            return [];
-        } catch (error) {
-            console.error("Error fetching exams:", error);
-            return [];
-        }
-    },
-
     processResults: async (request: ProcessResultRequest): Promise<ApiResponse<object>> => {
         try {
             const response = await Client.post<ApiResponse<object>>("/OverallMarks/Process", request);

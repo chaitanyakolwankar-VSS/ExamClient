@@ -1,34 +1,29 @@
-import PageMeta from "../../../components/common/PageMeta";
-import { useState, useEffect, useMemo } from "react";
+import PageMeta from "../../../components/common/PageMeta"; 
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
-import { PatternService, PatternApiResponse } from "../../../services/Pattern";
-import { CourseService, CourseApiResponse } from "../../../services/Course";
 import Swal from "sweetalert2";
 import {
-  ExamApiRequest,
-  ExamApiResponse,
-} from "../../../services/RegularExamService";
-import {
-  GenerateHallTicketService,
-  HallticketSubjects,
-  HallticketSubjectsRequest,
-  SaveTimeTable,
-  StudentHallTicketDataRequest,
-  StudentHallTicketData,
-} from "../../../services/GenerateHallTicketService";
+  useAcademicYear,
+  useCourses,
+  usePatterns,
+  useSemesters,
+  useExams,
+  toCourseOptions,
+  toPatternOptions,
+  toSemesterOptions,
+  useCollegeId,
+} from "../../../data";
+import { GenerateHallTicketService,HallticketSubjects, HallticketSubjectsRequest,SaveTimeTable,StudentHallTicketDataRequest ,StudentHallTicketData,TimeTableAll} from "../../../services/GenerateHallTicketService";
 import DataTable from "../../../components/ui/table/DataTable";
 import Input from "../../../components/form/input/InputField";
 import { Save, Printer, Loader2 } from "lucide-react";
 import Switch from "../../../components/form/switch/Switch";
 import Alert from "../../../components/ui/alert/Alert";
 import Button from "../../../components/ui/button/Button";
-
-interface Option {
-  value: string;
-  label: string;
-}
+import { appStorage } from "../../../utils/appStorage";
 
 export type RenderResult = {
   content?: React.ReactNode;
@@ -56,7 +51,9 @@ interface Subject {
 interface College {
   logo: string;
   center: string;
+  collegeName?: string;
   CourseNmae: string;
+  principalSign?: string;
 }
 
 interface Student {
@@ -78,34 +75,36 @@ interface AlertState {
   message: string;
 }
 
+const TIMETABLE_STALE_MS = 30 * 1000;
+
 export default function GenerateHallTicket() {
   // Alert (Auto-clearing)
   const [alert, setAlert] = useState<AlertState | null>(null);
 
+  const { ayid } = useAcademicYear();
+
   // 🔹 Course
-  const [courseOptions, setCourseOptions] = useState<Option[]>([]);
   const [courseId, setCourseId] = useState("");
+  const courses = useCourses();
+  const courseOptions = useMemo(() => toCourseOptions(courses.data), [courses.data]);
 
   // 🔹 Pattern
-  const [patternOptions, setPatternOptions] = useState<Option[]>([]);
   const [pattern, setPattern] = useState("");
+  const patterns = usePatterns();
+  const patternOptions = useMemo(() => toPatternOptions(patterns.data), [patterns.data]);
 
-  // 🔹 Semester (hard coded)
-  const semesterOptions: Option[] = [
-    { value: "Sem-1", label: "Semester I" },
-    { value: "Sem-2", label: "Semester II" },
-    { value: "Sem-3", label: "Semester III" },
-    { value: "Sem-4", label: "Semester IV" },
-    { value: "Sem-5", label: "Semester V" },
-    { value: "Sem-6", label: "Semester VI" },
-    { value: "Sem-7", label: "Semester VII" },
-    { value: "Sem-8", label: "Semester VIII" },
-  ];
+  // 🔹 Semester
   const [semester, setSemester] = useState("");
+  const semesters = useSemesters();
+  const semesterOptions = useMemo(() => toSemesterOptions(semesters.data), [semesters.data]);
 
-  // 🔹 Exam
-  const [ExamOptions, setExamOptions] = useState<Option[]>([]);
+  // 🔹 Exam (active, non-revaluation); labelled "Name ( ExamType )" as the old endpoint did
   const [Exam, setExam] = useState("");
+  const exams = useExams({ courseId, purpose: "hallTicket" });
+  const ExamOptions = useMemo(
+    () => (exams.data ?? []).map((e) => ({ value: e.examId, label: `${e.name} ( ${e.examType ?? ""} )` })),
+    [exams.data]
+  );
 
   // HallTicket Subjects
   const [Subjects, setSubjects] = useState<HallticketSubjects[]>([]);
@@ -116,104 +115,115 @@ export default function GenerateHallTicket() {
 
   const [loading, setLoading] = useState(false);
 
+  const [printingTT, setPrintingTT] = useState(false);
+
+  // Every branch's saved time table of the selected exam; the "Print time tables" button shows only when there is one.
+  const queryClient = useQueryClient();
+  const collegeId = useCollegeId();
+  const timeTableKey = useMemo(() => ["timeTableAll", collegeId ?? "", Exam] as const, [collegeId, Exam]);
+  const timeTableAll = useQuery({
+    queryKey: timeTableKey,
+    queryFn: () => GenerateHallTicketService.getTimeTableAll(Exam),
+    enabled: !!Exam,
+    staleTime: TIMETABLE_STALE_MS,
+  });
+  const hasSavedTimeTable = (timeTableAll.data?.blocks?.length ?? 0) > 0;
+
   const filters = useMemo(() => ({}), []);
 
-  const columns = useMemo<Column<HallticketSubjects>[]>(
-    () => [
-      {
-        key: "subjectCode",
-        label: "Subject Code",
-        sortable: true,
-      },
-      {
-        key: "subjectName",
-        label: "Subject Name",
-        sortable: true,
-      },
-      {
-        key: "examTime",
-        label: "Exam Time",
-        sortable: true,
-        render: (row) => (
-          <Input
-            type="text"
-            value={row.examTime || ""}
-            placeholder="HH:MM AM - HH:MM PM"
-            maxLength={20}
-            onChange={(e) => {
-              let value = e.target.value;
-              value = value.replace(/[^0-9apAP]/g, "");
-              let formatted = "";
+  const columns = useMemo<Column<HallticketSubjects>[]>(() => [
+    {
+      key: "subjectCode",
+      label: "Subject Code",
+      sortable: true,
+    },
+    {
+      key: "subjectName",
+      label: "Subject Name",
+      sortable: true,
+    },
+    {
+      key: "examTime",
+      label: "Exam Time",
+      sortable: true,
+      render: (row) => (
+        <Input
+          type="text"
+          value={row.examTime || ""}
+          placeholder="HH:MM AM - HH:MM PM"
+          maxLength={20}
+          onChange={(e) => {
+            let value = e.target.value;
+            value = value.replace(/[^0-9apAP]/g, "");
+            let formatted = "";
 
-              if (value.length >= 1) formatted += value[0];
-              if (value.length >= 2) formatted += value[1];
-              if (value.length >= 2) formatted += ":";
-              if (value.length >= 3) formatted += value[2];
-              if (value.length >= 4) formatted += value[3];
-              if (value.length >= 4) formatted += " ";
+            if (value.length >= 1) formatted += value[0];
+            if (value.length >= 2) formatted += value[1];
+            if (value.length >= 2) formatted += ":";
+            if (value.length >= 3) formatted += value[2];
+            if (value.length >= 4) formatted += value[3];
+            if (value.length >= 4) formatted += " ";
 
-              if (value.length >= 5) {
-                if (value[4].toLowerCase() === "a") {
-                  formatted += "AM";
-                } else if (value[4].toLowerCase() === "p") {
-                  formatted += "PM";
-                }
+            if (value.length >= 5) {
+              if (value[4].toLowerCase() === "a") {
+                formatted += "AM";
+              } else if (value[4].toLowerCase() === "p") {
+                formatted += "PM";
               }
+            }
 
-              if (value.length >= 5) formatted += " - ";
-              if (value.length >= 6) formatted += value[5];
-              if (value.length >= 7) formatted += value[6];
-              if (value.length >= 7) formatted += ":";
-              if (value.length >= 8) formatted += value[7];
-              if (value.length >= 9) formatted += value[8];
-              if (value.length >= 9) formatted += " ";
+            if (value.length >= 5) formatted += " - ";
+            if (value.length >= 6) formatted += value[5];
+            if (value.length >= 7) formatted += value[6];
+            if (value.length >= 7) formatted += ":";
+            if (value.length >= 8) formatted += value[7];
+            if (value.length >= 9) formatted += value[8];
+            if (value.length >= 9) formatted += " ";
 
-              if (value.length >= 10) {
-                if (value[9].toLowerCase() === "a") {
-                  formatted += "AM";
-                } else if (value[9].toLowerCase() === "p") {
-                  formatted += "PM";
-                }
+            if (value.length >= 10) {
+              if (value[9].toLowerCase() === "a") {
+                formatted += "AM";
+              } else if (value[9].toLowerCase() === "p") {
+                formatted += "PM";
               }
+            }
 
-              handleTimeChange(row.subjectId, formatted);
-            }}
-          />
-        ),
-      },
-      {
-        key: "examDate",
-        label: "Exam Date",
-        sortable: true,
-        render: (row) => (
-          <Input
-            type="text"
-            value={row.examDate || ""}
-            placeholder="DD-MM-YYYY"
-            maxLength={10}
-            onChange={(e) => {
-              let value = e.target.value;
-              value = value.replace(/[^0-9]/g, "");
+            handleTimeChange(row.subjectId, formatted);
+          }}
+        />
+      ),
+    },
+    {
+      key: "examDate",
+      label: "Exam Date",
+      sortable: true,
+      render: (row) => (
+        <Input
+          type="text"
+          value={row.examDate || ""}
+          placeholder="DD-MM-YYYY"
+          maxLength={10}
+          onChange={(e) => {
+            let value = e.target.value;
+            value = value.replace(/[^0-9]/g, "");
 
-              if (value.length > 2 && value.length <= 4) {
-                value = value.slice(0, 2) + "-" + value.slice(2);
-              } else if (value.length > 4) {
-                value =
-                  value.slice(0, 2) +
-                  "-" +
-                  value.slice(2, 4) +
-                  "-" +
-                  value.slice(4, 8);
-              }
+            if (value.length > 2 && value.length <= 4) {
+              value = value.slice(0, 2) + "-" + value.slice(2);
+            } else if (value.length > 4) {
+              value =
+                value.slice(0, 2) +
+                "-" +
+                value.slice(2, 4) +
+                "-" +
+                value.slice(4, 8);
+            }
 
-              handleDateChange(row.subjectId, value);
-            }}
-          />
-        ),
-      },
-    ],
-    [],
-  );
+            handleDateChange(row.subjectId, value);
+          }}
+        />
+      ),
+    }
+  ], []);
 
   // Auto-clearing Alert
   useEffect(() => {
@@ -224,20 +234,9 @@ export default function GenerateHallTicket() {
   }, [alert]);
 
   useEffect(() => {
-    fetchCourses();
-  }, []);
-
-  useEffect(() => {
-    if (courseId) {
-      fetchPatterns(courseId);
-    }
-  }, [courseId]);
-
-  useEffect(() => {
     if (semester) {
       setExam("");
-      fetchexam();
-    }
+    } 
   }, [semester]);
 
   useEffect(() => {
@@ -246,7 +245,7 @@ export default function GenerateHallTicket() {
     setSingleStudent(false);
     if (Exam) {
       fetchsubjects();
-    }
+    } 
   }, [Exam]);
 
   // Cascading Reset Handlers
@@ -282,16 +281,29 @@ export default function GenerateHallTicket() {
 
     setSubjects((prev) =>
       prev.map((sub) =>
-        sub.subjectId === id ? { ...sub, examDate: value } : sub,
-      ),
+        sub.subjectId === id ? { ...sub, examDate: value } : sub
+      )
     );
   };
 
+  // Rows whose time was filled automatically, mapped to the row they copy. A row someone typed in is never
+  // in here, so it never changes by itself.
+  const filledFrom = useRef(new Map<string, string>());
+
   const handleTimeChange = (id: string, value: string) => {
+    // Typing a time fills every empty row (all pages) and keeps rows filled from this row in step; a row that
+    // was typed in by hand keeps its own time. Dates are never copied.
+    const followers = filledFrom.current;
+    followers.delete(id);
     setSubjects((prev) =>
-      prev.map((sub) =>
-        sub.subjectId === id ? { ...sub, examTime: value } : sub,
-      ),
+      prev.map((sub) => {
+        if (sub.subjectId === id) return { ...sub, examTime: value };
+        if ((sub.examTime ?? "") === "" || followers.get(sub.subjectId) === id) {
+          followers.set(sub.subjectId, id);
+          return { ...sub, examTime: value };
+        }
+        return sub;
+      })
     );
   };
 
@@ -300,60 +312,8 @@ export default function GenerateHallTicket() {
   };
 
   // ================= API CALLS =================
-  const fetchCourses = async () => {
-    try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-      setCourseOptions(
-        data.map((c) => ({
-          value: c.courseid,
-          label: c.coursename,
-        })),
-      );
-    } catch (error) {
-      console.error("Failed to fetch courses", error);
-    }
-  };
-
-  const fetchPatterns = async (courseId: string) => {
-    try {
-      const data: PatternApiResponse[] = await PatternService.getpattern();
-      setPatternOptions(
-        data.map((p) => ({
-          value: p.patternName,
-          label: p.patternName,
-        })),
-      );
-    } catch (error) {
-      console.error("Failed to fetch patterns", error);
-    }
-  };
-
-  const fetchexam = async () => {
-    try {
-      const ayid = localStorage.getItem("AYID");
-      if (!ayid) {
-        return Swal.fire("Error", "Academic Year is missing", "error");
-      }
-
-      const parameter: ExamApiRequest = {
-        Courseid: courseId,
-        Ayid: ayid,
-      };
-      const data: ExamApiResponse[] =
-        await GenerateHallTicketService.getExam(parameter);
-      const mappedData = data.map((e) => ({
-        value: e.examId,
-        label: e.examname,
-      }));
-      setExamOptions(mappedData);
-    } catch (error) {
-      console.error("Failed to fetch exam", error);
-    }
-  };
-
   const fetchsubjects = async () => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year is missing", "error");
       }
@@ -363,19 +323,18 @@ export default function GenerateHallTicket() {
         courseId: courseId,
         semester: semester,
         pattern: pattern,
-        examId: Exam,
+        examId: Exam
       };
-      const data: HallticketSubjects[] =
-        await GenerateHallTicketService.getHallTicketSubjects(parameter);
+      const data: HallticketSubjects[] = await GenerateHallTicketService.getHallTicketSubjects(parameter);
+      filledFrom.current.clear();
       setSubjects(data);
       if (data.length === 0) {
         return setAlert({
           variant: "warning",
           title: "No Data Found",
-          message:
-            "No subjects found for the selected exam timetable configuration.",
+          message: "No subjects found for the selected exam timetable configuration.",
         });
-      }
+      } 
     } catch (error) {
       console.error("Failed to fetch subjects", error);
     }
@@ -383,14 +342,13 @@ export default function GenerateHallTicket() {
 
   const handleSave = async () => {
     try {
-      const ayid = localStorage.getItem("AYID");
       if (!ayid) {
         return Swal.fire("Error", "Academic Year missing", "error");
       }
       const payload: SaveTimeTable = {
         ExamId: Exam,
         CourseId: courseId,
-        TimeTableData: Subjects,
+        TimeTableData: Subjects
       };
 
       setLoading(true);
@@ -403,6 +361,7 @@ export default function GenerateHallTicket() {
           timer: 2000,
           showConfirmButton: false,
         });
+        queryClient.invalidateQueries({ queryKey: timeTableKey });
       } else {
         Swal.fire({
           title: "Failed!",
@@ -420,13 +379,40 @@ export default function GenerateHallTicket() {
     }
   };
 
+  // Opens the print page with every branch's time table of the selected exam
+  const printAllTimeTables = async () => {
+    if (!Exam) return;
+    try {
+      setPrintingTT(true);
+      // Reuses the fetched data while it is fresh, otherwise loads it again
+      const data: TimeTableAll = await queryClient.fetchQuery({
+        queryKey: timeTableKey,
+        queryFn: () => GenerateHallTicketService.getTimeTableAll(Exam),
+        staleTime: TIMETABLE_STALE_MS,
+      });
+      if (!data.blocks || data.blocks.length === 0) {
+        return setAlert({
+          variant: "warning",
+          title: "No Data Found",
+          message: "No time table has been saved for this exam yet.",
+        });
+      }
+      appStorage.set("timeTableAllData", JSON.stringify(data));
+      window.open(`${import.meta.env.BASE_URL}timetableprint`, "_blank");
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Failed to load the time tables", "error");
+    } finally {
+      setPrintingTT(false);
+    }
+  };
+
   const HallTicket = async () => {
-    const ayid = localStorage.getItem("AYID");
     if (!ayid) {
       return Swal.fire("Error", "Academic Year missing", "error");
     }
-
-    let hallticketmode = SingleStudent ? "Single" : "All";
+    
+    const hallticketmode = SingleStudent ? "Single" : "All";
 
     const payload: StudentHallTicketDataRequest = {
       Ayid: ayid,
@@ -435,20 +421,21 @@ export default function GenerateHallTicket() {
       Pattern: pattern,
       Mode: hallticketmode,
       CourseId: courseId,
-      StudentId: SingleStudent ? studentId : "",
+      StudentId: SingleStudent ? studentId : ""
     };
-
-    const data: StudentHallTicketData[] =
-      await GenerateHallTicketService.getHallTicketStudents(payload);
+    
+    const data: StudentHallTicketData[] = await GenerateHallTicketService.getHallTicketStudents(payload);
     const collegedata = await GenerateHallTicketService.getcollegeDataExam();
-
+    
     const hallTicketData: HallTicketData = {
       college: {
         logo: collegedata.logo,
         center: collegedata.center,
-        CourseNmae: "MECHANICAL ENGINEERING (" + pattern + ")",
+        collegeName: collegedata.collegeName,
+        principalSign: collegedata.principalSign,
+        CourseNmae: `${(courseOptions.find((c) => c.value === courseId)?.label ?? "").toUpperCase()} (${pattern})`
       },
-      students: data,
+      students: data 
     };
 
     if (data.length === 0) {
@@ -458,9 +445,9 @@ export default function GenerateHallTicket() {
         message: "No student records found to generate hall tickets.",
       });
     }
-
-    localStorage.setItem("hallTicketData", JSON.stringify(hallTicketData));
-    window.open("/hallticket", "_blank");
+    
+    appStorage.set("hallTicketData", JSON.stringify(hallTicketData));
+    window.open(`${import.meta.env.BASE_URL}hallticket`, "_blank");
   };
 
   return (
@@ -479,9 +466,9 @@ export default function GenerateHallTicket() {
         title="Staff Dashboard"
         description="Welcome to the Staff Portal"
       />
-
+      
       <ComponentCard title="Generate HallTicket - Filters">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           {/* Course Dropdown */}
           <div className="w-full">
             <Select
@@ -553,32 +540,6 @@ export default function GenerateHallTicket() {
                 />
               </motion.div>
             )}
-
-            {/* Save Timetable Button (aligned as final cell in grid) */}
-            {courseId && pattern && semester && Exam && Subjects.length > 0 && (
-              <motion.div
-                key="actions"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="w-full flex items-end gap-2 h-11"
-              >
-                <Button
-                  variant="primary"
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="flex-grow h-11"
-                >
-                  {loading ? (
-                    <Loader2 className="animate-spin size-4 mr-2" />
-                  ) : (
-                    <Save className="size-4 mr-2" />
-                  )}
-                  Save Timetable
-                </Button>
-              </motion.div>
-            )}
           </AnimatePresence>
         </div>
       </ComponentCard>
@@ -601,8 +562,8 @@ export default function GenerateHallTicket() {
               {/* Student ID input if Single mode is selected */}
               {SingleStudent && (
                 <div className="w-64">
-                  <Input
-                    type="text"
+                  <Input 
+                    type="text" 
                     placeholder="Enter Student ID"
                     maxLength={9}
                     value={studentId}
@@ -617,14 +578,27 @@ export default function GenerateHallTicket() {
             </div>
 
             {/* Print / View HallTickets Action */}
-            <Button
-              variant="primary"
-              onClick={HallTicket}
-              className="whitespace-nowrap h-11"
-            >
-              <Printer className="size-4 mr-2" />
-              Generate Hall Tickets
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {hasSavedTimeTable && (
+                <Button
+                  variant="outline"
+                  onClick={printAllTimeTables}
+                  disabled={!Exam || printingTT}
+                  className="whitespace-nowrap h-11"
+                >
+                  {printingTT ? <Loader2 className="animate-spin size-4 mr-2" /> : <Printer className="size-4 mr-2" />}
+                  Print time tables
+                </Button>
+              )}
+              <Button 
+                variant="primary"
+                onClick={HallTicket}
+                className="whitespace-nowrap h-11"
+              >
+                <Printer className="size-4 mr-2" />
+                Generate Hall Tickets
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -632,15 +606,24 @@ export default function GenerateHallTicket() {
       {/* Subjects Datatable */}
       {Subjects.length > 0 && (
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-theme-md border border-gray-200 dark:border-gray-800 p-4">
-          <h4 className="font-semibold text-gray-850 dark:text-gray-200 mb-3 text-sm">
-            Exam Timetable Schedule List
-          </h4>
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <h4 className="font-semibold text-gray-850 dark:text-gray-200 text-sm">Exam Timetable Schedule List</h4>
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              disabled={loading}
+              className="whitespace-nowrap h-11"
+            >
+              {loading ? <Loader2 className="animate-spin size-4 mr-2" /> : <Save className="size-4 mr-2" />}
+              Save Timetable
+            </Button>
+          </div>
           <DataTable
             data={Subjects}
             columns={columns}
             searchKeys={["subjectName", "subjectCode"]}
             filters={filters}
-            pageSizeOptions={[10]}
+           
           />
         </div>
       )}

@@ -1,5 +1,4 @@
 import apiClient from "../api/Client";
-import { Response } from "./Response";
 
 export interface GetDeclareExamTable {
   CourseId: string;
@@ -29,9 +28,28 @@ export interface DeclareHallTicketApiResponse {
   pattern: string;
   hallTicketDeclareDate?: string | null;
   hallTicketUpdatedAt?: string | null;
+  /** False when no DeclareResult row exists yet (the hall ticket is "not released"). */
+  hasRecord?: boolean;
+}
+
+export interface GetReleaseHallTicketExam {
+  CourseId: string;
+  Ayid: string;
+  Semester: string;
+  pattern: string;
 }
 
 export const ReleaseHallticketService = {
+  async GetExam(
+    params: GetReleaseHallTicketExam,
+  ): Promise<DeclareHallTicketApiResponse[]> {
+    const response = await apiClient.get<DeclareHallTicketApiResponse[]>(
+      "/ReleaseHallTicket/get-exam",
+      { params },
+    );
+    return response.data;
+  },
+
   async GetTableExam(
     params: GetDeclareExamTable,
   ): Promise<DeclareHallTicketApiResponse[]> {

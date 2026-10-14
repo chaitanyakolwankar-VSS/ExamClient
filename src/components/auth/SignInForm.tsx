@@ -47,7 +47,8 @@ export default function SignInForm() {
 
       // UPDATE GLOBAL STATE
       login(data.token, userForContext);
-      navigate("/staff/dashboard");
+      // The platform (developer) login has no college or academic year: it lands on the platform console.
+      navigate(data.user.isPlatformAdmin ? "/Platform" : "/staff/dashboard");
     } catch (err) {
       const error = err as AxiosError;
 
@@ -55,6 +56,8 @@ export default function SignInForm() {
 
       if (error.response && error.response.status === 401) {
         setError("Invalid email or password");
+      } else if (error.response && error.response.status === 429) {
+        setError("Too many sign-in attempts. Please wait a minute and try again.");
       } else {
         setError(`Server error occurred. Please try again later.`);
       }

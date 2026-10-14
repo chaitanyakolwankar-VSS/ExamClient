@@ -2,7 +2,7 @@ import { useState } from "react";
 import Select from "../../../components/form/Select";
 
 const Permission = () => {
-  const [module, setModule] = useState("");
+  const [, setModule] = useState("");
 
   const moduleOptions = [
     { value: "frontend", label: "Frontend Module" },
