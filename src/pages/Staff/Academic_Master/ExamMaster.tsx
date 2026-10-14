@@ -218,9 +218,10 @@ export default function ExamDashboard() {
                 text: res.message,
                 icon: "success",
                 showConfirmButton: false, // ❌ OK button removed
-                timer: 1000,
+                timer: 2500,
             });
             invalidateExams();
+            SearchExam();
         }
         else {
             await Swal.fire("Failed!", res.message, "error");
@@ -383,6 +384,11 @@ export default function ExamDashboard() {
 
 
                 </div>
+                {(ExamType) && (
+                    <p className="pt-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                        Save creates this exam for all branches. The Course above only chooses which branch's exams are listed.
+                    </p>
+                )}
                 <div className="flex justify-center gap-4 pt-5">
                     {(ExamType) && (
                         <>
