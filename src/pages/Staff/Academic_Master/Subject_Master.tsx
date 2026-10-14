@@ -925,7 +925,7 @@ export default function SubjectMaster() {
           </div>
 
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-5">
+          <div className="grid grid-cols-1 gap-4 pt-5 sm:grid-cols-2 lg:grid-cols-4">
 
 
 
@@ -988,58 +988,67 @@ export default function SubjectMaster() {
               />
             )}
 
+          </div>
 
-            <div className="grid grid-cols-2 gap-3 w-full">
-              {/* ➕ Add */}
-              {semester && (
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-center rounded-md bg-blue-600 py-2 text-white hover:bg-blue-700"
-                  onClick={() => setIsModalOpen(true)}
-                >
-                  <Plus size={20} /><span>Add</span>
-                </button>
-              )}
-
+          {/* Actions — one aligned bar under the filters, primary action last */}
+          {semester && (
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-5">
               {/* 🔢 Set order */}
-              {semester && (
-                <button
-                  type="button"
-                  className="col-span-2 w-full flex items-center justify-center gap-1 rounded-md border border-blue-600 py-2 text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-500/10"
-                  onClick={openOrderModal}
-                  disabled={!(courseId && pattern && semester) || !subjectList || subjectList.length === 0}
-                >
-                  <ListOrdered size={18} /><span>Set order</span>
-                </button>
-              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-11"
+                startIcon={<ListOrdered size={18} />}
+                onClick={openOrderModal}
+                disabled={!(courseId && pattern && semester) || !subjectList || subjectList.length === 0}
+                title={
+                  !(courseId && pattern && semester) || !subjectList || subjectList.length === 0
+                    ? "Choose course, pattern and semester first"
+                    : undefined
+                }
+              >
+                Set order
+              </Button>
 
               {/* 🗑 Delete */}
               {subject && (
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-center rounded-md bg-red-600 py-2 text-white hover:bg-red-700"
+                <Button
+                  size="sm"
+                  variant="danger"
+                  className="h-11"
+                  startIcon={<Trash2 size={18} />}
                   onClick={DeleteSubject}
                 >
-                  <Trash2 size={18} /><span>Delete</span>
-                </button>
+                  Delete
+                </Button>
               )}
-            </div>
 
+              {/* Copy previous-year credits */}
+              {(PreviousCreditExist && subject) && (
+                <Button
+                  size="sm"
+                  className="h-11"
+                  startIcon={<Copy size={18} />}
+                  onClick={handleCopyPreviousCredits}
+                >
+                  Copy Credit
+                </Button>
+              )}
 
-
-            {(PreviousCreditExist && subject) && (
-              <button
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2"
-                onClick={handleCopyPreviousCredits}
+              {/* ➕ Add */}
+              <Button
+                size="sm"
+                className="h-11"
+                startIcon={<Plus size={18} />}
+                onClick={() => setIsModalOpen(true)}
               >
-                <Copy size={18} />
-                Copy Credit
-              </button>
-            )}
-          </div>
-          {(IsCreditDefined && !isEditMode && !isPreviousYear && subject) && (
-            <div className="flex justify-center pt-4">
-           
+                Add
+              </Button>
+            </div>
+          )}
+        {(IsCreditDefined && !isEditMode && !isPreviousYear && subject) && (
+          <div className="flex justify-center pt-4">
+         
               <button
                 className="min-w-64 bg-blue-600 text-white px-6 py-2 rounded-lg
              flex items-center justify-center gap-2"
