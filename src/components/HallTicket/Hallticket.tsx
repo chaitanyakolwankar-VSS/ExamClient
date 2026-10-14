@@ -1,5 +1,6 @@
 import React from "react";
 import AuthImage from "../common/AuthImage";
+import CollegeHeader from "./CollegeHeader";
 import { appStorage } from "../../utils/appStorage";
 
 // ================= TYPES =================
@@ -96,36 +97,7 @@ const HallTicketCard = ({
       }}
     >
       {/* HEADER */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          borderBottom: "2px solid black",
-          paddingBottom: "10px",
-        }}
-      >
-        <AuthImage
-          src={college.logo}
-          alt="logo"
-          style={{ maxWidth: "100%", maxHeight: "30mm", objectFit: "contain" }}
-          fallback={
-            college.collegeName ? (
-              <div
-                style={{
-                  fontSize: "22px",
-                  fontWeight: "bold",
-                  textAlign: "center",
-                  textTransform: "uppercase",
-                  padding: "6px 0",
-                }}
-              >
-                {college.collegeName}
-              </div>
-            ) : null
-          }
-        />
-      </div>
+      <CollegeHeader logo={college.logo} collegeName={college.collegeName} />
 
       {/* TITLE */}
       <h2

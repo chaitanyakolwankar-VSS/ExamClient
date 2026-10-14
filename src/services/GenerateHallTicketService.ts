@@ -46,6 +46,27 @@ export interface StudentHallTicketData {
     sign?: string | null;
     subjects:StudentsHallTicketSubjects[];
 }
+export interface TimeTableAllRow {
+    date: string;
+    time: string;
+    subjectCode: string;
+    subjectName: string;
+}
+export interface TimeTableAllBlock {
+    branchName: string;
+    pattern: string;
+    /** Label such as "Semester III". */
+    semester: string;
+    rows: TimeTableAllRow[];
+}
+/** Every branch's time table of one exam plus the college header data (same source as the hall ticket). */
+export interface TimeTableAll {
+    college: HallTicketCollege;
+    examName: string;
+    examType: string;
+    academicYear: string;
+    blocks: TimeTableAllBlock[];
+}
 export interface HallTicketCollege{
     logo:string;
     center:string;
@@ -72,6 +93,12 @@ async getHallTicketSubjects(params: HallticketSubjectsRequest): Promise<Halltick
     async getHallTicketStudents(params: StudentHallTicketDataRequest): Promise<StudentHallTicketData[]> {
         const response = await apiClient.get<StudentHallTicketData[]>(
             "/GenerateHallTicket/get-halltickectstudentsdata", { params }
+        );
+        return response.data;
+    },
+    async getTimeTableAll(examId: string): Promise<TimeTableAll> {
+        const response = await apiClient.get<TimeTableAll>(
+            "/GenerateHallTicket/get-timetable-all", { params: { examId } }
         );
         return response.data;
     },

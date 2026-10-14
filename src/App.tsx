@@ -36,6 +36,7 @@ const Marksheet = lazy(() => import("./pages/Staff/Reports/Marksheet.tsx"));
 const StatisticalReportPage = lazy(() => import("./pages/Staff/Reports/StatisticalReport.tsx"));
 const StudentMaster = lazy(() => import("./pages/Staff/Students Admin/Student_master"));
 const HallTicketPage = lazy(() => import("./components/HallTicket/Hallticket.tsx"));
+const TimeTablePrintPage = lazy(() => import("./components/HallTicket/TimeTablePrint.tsx"));
 const StudentPromotion = lazy(() => import("./pages/Staff/Academic_Master/StudentPromotion.tsx"));
 const DeclareResult = lazy(() => import("./pages/Staff/Students Admin/DeclareResult.tsx"));
 const ReleaseHallTicket = lazy(() => import("./pages/Staff/Students Admin/ReleaseHallTicket.tsx"));
@@ -106,6 +107,7 @@ export default function App() {
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
              <Route path="/hallticket" element={<HallTicketPage />} />
+             <Route path="/timetableprint" element={<TimeTablePrintPage />} />
             </Route>
           </Route>
 

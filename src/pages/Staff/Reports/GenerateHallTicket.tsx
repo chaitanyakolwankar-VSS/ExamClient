@@ -1,5 +1,5 @@
 import PageMeta from "../../../components/common/PageMeta"; 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
@@ -14,7 +14,7 @@ import {
   toPatternOptions,
   toSemesterOptions,
 } from "../../../data";
-import { GenerateHallTicketService,HallticketSubjects, HallticketSubjectsRequest,SaveTimeTable,StudentHallTicketDataRequest ,StudentHallTicketData} from "../../../services/GenerateHallTicketService";
+import { GenerateHallTicketService,HallticketSubjects, HallticketSubjectsRequest,SaveTimeTable,StudentHallTicketDataRequest ,StudentHallTicketData,TimeTableAll} from "../../../services/GenerateHallTicketService";
 import DataTable from "../../../components/ui/table/DataTable";
 import Input from "../../../components/form/input/InputField";
 import { Save, Printer, Loader2 } from "lucide-react";
@@ -110,6 +110,16 @@ export default function GenerateHallTicket() {
   const [studentId, setStudentId] = useState("");
 
   const [loading, setLoading] = useState(false);
+
+  // "Same time for all subjects" (default on): a time typed in any row is copied to every row of the grid.
+  // Kept in a ref as well because the column definitions are memoised once and would otherwise see a stale value.
+  const [sameTime, setSameTime] = useState(true);
+  const sameTimeRef = useRef(true);
+  const handleSameTimeToggle = (checked: boolean) => {
+    sameTimeRef.current = checked;
+    setSameTime(checked);
+  };
+  const [printingTT, setPrintingTT] = useState(false);
 
   const filters = useMemo(() => ({}), []);
 
@@ -269,9 +279,13 @@ export default function GenerateHallTicket() {
   };
 
   const handleTimeChange = (id: string, value: string) => {
+    // "Same time for all subjects": the whole grid (all pages), not only the edited row. The input mask
+    // formats from the row's own value on every keystroke, so copying intermediate values is harmless.
+    // Dates are never copied.
+    const all = sameTimeRef.current;
     setSubjects((prev) =>
       prev.map((sub) =>
-        sub.subjectId === id ? { ...sub, examTime: value } : sub
+        all || sub.subjectId === id ? { ...sub, examTime: value } : sub
       )
     );
   };
@@ -343,6 +357,29 @@ export default function GenerateHallTicket() {
       Swal.fire("Error", "Failed to save data", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Opens the print page with every branch's time table of the selected exam
+  const printAllTimeTables = async () => {
+    if (!Exam) return;
+    try {
+      setPrintingTT(true);
+      const data: TimeTableAll = await GenerateHallTicketService.getTimeTableAll(Exam);
+      if (!data.blocks || data.blocks.length === 0) {
+        return setAlert({
+          variant: "warning",
+          title: "No Data Found",
+          message: "No time table has been saved for this exam yet.",
+        });
+      }
+      appStorage.set("timeTableAllData", JSON.stringify(data));
+      window.open(`${import.meta.env.BASE_URL}timetableprint`, "_blank");
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Failed to load the time tables", "error");
+    } finally {
+      setPrintingTT(false);
     }
   };
 
@@ -488,8 +525,16 @@ export default function GenerateHallTicket() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                className="w-full flex items-end gap-2 h-11"
+                className="w-full sm:col-span-2 flex items-end gap-2 h-11"
               >
+                <div className="p-2 bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-gray-800 rounded-xl">
+                  <Switch
+                    label="Same time for all subjects"
+                    color="blue"
+                    checked={sameTime}
+                    onChange={handleSameTimeToggle}
+                  />
+                </div>
                 <Button 
                   variant="primary"
                   onClick={handleSave}
@@ -539,14 +584,25 @@ export default function GenerateHallTicket() {
             </div>
 
             {/* Print / View HallTickets Action */}
-            <Button 
-              variant="primary"
-              onClick={HallTicket}
-              className="whitespace-nowrap h-11"
-            >
-              <Printer className="size-4 mr-2" />
-              Generate Hall Tickets
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={printAllTimeTables}
+                disabled={!Exam || printingTT}
+                className="whitespace-nowrap h-11"
+              >
+                {printingTT ? <Loader2 className="animate-spin size-4 mr-2" /> : <Printer className="size-4 mr-2" />}
+                Print time tables
+              </Button>
+              <Button 
+                variant="primary"
+                onClick={HallTicket}
+                className="whitespace-nowrap h-11"
+              >
+                <Printer className="size-4 mr-2" />
+                Generate Hall Tickets
+              </Button>
+            </div>
           </div>
         </div>
       )}
