@@ -1,5 +1,6 @@
 import PageMeta from "../../../components/common/PageMeta"; 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
@@ -13,6 +14,7 @@ import {
   toCourseOptions,
   toPatternOptions,
   toSemesterOptions,
+  useCollegeId,
 } from "../../../data";
 import { GenerateHallTicketService,HallticketSubjects, HallticketSubjectsRequest,SaveTimeTable,StudentHallTicketDataRequest ,StudentHallTicketData,TimeTableAll} from "../../../services/GenerateHallTicketService";
 import DataTable from "../../../components/ui/table/DataTable";
@@ -73,6 +75,8 @@ interface AlertState {
   message: string;
 }
 
+const TIMETABLE_STALE_MS = 30 * 1000;
+
 export default function GenerateHallTicket() {
   // Alert (Auto-clearing)
   const [alert, setAlert] = useState<AlertState | null>(null);
@@ -111,15 +115,19 @@ export default function GenerateHallTicket() {
 
   const [loading, setLoading] = useState(false);
 
-  // "Same time for all subjects" (default on): a time typed in any row is copied to every row of the grid.
-  // Kept in a ref as well because the column definitions are memoised once and would otherwise see a stale value.
-  const [sameTime, setSameTime] = useState(true);
-  const sameTimeRef = useRef(true);
-  const handleSameTimeToggle = (checked: boolean) => {
-    sameTimeRef.current = checked;
-    setSameTime(checked);
-  };
   const [printingTT, setPrintingTT] = useState(false);
+
+  // Every branch's saved time table of the selected exam; the "Print time tables" button shows only when there is one.
+  const queryClient = useQueryClient();
+  const collegeId = useCollegeId();
+  const timeTableKey = useMemo(() => ["timeTableAll", collegeId ?? "", Exam] as const, [collegeId, Exam]);
+  const timeTableAll = useQuery({
+    queryKey: timeTableKey,
+    queryFn: () => GenerateHallTicketService.getTimeTableAll(Exam),
+    enabled: !!Exam,
+    staleTime: TIMETABLE_STALE_MS,
+  });
+  const hasSavedTimeTable = (timeTableAll.data?.blocks?.length ?? 0) > 0;
 
   const filters = useMemo(() => ({}), []);
 
@@ -278,15 +286,24 @@ export default function GenerateHallTicket() {
     );
   };
 
+  // Rows whose time was filled automatically, mapped to the row they copy. A row someone typed in is never
+  // in here, so it never changes by itself.
+  const filledFrom = useRef(new Map<string, string>());
+
   const handleTimeChange = (id: string, value: string) => {
-    // "Same time for all subjects": the whole grid (all pages), not only the edited row. The input mask
-    // formats from the row's own value on every keystroke, so copying intermediate values is harmless.
-    // Dates are never copied.
-    const all = sameTimeRef.current;
+    // Typing a time fills every empty row (all pages) and keeps rows filled from this row in step; a row that
+    // was typed in by hand keeps its own time. Dates are never copied.
+    const followers = filledFrom.current;
+    followers.delete(id);
     setSubjects((prev) =>
-      prev.map((sub) =>
-        all || sub.subjectId === id ? { ...sub, examTime: value } : sub
-      )
+      prev.map((sub) => {
+        if (sub.subjectId === id) return { ...sub, examTime: value };
+        if ((sub.examTime ?? "") === "" || followers.get(sub.subjectId) === id) {
+          followers.set(sub.subjectId, id);
+          return { ...sub, examTime: value };
+        }
+        return sub;
+      })
     );
   };
 
@@ -309,6 +326,7 @@ export default function GenerateHallTicket() {
         examId: Exam
       };
       const data: HallticketSubjects[] = await GenerateHallTicketService.getHallTicketSubjects(parameter);
+      filledFrom.current.clear();
       setSubjects(data);
       if (data.length === 0) {
         return setAlert({
@@ -343,6 +361,7 @@ export default function GenerateHallTicket() {
           timer: 2000,
           showConfirmButton: false,
         });
+        queryClient.invalidateQueries({ queryKey: timeTableKey });
       } else {
         Swal.fire({
           title: "Failed!",
@@ -365,7 +384,12 @@ export default function GenerateHallTicket() {
     if (!Exam) return;
     try {
       setPrintingTT(true);
-      const data: TimeTableAll = await GenerateHallTicketService.getTimeTableAll(Exam);
+      // Reuses the fetched data while it is fresh, otherwise loads it again
+      const data: TimeTableAll = await queryClient.fetchQuery({
+        queryKey: timeTableKey,
+        queryFn: () => GenerateHallTicketService.getTimeTableAll(Exam),
+        staleTime: TIMETABLE_STALE_MS,
+      });
       if (!data.blocks || data.blocks.length === 0) {
         return setAlert({
           variant: "warning",
@@ -444,7 +468,7 @@ export default function GenerateHallTicket() {
       />
       
       <ComponentCard title="Generate HallTicket - Filters">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           {/* Course Dropdown */}
           <div className="w-full">
             <Select
@@ -516,36 +540,6 @@ export default function GenerateHallTicket() {
                 />
               </motion.div>
             )}
-
-            {/* Save Timetable Button (aligned as final cell in grid) */}
-            {courseId && pattern && semester && Exam && Subjects.length > 0 && (
-              <motion.div
-                key="actions"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="w-full sm:col-span-2 flex items-end gap-2 h-11"
-              >
-                <div className="p-2 bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-gray-800 rounded-xl">
-                  <Switch
-                    label="Same time for all subjects"
-                    color="blue"
-                    checked={sameTime}
-                    onChange={handleSameTimeToggle}
-                  />
-                </div>
-                <Button 
-                  variant="primary"
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="flex-grow h-11"
-                >
-                  {loading ? <Loader2 className="animate-spin size-4 mr-2" /> : <Save className="size-4 mr-2" />}
-                  Save Timetable
-                </Button>
-              </motion.div>
-            )}
           </AnimatePresence>
         </div>
       </ComponentCard>
@@ -585,15 +579,17 @@ export default function GenerateHallTicket() {
 
             {/* Print / View HallTickets Action */}
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={printAllTimeTables}
-                disabled={!Exam || printingTT}
-                className="whitespace-nowrap h-11"
-              >
-                {printingTT ? <Loader2 className="animate-spin size-4 mr-2" /> : <Printer className="size-4 mr-2" />}
-                Print time tables
-              </Button>
+              {hasSavedTimeTable && (
+                <Button
+                  variant="outline"
+                  onClick={printAllTimeTables}
+                  disabled={!Exam || printingTT}
+                  className="whitespace-nowrap h-11"
+                >
+                  {printingTT ? <Loader2 className="animate-spin size-4 mr-2" /> : <Printer className="size-4 mr-2" />}
+                  Print time tables
+                </Button>
+              )}
               <Button 
                 variant="primary"
                 onClick={HallTicket}
@@ -610,7 +606,18 @@ export default function GenerateHallTicket() {
       {/* Subjects Datatable */}
       {Subjects.length > 0 && (
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-theme-md border border-gray-200 dark:border-gray-800 p-4">
-          <h4 className="font-semibold text-gray-850 dark:text-gray-200 mb-3 text-sm">Exam Timetable Schedule List</h4>
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <h4 className="font-semibold text-gray-850 dark:text-gray-200 text-sm">Exam Timetable Schedule List</h4>
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              disabled={loading}
+              className="whitespace-nowrap h-11"
+            >
+              {loading ? <Loader2 className="animate-spin size-4 mr-2" /> : <Save className="size-4 mr-2" />}
+              Save Timetable
+            </Button>
+          </div>
           <DataTable
             data={Subjects}
             columns={columns}
