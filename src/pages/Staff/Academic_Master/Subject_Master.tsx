@@ -1,7 +1,7 @@
 import PageMeta from "../../../components/common/PageMeta";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Select from "../../../components/form/Select";
-import { Plus, Trash2, Pencil, Save, CheckCircle, Eye, Copy, ListOrdered } from "lucide-react";
+import { Plus, Trash2, Pencil, Save, CheckCircle, Eye, Copy, ListOrdered, ChevronUp, ChevronDown } from "lucide-react";
 import Button from "../../../components/ui/button/Button";
 import Checkbox from "../../../components/form/input/Checkbox";
 import { Table, TableBody, TableRow, TableCell, } from "../../../components/ui/table";
@@ -117,7 +117,9 @@ export default function SubjectMaster() {
   interface OrderRow { subjectId: string; code: string; name: string; order: string }
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
-  const [orderError, setOrderError] = useState("");
+  const orderListRef = useRef<HTMLDivElement>(null);
+  // Which row/control to refocus (and scroll to) after a move re-orders the list.
+  const orderFocusRef = useRef<{ id: string; ctl: "input" | "up" | "down" } | null>(null);
   const [orderSaving, setOrderSaving] = useState(false);
 
   const [creditInput, setCreditInput] = useState<string>("1");
@@ -817,40 +819,67 @@ export default function SubjectMaster() {
     }
   };
   const openOrderModal = () => {
-    // The lookup already comes back in subject order; unset (null) orders show their position.
+    // The lookup already comes back in subject order. Numbers are always rewritten 1..n in that
+    // order, so duplicate or missing stored values are cleaned up as soon as the pop-up opens.
     setOrderRows(
       (subjectList ?? []).map((s, i) => ({
         subjectId: s.subjectId,
         code: s.code,
         name: s.name,
-        order: String(s.sortOrder ?? i + 1),
+        order: String(i + 1),
       }))
     );
-    setOrderError("");
     setIsOrderModalOpen(true);
   };
 
   const closeOrderModal = () => {
     if (orderSaving) return;
     setIsOrderModalOpen(false);
-    setOrderError("");
   };
+
+  // Move the row at `from` to position `to` (1-based, clamped) and renumber every row 1..n.
+  const moveOrderRow = (from: number, to: number, ctl: "input" | "up" | "down" = "input") => {
+    const target = Math.min(Math.max(to, 1), orderRows.length) - 1;
+    const next = [...orderRows];
+    const [row] = next.splice(from, 1);
+    next.splice(target, 0, row);
+    if (target !== from) orderFocusRef.current = { id: row.subjectId, ctl };
+    setOrderRows(next.map((r, i) => ({ ...r, order: String(i + 1) })));
+  };
+
+  // Commit a typed position; empty or invalid text reverts to the row's current number.
+  const commitOrderInput = (index: number, refocus = false) => {
+    const n = parseInt(orderRows[index]?.order ?? "", 10);
+    if (!Number.isInteger(n) || n < 1) {
+      setOrderRows((prev) => prev.map((r, i) => (i === index ? { ...r, order: String(i + 1) } : r)));
+      return;
+    }
+    if (refocus) orderFocusRef.current = { id: orderRows[index].subjectId, ctl: "input" };
+    moveOrderRow(index, n, "input");
+  };
+
+  // After a move, keep the moved row in view and keep focus on the control that was used.
+  useLayoutEffect(() => {
+    const f = orderFocusRef.current;
+    if (!f) return;
+    orderFocusRef.current = null;
+    const root = orderListRef.current;
+    if (!root) return;
+    const el =
+      root.querySelector<HTMLElement>(`[data-row="${f.id}"] [data-ctl="${f.ctl}"]:not(:disabled)`) ??
+      root.querySelector<HTMLElement>(`[data-row="${f.id}"] [data-ctl="input"]`);
+    el?.focus();
+    if (el instanceof HTMLInputElement) el.select();
+    el?.closest("tr")?.scrollIntoView({ block: "nearest" });
+  }, [orderRows]);
 
   const handleSaveOrder = async () => {
     if (orderSaving) return;
-    const subjects: { subjectId: string; sortOrder: number }[] = [];
-    for (const r of orderRows) {
-      const n = Number(r.order);
-      if (r.order.trim() === "" || !Number.isInteger(n) || n < 1 || n > 999) {
-        setOrderError(`Order for "${r.name}" must be a whole number from 1 to 999.`);
-        return;
-      }
-      subjects.push({ subjectId: r.subjectId, sortOrder: n });
-    }
+    // Rows are always unique and gapless, so the position in the list is the order.
+    const subjects = orderRows.map((r, i) => ({ subjectId: r.subjectId, sortOrder: i + 1 }));
 
     try {
       setOrderSaving(true);
-      setOrderError("");
       const res = await SubjectService.setSubjectOrder({ subjects });
       if (res.success) {
         setIsOrderModalOpen(false);
@@ -990,74 +1019,104 @@ export default function SubjectMaster() {
 
           </div>
 
-          {/* Actions — one aligned bar under the filters, primary action last */}
+          {/* Actions — one bar under the filters: credit actions on the left, subject actions on the right */}
           {semester && (
-            <div className="flex flex-wrap items-center justify-end gap-3 pt-5">
-              {/* 🔢 Set order */}
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-11"
-                startIcon={<ListOrdered size={18} />}
-                onClick={openOrderModal}
-                disabled={!(courseId && pattern && semester) || !subjectList || subjectList.length === 0}
-                title={
-                  !(courseId && pattern && semester) || !subjectList || subjectList.length === 0
-                    ? "Choose course, pattern and semester first"
-                    : undefined
-                }
-              >
-                Set order
-              </Button>
+            <div className="flex flex-wrap items-center gap-3 pt-5">
+              {/* Credit actions for the selected subject */}
+              <div className="flex flex-wrap items-center gap-3">
+                {/* ✏️ Edit credit (password / view pop-up) */}
+                {(IsCreditDefined && !isEditMode && !isPreviousYear && subject) && (
+                  <Button
+                    size="sm"
+                    className="h-11"
+                    startIcon={<Pencil size={18} />}
+                    onClick={() => setIsEditCreditModalOpen(true)}
+                  >
+                    Edit Credit
+                  </Button>
+                )}
 
-              {/* 🗑 Delete */}
-              {subject && (
+                {/* 💾 Save credits (new) / Update credits (edit mode) */}
+                {(subject && !isPreviousYear && (!IsCreditDefined || (IsCreditDefined && isEditMode))) && (
+                  <Button
+                    size="sm"
+                    className="h-11"
+                    startIcon={<Save size={18} />}
+                    onClick={isEditMode ? handleUpdateCredits : handleSaveCredits}
+                  >
+                    {isEditMode ? "Update Credits" : "Save Credits"}
+                  </Button>
+                )}
+
+                {/* 🗑 Delete credit (edit mode only) */}
+                {(subject && !isPreviousYear && IsCreditDefined && isEditMode) && (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="h-11"
+                    startIcon={<Trash2 size={18} />}
+                    onClick={DeleteCredits}
+                  >
+                    Delete credit
+                  </Button>
+                )}
+
+                {/* Copy previous-year credits */}
+                {(PreviousCreditExist && subject) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-11"
+                    startIcon={<Copy size={18} />}
+                    onClick={handleCopyPreviousCredits}
+                  >
+                    Copy Credit
+                  </Button>
+                )}
+              </div>
+
+              {/* Subject actions */}
+              <div className="ml-auto flex flex-wrap items-center gap-3">
+                {/* 🔢 Set order */}
                 <Button
                   size="sm"
-                  variant="danger"
+                  variant="outline"
                   className="h-11"
-                  startIcon={<Trash2 size={18} />}
-                  onClick={DeleteSubject}
+                  startIcon={<ListOrdered size={18} />}
+                  onClick={openOrderModal}
+                  disabled={!(courseId && pattern && semester) || !subjectList || subjectList.length === 0}
+                  title={
+                    !(courseId && pattern && semester) || !subjectList || subjectList.length === 0
+                      ? "Choose course, pattern and semester first"
+                      : undefined
+                  }
                 >
-                  Delete
+                  Set order
                 </Button>
-              )}
 
-              {/* Copy previous-year credits */}
-              {(PreviousCreditExist && subject) && (
+                {/* 🗑 Delete subject */}
+                {subject && (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="h-11"
+                    startIcon={<Trash2 size={18} />}
+                    onClick={DeleteSubject}
+                  >
+                    Delete subject
+                  </Button>
+                )}
+
+                {/* ➕ Add */}
                 <Button
                   size="sm"
                   className="h-11"
-                  startIcon={<Copy size={18} />}
-                  onClick={handleCopyPreviousCredits}
+                  startIcon={<Plus size={18} />}
+                  onClick={() => setIsModalOpen(true)}
                 >
-                  Copy Credit
+                  Add
                 </Button>
-              )}
-
-              {/* ➕ Add */}
-              <Button
-                size="sm"
-                className="h-11"
-                startIcon={<Plus size={18} />}
-                onClick={() => setIsModalOpen(true)}
-              >
-                Add
-              </Button>
-            </div>
-          )}
-        {(IsCreditDefined && !isEditMode && !isPreviousYear && subject) && (
-          <div className="flex justify-center pt-4">
-         
-              <button
-                className="min-w-64 bg-blue-600 text-white px-6 py-2 rounded-lg
-             flex items-center justify-center gap-2"
-                onClick={() => setIsEditCreditModalOpen(true)}
-              >
-                <Pencil size={20} />
-                <span>Edit Credit</span>
-              </button>
-
+              </div>
             </div>
           )}
 
@@ -1066,40 +1125,8 @@ export default function SubjectMaster() {
 
               <div className="pt-5">
 
-                {/* 🔹 Buttons – CENTER */}
-                <div className="flex justify-center gap-4">
-                  <button
-                    className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg
-             flex items-center justify-center gap-2"
-                    onClick={isEditMode ? handleUpdateCredits : handleSaveCredits}
-                  >
-                    {isEditMode ? (
-                      <>
-                        <Save size={18} />
-                        <span>Update Credits</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save size={18} />
-                        <span>Save Credits</span>
-                      </>
-                    )}
-                  </button>
-
-                  {isEditMode && (
-                    <button
-                      className="min-w-64 bg-red-600 text-white px-4 py-2 rounded-lg
-             flex items-center justify-center gap-2"
-                      onClick={DeleteCredits}
-                    >
-                      <Trash2 size={18} />
-                      <span>Delete Credit</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* 🔹 Number of Credit – NEXT LINE & CENTERED */}
-                <div className="flex justify-left mt-4">
+                {/* 🔹 Number of Credit */}
+                <div className="flex justify-left">
                   <div className="w-full md:w-1/2 xl:w-1/4">
                     <Input
                       type="number"
@@ -1518,51 +1545,79 @@ export default function SubjectMaster() {
       >
         <h2 className="mb-1 pr-8 text-xl font-semibold text-gray-800 dark:text-white/90">Set subject order</h2>
         <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-          Enter 1 to 999. Subjects are listed by this order everywhere; equal numbers are allowed.
+          Type a position or use the arrows; the other subjects move to make room.
         </p>
 
-        <div className="max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        <div ref={orderListRef} className="max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-gray-50 text-left text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            <thead className="sticky top-0 z-10 bg-gray-50 text-left text-gray-600 dark:bg-gray-800 dark:text-gray-300">
               <tr>
-                <th scope="col" className="w-24 px-3 py-2 font-medium">Order</th>
+                <th scope="col" className="w-36 px-3 py-2 font-medium">Order</th>
                 <th scope="col" className="px-3 py-2 font-medium">Code</th>
                 <th scope="col" className="px-3 py-2 font-medium">Subject name</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {orderRows.map((r, i) => (
-                <tr key={r.subjectId}>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      max={999}
-                      step={1}
-                      aria-label={`Order for ${r.code ? r.code + " " : ""}${r.name}`}
-                      value={r.order}
-                      disabled={orderSaving}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v.length > 3) return;
-                        setOrderRows((prev) => prev.map((x, j) => (j === i ? { ...x, order: v } : x)));
-                      }}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSaveOrder(); } }}
-                      className="h-9 w-20 rounded-lg border border-gray-300 bg-transparent px-2 text-sm text-gray-800 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                    />
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-gray-700 dark:text-gray-300">{r.code}</td>
-                  <td className="px-3 py-2 text-gray-800 dark:text-white/90">{r.name}</td>
-                </tr>
-              ))}
+              {orderRows.map((r, i) => {
+                const label = `${r.code ? r.code + " " : ""}${r.name}`;
+                const arrowCls =
+                  "flex h-9 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 focus:outline-hidden focus-visible:ring-3 focus-visible:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-white/[0.05] dark:hover:text-gray-200";
+                return (
+                  <tr key={r.subjectId} data-row={r.subjectId}>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={3}
+                          data-ctl="input"
+                          aria-label={`Position of ${label}`}
+                          value={r.order}
+                          disabled={orderSaving}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const v = e.target.value.replace(/\D/g, "");
+                            setOrderRows((prev) => prev.map((x, j) => (j === i ? { ...x, order: v } : x)));
+                          }}
+                          onBlur={() => commitOrderInput(i)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              commitOrderInput(i, true);
+                            }
+                          }}
+                          className="h-9 w-14 rounded-lg border border-gray-300 bg-transparent px-2 text-center text-sm text-gray-800 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                        />
+                        <button
+                          type="button"
+                          data-ctl="up"
+                          className={arrowCls}
+                          aria-label={`Move ${label} up`}
+                          disabled={orderSaving || i === 0}
+                          onClick={() => moveOrderRow(i, i, "up")}
+                        >
+                          <ChevronUp size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          data-ctl="down"
+                          className={arrowCls}
+                          aria-label={`Move ${label} down`}
+                          disabled={orderSaving || i === orderRows.length - 1}
+                          onClick={() => moveOrderRow(i, i + 2, "down")}
+                        >
+                          <ChevronDown size={18} />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-700 dark:text-gray-300">{r.code}</td>
+                    <td className="px-3 py-2 text-gray-800 dark:text-white/90">{r.name}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-
-        {orderError && (
-          <p role="alert" className="mt-3 text-sm text-error-600 dark:text-error-400">{orderError}</p>
-        )}
 
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="outline" onClick={closeOrderModal} disabled={orderSaving}>
