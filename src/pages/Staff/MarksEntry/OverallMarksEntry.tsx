@@ -44,6 +44,8 @@ export default function OverallMarksEntry() {
 
   // Data States
   const [results, setResults] = useState<ResultData[]>([]);
+  // SubjectMarks keys in subject order, from the API (empty = fall back to alphabetical).
+  const [subjectOrder, setSubjectOrder] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [pageAlert, setPageAlert] = useState<AlertInfo | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -169,6 +171,7 @@ export default function OverallMarksEntry() {
       });
       if (response.success && response.data) {
         setResults(response.data);
+        setSubjectOrder(response.subjectOrder ?? []);
         if (response.data.length === 0) {
             setPageAlert({ variant: "info", title: "No Data", message: "No processed results found for the selected filters." });
         }
@@ -238,19 +241,37 @@ export default function OverallMarksEntry() {
       Object.keys(r.subjectMarks).forEach(k => keys.add(k));
     });
 
-    return Array.from(keys).map(k => {
+    const parsed = Array.from(keys).map(k => {
       const match = k.match(/^(.+?)\s*\((.+?)\)$/);
       if (match) {
         return { key: k, subject: match[1], head: match[2] };
       }
       return { key: k, subject: k, head: "" };
-    }).sort((a, b) => {
+    });
+
+    // Subject position = earliest index of any of its keys in the API's subjectOrder.
+    const keyIndex = new Map<string, number>();
+    subjectOrder.forEach((k, i) => { if (!keyIndex.has(k)) keyIndex.set(k, i); });
+    const subjectIndex = new Map<string, number>();
+    parsed.forEach(p => {
+      const idx = keyIndex.get(p.key);
+      if (idx === undefined) return;
+      const cur = subjectIndex.get(p.subject);
+      if (cur === undefined || idx < cur) subjectIndex.set(p.subject, idx);
+    });
+    const posOf = (subject: string) => subjectIndex.get(subject) ?? Number.MAX_SAFE_INTEGER;
+
+    return parsed.sort((a, b) => {
       if (a.subject !== b.subject) {
+        const pa = posOf(a.subject);
+        const pb = posOf(b.subject);
+        if (pa !== pb) return pa - pb;
+        // No API order for these (older API / unlisted key): alphabetical as before.
         return a.subject.localeCompare(b.subject);
       }
       return a.head.localeCompare(b.head);
     });
-  }, [results]);
+  }, [results, subjectOrder]);
 
   const subjectsGrouped = useMemo(() => {
     const groups: { subject: string; heads: SubjectHead[] }[] = [];

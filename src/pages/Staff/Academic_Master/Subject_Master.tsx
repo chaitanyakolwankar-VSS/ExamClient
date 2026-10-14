@@ -1,7 +1,7 @@
 import PageMeta from "../../../components/common/PageMeta";
 import { useEffect, useMemo, useState } from "react";
 import Select from "../../../components/form/Select";
-import { Plus, Trash2, Pencil, Save, CheckCircle, Eye, Copy } from "lucide-react";
+import { Plus, Trash2, Pencil, Save, CheckCircle, Eye, Copy, ListOrdered } from "lucide-react";
 import Button from "../../../components/ui/button/Button";
 import Checkbox from "../../../components/form/input/Checkbox";
 import { Table, TableBody, TableRow, TableCell, } from "../../../components/ui/table";
@@ -112,6 +112,13 @@ export default function SubjectMaster() {
 
 
   const [password, setpassword] = useState("");
+
+  // ---- Set subject order (pop-up) ----
+  interface OrderRow { subjectId: string; code: string; name: string; order: string }
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
+  const [orderError, setOrderError] = useState("");
+  const [orderSaving, setOrderSaving] = useState(false);
 
   const [creditInput, setCreditInput] = useState<string>("1");
 
@@ -809,6 +816,68 @@ export default function SubjectMaster() {
       });
     }
   };
+  const openOrderModal = () => {
+    // The lookup already comes back in subject order; unset (null) orders show their position.
+    setOrderRows(
+      (subjectList ?? []).map((s, i) => ({
+        subjectId: s.subjectId,
+        code: s.code,
+        name: s.name,
+        order: String(s.sortOrder ?? i + 1),
+      }))
+    );
+    setOrderError("");
+    setIsOrderModalOpen(true);
+  };
+
+  const closeOrderModal = () => {
+    if (orderSaving) return;
+    setIsOrderModalOpen(false);
+    setOrderError("");
+  };
+
+  const handleSaveOrder = async () => {
+    if (orderSaving) return;
+    const subjects: { subjectId: string; sortOrder: number }[] = [];
+    for (const r of orderRows) {
+      const n = Number(r.order);
+      if (r.order.trim() === "" || !Number.isInteger(n) || n < 1 || n > 999) {
+        setOrderError(`Order for "${r.name}" must be a whole number from 1 to 999.`);
+        return;
+      }
+      subjects.push({ subjectId: r.subjectId, sortOrder: n });
+    }
+
+    try {
+      setOrderSaving(true);
+      setOrderError("");
+      const res = await SubjectService.setSubjectOrder({ subjects });
+      if (res.success) {
+        setIsOrderModalOpen(false);
+        invalidateSubjects();
+        await Swal.fire({
+          title: "Saved!",
+          text: res.message,
+          icon: "success",
+          showConfirmButton: false,
+          timer: 1000,
+        });
+      } else {
+        await Swal.fire("Failed!", res.message, "error");
+      }
+    } catch {
+      Swal.fire({
+        title: "Failed!",
+        text: "Something went wrong !!",
+        icon: "error",
+        showConfirmButton: false,
+        timer: 1000,
+      });
+    } finally {
+      setOrderSaving(false);
+    }
+  };
+
   const resetCreditFlow = () => {
     setPreviousCreditExist(false);
     setIsCreditDefined(false);
@@ -929,6 +998,18 @@ export default function SubjectMaster() {
                   onClick={() => setIsModalOpen(true)}
                 >
                   <Plus size={20} /><span>Add</span>
+                </button>
+              )}
+
+              {/* 🔢 Set order */}
+              {semester && (
+                <button
+                  type="button"
+                  className="col-span-2 w-full flex items-center justify-center gap-1 rounded-md border border-blue-600 py-2 text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-500/10"
+                  onClick={openOrderModal}
+                  disabled={!(courseId && pattern && semester) || !subjectList || subjectList.length === 0}
+                >
+                  <ListOrdered size={18} /><span>Set order</span>
                 </button>
               )}
 
@@ -1420,6 +1501,70 @@ export default function SubjectMaster() {
           </Button>
         </div>
       </Modal>
+      {/* Set subject order */}
+      <Modal
+        isOpen={isOrderModalOpen}
+        onClose={closeOrderModal}
+        className="max-w-2xl p-4 sm:p-6"
+      >
+        <h2 className="mb-1 pr-8 text-xl font-semibold text-gray-800 dark:text-white/90">Set subject order</h2>
+        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+          Enter 1 to 999. Subjects are listed by this order everywhere; equal numbers are allowed.
+        </p>
+
+        <div className="max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-gray-50 text-left text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+              <tr>
+                <th scope="col" className="w-24 px-3 py-2 font-medium">Order</th>
+                <th scope="col" className="px-3 py-2 font-medium">Code</th>
+                <th scope="col" className="px-3 py-2 font-medium">Subject name</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {orderRows.map((r, i) => (
+                <tr key={r.subjectId}>
+                  <td className="px-3 py-2">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={999}
+                      step={1}
+                      aria-label={`Order for ${r.code ? r.code + " " : ""}${r.name}`}
+                      value={r.order}
+                      disabled={orderSaving}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v.length > 3) return;
+                        setOrderRows((prev) => prev.map((x, j) => (j === i ? { ...x, order: v } : x)));
+                      }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSaveOrder(); } }}
+                      className="h-9 w-20 rounded-lg border border-gray-300 bg-transparent px-2 text-sm text-gray-800 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                    />
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-700 dark:text-gray-300">{r.code}</td>
+                  <td className="px-3 py-2 text-gray-800 dark:text-white/90">{r.name}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {orderError && (
+          <p role="alert" className="mt-3 text-sm text-error-600 dark:text-error-400">{orderError}</p>
+        )}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={closeOrderModal} disabled={orderSaving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveOrder} disabled={orderSaving}>
+            {orderSaving ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </Modal>
+
       <Modal
         isOpen={isEditCreditModalOpen}
         onClose={() => { setIsEditCreditModalOpen(false); setpassword(""); }}

@@ -4,6 +4,8 @@ export interface ApiResponse<T> {
     success: boolean;
     message: string;
     data?: T;
+    /** Results grid only: SubjectMarks keys in subject order (set in Subject Master). */
+    subjectOrder?: string[];
 }
 
 export interface ProcessResultRequest {

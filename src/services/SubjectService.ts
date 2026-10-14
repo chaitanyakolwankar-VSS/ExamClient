@@ -73,7 +73,22 @@ export interface VerifyCreditAccessPayload {
   password: string;
 }
 
+export interface SubjectOrderItem {
+  subjectId: string;
+  /** 1..999; duplicates allowed. */
+  sortOrder: number;
+}
+export interface SetSubjectOrderPayload {
+  subjects: SubjectOrderItem[];
+}
+
 export const SubjectService = {
+  // 👇 Set the display order of subjects (used everywhere subjects are listed)
+  async setSubjectOrder(payload: SetSubjectOrderPayload): Promise<Response> {
+    const response = await apiClient.put<Response>("/Subject/set-order", payload);
+    return response.data;
+  },
+
  verifyCreditAccess: async (
     payload: VerifyCreditAccessPayload
   ): Promise<Response> => {

@@ -149,7 +149,7 @@ const StudentAssignReport = () => {
     }
   };
 
-  // Distinct Subject-Head combinations sorted by Subject Name, Head Type, Head
+  // Distinct Subject-Head combinations in subject order (from the API), then Head Type, Head
   const creditHeads: CreditHead[] = useMemo(() => {
     const map = new Map<string, CreditHead>();
 
@@ -171,9 +171,29 @@ const StudentAssignReport = () => {
       }
     });
 
+    // Subject order comes from the API (rows arrive student by student, each in subject order).
+    // Build one column order from them: a subject first seen on a later student (because an
+    // earlier student did not take it) is slotted in right after the subject before it.
+    const subjectOrder: string[] = [];
+    let prevStudent: string | undefined;
+    let prevSubject: string | undefined;
+    creditRawData.forEach((item) => {
+      const subj = item.subjectName || "";
+      if (item.studentID !== prevStudent) {
+        prevStudent = item.studentID;
+        prevSubject = undefined;
+      }
+      if (!subjectOrder.includes(subj)) {
+        const at = prevSubject === undefined ? 0 : subjectOrder.indexOf(prevSubject) + 1;
+        subjectOrder.splice(at, 0, subj);
+      }
+      prevSubject = subj;
+    });
+    const subjectPos = (s: string) => subjectOrder.indexOf(s);
+
     return Array.from(map.values()).sort((a, b) => {
       if (a.subject !== b.subject) {
-        return a.subject.localeCompare(b.subject);
+        return subjectPos(a.subject) - subjectPos(b.subject);
       }
       if (a.headType !== b.headType) {
         return a.headType.localeCompare(b.headType);

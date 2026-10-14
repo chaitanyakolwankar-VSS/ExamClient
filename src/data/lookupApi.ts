@@ -71,6 +71,8 @@ export interface LookupSubject {
   subjectId: string;
   name: string;
   code: string;
+  /** Staff-set order from Subject Master (null = not set). The API already returns subjects in this order; never re-sort. */
+  sortOrder: number | null;
 }
 
 export interface ExamsParams {
