@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import PageMeta from "../../../components/common/PageMeta";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
@@ -20,6 +20,7 @@ import Swal from "sweetalert2";
 import {
   X,
   Save,
+  Loader2,
 } from "lucide-react";
 import DataTable from "../../../components/ui/table/DataTable";
 import Switch from "../../../components/form/switch/Switch";
@@ -270,6 +271,21 @@ export default function RegularExam() {
     }
   };
 
+  // One save at a time: a second click while saving gave students every head twice (live, 2026-10-14).
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const handleSaveClick = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      await (isEditMode ? handleUpdate() : handleSave());
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
       if (!ayid) {
@@ -515,11 +531,12 @@ export default function RegularExam() {
                 <>
                   <button
                     className="min-w-64 bg-blue-600 text-white px-4 py-2 rounded-lg
-             flex items-center justify-center gap-2"
-                    onClick={isEditMode ? handleUpdate : handleSave}
+             flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    onClick={handleSaveClick}
+                    disabled={saving}
                   >
                     {" "}
-                    <Save size={18} />
+                    {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                     <span>{isEditMode ? "Update" : "Save"}</span>
                   </button>
                   {isEditMode && (
