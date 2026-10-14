@@ -490,7 +490,7 @@ export default function StudentMaster() {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-800 dark:text-white/90">Fill one row per student</p>
                         <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          First name, last name, mother's name, gender and student type (E, D or M) are required; middle name, category and ERN are optional. Photos are added later per student.
+                          First name, mother's name, gender and student type (E, D or M) are required; middle name, last name, category and ERN are optional. Photos are added later per student.
                         </p>
                       </div>
                     </div>

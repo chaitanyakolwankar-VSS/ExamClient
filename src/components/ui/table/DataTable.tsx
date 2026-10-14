@@ -23,6 +23,8 @@ interface DataTableProps<T = any> {
   searchKeys?: string[];
   filters?: Record<string, any>;
   pageSizeOptions?: number[];
+  /** Rows shown first (20 unless a screen asks otherwise). */
+  defaultPageSize?: number;
   /** Keeps the header row visible while the body scrolls. Opt-in so other screens keep their
    *  existing full-height layout. */
   stickyHeader?: boolean;
@@ -33,14 +35,20 @@ const DataTable: React.FC<DataTableProps> = ({
   columns,
   searchKeys = [],
   filters = {},
-  pageSizeOptions = [5, 10, 20, 50],
+  pageSizeOptions: requestedSizes = [5, 10, 20, 50],
+  defaultPageSize = 20,
   stickyHeader = false,
 }) => {
+  // Every table opens at 20 rows and also offers 100 and 200.
+  const pageSizeOptions = useMemo(
+    () => [...new Set([...requestedSizes, defaultPageSize, 100, 200])].sort((a, b) => a - b),
+    [requestedSizes, defaultPageSize]
+  );
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(pageSizeOptions[0]);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   // FILTER + SEARCH + SORT
   const filteredData = useMemo(() => {

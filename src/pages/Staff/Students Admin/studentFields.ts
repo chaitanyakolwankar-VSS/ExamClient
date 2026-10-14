@@ -49,7 +49,7 @@ export const emptyStudentFields = (): StudentFields => ({
 
 /** Null when the details can be saved, otherwise what to fix. */
 export const checkStudentFields = (f: StudentFields): string | null => {
-  if (!f.firstName.trim() || !f.lastName.trim()) return "Enter the first and last name.";
+  if (!f.firstName.trim()) return "Enter the first name.";
   if (!f.motherName.trim()) return "Enter the mother's name.";
   if (!f.category) return "Choose the category.";
   if (!f.gender) return "Choose the gender.";

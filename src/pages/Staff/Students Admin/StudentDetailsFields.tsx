@@ -33,7 +33,7 @@ export default function StudentDetailsFields({ value, onChange }: Props) {
     <div className="grid grid-cols-1 content-start gap-x-4 gap-y-5 sm:grid-cols-3">
       <Input label="First name *" value={value.firstName} maxLength={50} onChange={name("firstName")} />
       <Input label="Middle name" value={value.middleName} maxLength={50} onChange={name("middleName")} />
-      <Input label="Last name *" value={value.lastName} maxLength={50} onChange={name("lastName")} />
+      <Input label="Last name" value={value.lastName} maxLength={50} onChange={name("lastName")} />
 
       <Select
         label="Category *"

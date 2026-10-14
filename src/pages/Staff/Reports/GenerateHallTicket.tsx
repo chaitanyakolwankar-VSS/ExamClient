@@ -623,7 +623,7 @@ export default function GenerateHallTicket() {
             columns={columns}
             searchKeys={["subjectName", "subjectCode"]}
             filters={filters}
-            pageSizeOptions={[10]}
+           
           />
         </div>
       )}

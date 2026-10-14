@@ -39,7 +39,7 @@ const GenericTable = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("asc");
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
 
   // 1. Logic: Filter, Search, and Sort
   const processedData = useMemo(() => {
@@ -98,7 +98,7 @@ const GenericTable = ({
             value={rowsPerPage}
             onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
           >
-            {[5, 10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
+            {[5, 10, 20, 50, 100, 200].map(n => <option key={n} value={n}>{n}</option>)}
           </select>
           <span className="text-sm text-gray-500 font-medium">entries</span>
         </div>
