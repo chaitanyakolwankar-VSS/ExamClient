@@ -103,10 +103,10 @@ const StudentAssignReport = () => {
 
   useEffect(() => {
     setPattern("");
-    setPatternOptions([]);
+    // setPatternOptions([]);
     setSemester("");
     setExam("");
-    setExamOptions([]);
+    // setExamOptions([]);
 
     if (courseId) {
       fetchPatterns(courseId);
@@ -127,13 +127,13 @@ const StudentAssignReport = () => {
 
   const fetchCourses = async () => {
     try {
-      const data: CourseApiResponse[] = await CourseService.getCourse();
-      setCourseOptions(
-        data.map((c) => ({
-          value: c.courseid,
-          label: c.coursename,
-        })),
-      );
+      // const data: CourseApiResponse[] = await CourseService.getCourse();
+      // setCourseOptions(
+      //   data.map((c) => ({
+      //     value: c.courseid,
+      //     label: c.coursename,
+      //   })),
+      // );
     } catch (error) {
       console.error("Failed to fetch courses", error);
     }
@@ -141,13 +141,13 @@ const StudentAssignReport = () => {
 
   const fetchPatterns = async (cId: string) => {
     try {
-      const data: PatternApiResponse[] = await PatternService.getpattern();
-      setPatternOptions(
-        data.map((p) => ({
-          value: p.patternName,
-          label: p.patternName,
-        })),
-      );
+      // const data: PatternApiResponse[] = await PatternService.getpattern();
+      // setPatternOptions(
+      //   data.map((p) => ({
+      //     value: p.patternName,
+      //     label: p.patternName,
+      //   })),
+      // );
     } catch (error) {
       console.error("Failed to fetch patterns", error);
     }
@@ -160,19 +160,19 @@ const StudentAssignReport = () => {
         return Swal.fire("Error", "Academic Year is missing", "error");
       }
 
-      const parameter: ExamApiRequest = {
-        Courseid: courseId,
-        Ayid: ayid,
-      };
-      const data: ExamApiResponse[] =
-        await RegularExamService.getExam(parameter);
+      // const parameter: ExamApiRequest = {
+      //   Courseid: courseId,
+      //   Ayid: ayid,
+      // };
+      // const data: ExamApiResponse[] =
+      //   await RegularExamService.getExam(parameter);
 
-      setExamOptions(
-        data.map((e) => ({
-          value: e.examId,
-          label: e.examname,
-        })),
-      );
+      // setExamOptions(
+      //   data.map((e) => ({
+      //     value: e.examId,
+      //     label: e.examname,
+      //   })),
+      // );
     } catch (error) {
       console.error("Failed to fetch exam", error);
     }
@@ -350,29 +350,29 @@ const StudentAssignReport = () => {
         return Swal.fire("No Data", "There is no data to download", "info");
       }
 
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet("Student Assign Report");
-      worksheet.columns = [
-        { header: "Seat No.", key: "seatNo", width: 14 },
-        { header: "Student ID", key: "studentID", width: 16 },
-        { header: "Student Name", key: "name", width: 30 },
-        { header: "Subject Code", key: "subjectCode", width: 16 },
-        { header: "Subject Name", key: "subjectName", width: 45 },
-      ];
+      // const workbook = new ExcelJS.Workbook();
+      // const worksheet = workbook.addWorksheet("Student Assign Report");
+      // worksheet.columns = [
+      //   { header: "Seat No.", key: "seatNo", width: 14 },
+      //   { header: "Student ID", key: "studentID", width: 16 },
+      //   { header: "Student Name", key: "name", width: 30 },
+      //   { header: "Subject Code", key: "subjectCode", width: 16 },
+      //   { header: "Subject Name", key: "subjectName", width: 45 },
+      // ];
 
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(
-        workbook,
-        worksheet,
-        "Student Assign Report",
-      );
+      // const workbook = XLSX.utils.book_new();
+      // XLSX.utils.book_append_sheet(
+      //   workbook,
+      //   worksheet,
+      //   "Student Assign Report",
+      // );
 
       const fileName =
         `StudentAssignReport_${courseName}_${pattern}_${semester}.xlsx`
           .replace(/[\\/:*?"<>|]/g, "")
           .replace(/\s+/g, "_");
 
-      saveAs(new Blob([await workbook.xlsx.writeBuffer()]), fileName);
+      // saveAs(new Blob([await workbook.xlsx.writeBuffer()]), fileName);
     } else {
       const dataToExport =
         filteredCreditRows.length > 0 ? filteredCreditRows : pivotedCreditRows;
@@ -539,10 +539,10 @@ const StudentAssignReport = () => {
           onChange={(value) => {
             setCourseId(value);
             setPattern("");
-            setPatternOptions([]);
+            // setPatternOptions([]);
             setSemester("");
             setExam("");
-            setExamOptions([]);
+            // setExamOptions([]);
             setAssignData([]);
             setCreditRawData([]);
             setCreditSearchQuery("");
@@ -557,7 +557,7 @@ const StudentAssignReport = () => {
               setPattern(value);
               setSemester("");
               setExam("");
-              setExamOptions([]);
+              // setExamOptions([]);
 
               setAssignData([]);
               setCreditRawData([]);
@@ -574,7 +574,7 @@ const StudentAssignReport = () => {
             onChange={(value) => {
               setSemester(value);
               setExam("");
-              setExamOptions([]);
+              // setExamOptions([]);
             }}
           />
         )}
