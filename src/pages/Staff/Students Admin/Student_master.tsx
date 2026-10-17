@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { saveAs } from "file-saver";
 import Swal from "sweetalert2";
-import { FileSpreadsheet, Mail, Pencil, Search, Trash2, User, UserPlus } from "lucide-react";
+import { FileSpreadsheet, Mail, MailCheck, Pencil, Search, Trash2, User, UserPlus } from "lucide-react";
 import PageMeta from "../../../components/common/PageMeta";
 import ComponentCard from "../../../components/common/ComponentCard";
 import AuthImage from "../../../components/common/AuthImage";
@@ -23,6 +23,8 @@ import { StudentMasterService } from "../../../services/Student_MasterService";
 import type { StudentBatch } from "../../../services/Student_MasterService";
 import StudentForm from "./StudentForm";
 import SheetImportPanel from "./SheetImportPanel";
+import StudentEmailReview from "./StudentEmailReview";
+import { useAuth } from "../../../context/AuthContext";
 import { checkStudentFields, emptyStudentFields } from "./studentFields";
 import type { StudentFields } from "./studentFields";
 
@@ -62,7 +64,8 @@ export default function StudentMaster() {
   const patternOptions = useMemo(() => toPatternOptions(patterns), [patterns]);
   const onlyPattern = patternOptions.length === 1 ? patternOptions[0].value : "";
 
-  const [tab, setTab] = useState<"add" | "find">("add");
+  const [tab, setTab] = useState<"add" | "find" | "emails">("add");
+  const { isAdmin } = useAuth();
   const [mode, setMode] = useState<"single" | "excel" | "emails">("single");
 
   // ---- Enrol into: shared by "Single student", "Excel import" and "Emails" (the class whose emails are filled in) ----
@@ -381,8 +384,22 @@ export default function StudentMaster() {
             <button type="button" className={`${tabClass(tab === "find")} border-l border-gray-300 dark:border-gray-700`} onClick={() => setTab("find")}>
               <Search className="size-4" /> Find students
             </button>
+            <button type="button" className={`${tabClass(tab === "emails")} border-l border-gray-300 dark:border-gray-700`} onClick={() => setTab("emails")}>
+              <MailCheck className="size-4" /> Check emails
+            </button>
           </div>
         </div>
+
+        {tab === "emails" && (
+          <StudentEmailReview
+            ayid={ayid}
+            academicYear={academicYear}
+            courseOptions={courseOptions}
+            semesterOptions={semesterOptions}
+            isAdmin={isAdmin}
+            reason={apiReason}
+          />
+        )}
 
         {tab === "add" && (
           <div className="@container rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
