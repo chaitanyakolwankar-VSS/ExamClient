@@ -9,6 +9,7 @@ import Badge from "../../components/ui/badge/Badge";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import { platformErrorMessage, platformService } from "../../services/platformService";
 import type { PlatformCollegeListItem } from "../../services/platformService";
+import EmailAccountCard from "./EmailAccountCard";
 
 const HEAD = "px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400";
 const CELL = "px-4 py-3 text-sm text-gray-700 dark:text-gray-300";
@@ -114,6 +115,10 @@ export default function Colleges() {
           </div>
         )}
       </ComponentCard>
+
+      <div className="mt-6">
+        <EmailAccountCard collegeId={null} />
+      </div>
     </>
   );
 }

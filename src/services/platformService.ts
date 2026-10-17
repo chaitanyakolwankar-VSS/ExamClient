@@ -190,4 +190,50 @@ export const platformService = {
     );
     return res.data;
   },
+
+  // ---- Email accounts (null college = the platform default) ----
+  async getEmailAccount(collegeId: string | null): Promise<EmailAccountView> {
+    const res = await apiClient.get<EmailAccountView>(emailAccountUrl(collegeId));
+    return res.data;
+  },
+  async saveEmailAccount(collegeId: string | null, input: EmailAccountInput): Promise<EmailAccountView> {
+    const res = await apiClient.put<EmailAccountView>(emailAccountUrl(collegeId), input);
+    return res.data;
+  },
+  async deleteEmailAccount(collegeId: string | null): Promise<void> {
+    await apiClient.delete(emailAccountUrl(collegeId));
+  },
+  /** Sends a test email through the account the college would use; answers whether it went, and why not. */
+  async sendTestEmail(collegeId: string | null, to: string): Promise<{ sent: boolean; message: string }> {
+    const res = await apiClient.post<{ sent: boolean; message: string }>(`${emailAccountUrl(collegeId)}/test`, { to });
+    return res.data;
+  },
 };
+
+const emailAccountUrl = (collegeId: string | null) => (collegeId ? `/Platform/email/colleges/${collegeId}` : "/Platform/email/default");
+
+/** A mail account as the API shows it: never the password, only whether one is saved. */
+export interface EmailAccountView {
+  exists: boolean;
+  host: string;
+  port: number;
+  useStartTls: boolean;
+  username: string;
+  hasPassword: boolean;
+  fromAddress: string;
+  fromName: string | null;
+  updatedAt: string | null;
+  /** For a college without its own account: whether the platform default will be used. */
+  defaultExists: boolean;
+}
+
+export interface EmailAccountInput {
+  host: string;
+  port: number;
+  useStartTls: boolean;
+  username: string;
+  /** Blank keeps the saved password. */
+  password: string;
+  fromAddress: string;
+  fromName: string;
+}

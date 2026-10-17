@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
-import { CheckCircle2, Settings } from "lucide-react";
+import { CheckCircle2, MailCheck, Settings } from "lucide-react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
 import Input from "../../../components/form/input/InputField";
 import Button from "../../../components/ui/button/Button";
+import Alert from "../../../components/ui/alert/Alert";
 import DataTable from "../../../components/ui/table/DataTable";
 import { StudentEmailService } from "../../../services/StudentEmailService";
-import type { EmailSettings, EmailShow, EmailState, StudentEmailList, StudentEmailRow } from "../../../services/StudentEmailService";
+import type { EmailSettings, EmailShow, EmailState, SenderStatus, StudentEmailList, StudentEmailRow } from "../../../services/StudentEmailService";
 import { isValidEmail } from "./studentFields";
 
 interface Option {
@@ -209,6 +210,7 @@ export default function StudentEmailReview({ ayid, academicYear, courseOptions, 
 
   return (
     <div className="space-y-4">
+      <SenderBanner />
       <ComponentCard
         title="Check emails"
         desc={`Task links and OTPs go to these addresses. Fix missing and flagged ones and mark them verified before sending links. Students enrolled in ${academicYear || "the academic year in the header"}.`}
@@ -268,6 +270,32 @@ export default function StudentEmailReview({ ayid, academicYear, courseOptions, 
 
       <EmailSettingsCard isAdmin={isAdmin} reason={reason} onSaved={load} />
     </div>
+  );
+}
+
+/** Whether emails can go out at all (the account is set by the platform admin), and today's count. */
+function SenderBanner() {
+  const [status, setStatus] = useState<SenderStatus | null>(null);
+
+  useEffect(() => {
+    StudentEmailService.senderStatus().then(setStatus).catch(() => setStatus(null));
+  }, []);
+
+  if (!status) return null;
+  if (!status.configured)
+    return (
+      <Alert
+        variant="warning"
+        title="Email is not set up"
+        message="No email account is set up for this college yet, so links and OTPs can't be sent. You can still add and check emails; ask the platform admin to set up the sending account."
+      />
+    );
+  return (
+    <p className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
+      <MailCheck className="size-4 shrink-0 text-success-500" aria-hidden="true" />
+      Emails go out from {status.source === "College" ? "the college's own account" : "the platform's default account"}. Today: {status.sentToday} of {status.limit} sent
+      {status.queued > 0 ? `, ${status.queued} waiting` : ""}.
+    </p>
   );
 }
 

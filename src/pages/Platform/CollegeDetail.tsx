@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../compon
 import { platformErrorMessage, platformService } from "../../services/platformService";
 import type { AdminInput, PlatformCollegeDetail } from "../../services/platformService";
 import AdminFields from "./AdminFields";
+import EmailAccountCard from "./EmailAccountCard";
 import { MAX_ADMINS, emptyAdmin, validateAdmin } from "./platformHelpers";
 
 const HEAD = "px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400";
@@ -337,6 +338,8 @@ export default function CollegeDetail() {
             </div>
           </div>
         </ComponentCard>
+
+        <EmailAccountCard collegeId={college.collegeId} />
       </div>
     </>
   );

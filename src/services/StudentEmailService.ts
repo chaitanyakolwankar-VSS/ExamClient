@@ -31,8 +31,22 @@ export interface EmailSettings {
   dailyEmailLimit: number;
 }
 
+/** Whether this college can send email, and today's count (never the account itself). */
+export interface SenderStatus {
+  configured: boolean;
+  /** "College" (its own account), "Default" (the platform's) or "None". */
+  source: "College" | "Default" | "None";
+  limit: number;
+  sentToday: number;
+  queued: number;
+}
+
 /** Student Master > Check emails (api/StudentEmails). */
 export const StudentEmailService = {
+  async senderStatus(): Promise<SenderStatus> {
+    const res = await apiClient.get<SenderStatus>("/StudentEmails/sender-status");
+    return res.data;
+  },
   async list(p: { ayid: string; courseId?: string; semesterId?: string; show: EmailShow }): Promise<StudentEmailList> {
     const res = await apiClient.get<StudentEmailList>("/StudentEmails", {
       params: { AYID: p.ayid, CourseId: p.courseId || undefined, SemesterId: p.semesterId || undefined, Show: p.show },
