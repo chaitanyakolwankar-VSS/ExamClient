@@ -166,7 +166,9 @@ export const ResetPasswordModal = ({
       setResendTimer(30);
     } catch (error) {
       console.error("Failed to send OTP", error);
-      setOtpError("Failed to send OTP. Please try again.");
+      // e.g. "Email is not set up yet: the platform admin has to add the default email account."
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setOtpError(message || "Failed to send OTP. Please try again.");
     } finally {
       setOtpLoading(false);
     }
