@@ -17,6 +17,9 @@ interface Props {
   onImageError: (message: string) => void;
   /** Buttons (Clear / Save student, Cancel / Save changes), centred under the fields. */
   actions?: ReactNode;
+  /** See StudentDetailsFields. */
+  emailRequired?: boolean;
+  emailNote?: string | null;
 }
 
 /**
@@ -36,12 +39,14 @@ export default function StudentForm({
   onSignChange,
   onImageError,
   actions,
+  emailRequired,
+  emailNote,
 }: Props) {
   return (
     <div className="@container">
       <div className="grid grid-cols-1 @min-[860px]:grid-cols-[minmax(0,1fr)_240px]">
         <div className="flex flex-col justify-center gap-6 p-4 sm:p-5">
-          <StudentDetailsFields value={fields} onChange={onFieldsChange} />
+          <StudentDetailsFields value={fields} onChange={onFieldsChange} emailRequired={emailRequired} emailNote={emailNote} />
           {actions && <div className="hidden flex-wrap justify-center gap-3 @min-[860px]:flex">{actions}</div>}
         </div>
         <div className="flex flex-col items-center justify-center gap-6 border-t border-gray-100 p-4 pt-6 sm:p-5 sm:pt-6 @min-[860px]:border-t-0 @min-[860px]:border-l dark:border-gray-800">

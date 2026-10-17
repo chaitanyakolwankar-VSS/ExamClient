@@ -12,13 +12,17 @@ const NAME = /^[A-Za-z .'-]*$/;
 interface Props {
   value: StudentFields;
   onChange: (next: StudentFields) => void;
+  /** Starred for a new student; optional when editing one saved before email was asked. */
+  emailRequired?: boolean;
+  /** Shown under the email in red, e.g. why it is flagged. */
+  emailNote?: string | null;
 }
 
 /**
- * Name, mother's name, category, ERN, gender, student type and dyslexia of one student in three rows; used by "Add student" and the edit dialog.
+ * Name, mother's name, category, ERN, gender, student type, dyslexia and email of one student in four rows; used by "Add student" and the edit dialog.
  * (ERN is only the label: the field is still `prn` / `studentPRN` in code and in the API.)
  */
-export default function StudentDetailsFields({ value, onChange }: Props) {
+export default function StudentDetailsFields({ value, onChange, emailRequired = true, emailNote }: Props) {
   const id = useId(); // radio ids stay unique if two forms are ever on screen
   const set = (patch: Partial<StudentFields>) => onChange({ ...value, ...patch });
   const name = (key: "firstName" | "middleName" | "lastName" | "motherName") => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,6 +89,19 @@ export default function StudentDetailsFields({ value, onChange }: Props) {
           label="Dyslexia student (extra time in exams)"
           checked={value.dyslexia}
           onChange={(checked) => set({ dyslexia: checked })}
+        />
+      </div>
+
+      <div className="sm:col-span-2">
+        <Input
+          type="email"
+          label={emailRequired ? "Email *" : "Email"}
+          placeholder="Student's own email (links and OTPs are sent here)"
+          value={value.email}
+          maxLength={255}
+          error={!!emailNote}
+          hint={emailNote ?? undefined}
+          onChange={(e) => set({ email: e.target.value.replace(/\s/g, "") })}
         />
       </div>
     </div>

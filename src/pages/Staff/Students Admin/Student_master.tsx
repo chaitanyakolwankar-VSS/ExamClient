@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { saveAs } from "file-saver";
 import Swal from "sweetalert2";
-import { Download, FileSpreadsheet, Pencil, Search, Trash2, Upload, User, UserPlus } from "lucide-react";
+import { FileSpreadsheet, Mail, Pencil, Search, Trash2, User, UserPlus } from "lucide-react";
 import PageMeta from "../../../components/common/PageMeta";
 import ComponentCard from "../../../components/common/ComponentCard";
 import AuthImage from "../../../components/common/AuthImage";
@@ -20,8 +20,9 @@ import {
   toSemesterOptions,
 } from "../../../data";
 import { StudentMasterService } from "../../../services/Student_MasterService";
-import type { StudentBatch, StudentImportResult } from "../../../services/Student_MasterService";
+import type { StudentBatch } from "../../../services/Student_MasterService";
 import StudentForm from "./StudentForm";
+import SheetImportPanel from "./SheetImportPanel";
 import { checkStudentFields, emptyStudentFields } from "./studentFields";
 import type { StudentFields } from "./studentFields";
 
@@ -62,9 +63,9 @@ export default function StudentMaster() {
   const onlyPattern = patternOptions.length === 1 ? patternOptions[0].value : "";
 
   const [tab, setTab] = useState<"add" | "find">("add");
-  const [mode, setMode] = useState<"single" | "excel">("single");
+  const [mode, setMode] = useState<"single" | "excel" | "emails">("single");
 
-  // ---- Enrol into: shared by "Single student" and "Excel import" ----
+  // ---- Enrol into: shared by "Single student", "Excel import" and "Emails" (the class whose emails are filled in) ----
   const [course, setCourse] = useState("");
   const [semester, setSemester] = useState("");
   const [pattern, setPattern] = useState("");
@@ -126,6 +127,7 @@ export default function StudentMaster() {
         gender: fields.gender,
         studentType: fields.studentType,
         dyslexia: fields.dyslexia,
+        email: fields.email.trim(),
         photoUrl: photo,
         signUrl: sign,
       });
@@ -139,21 +141,16 @@ export default function StudentMaster() {
     }
   };
 
-  // ---- Excel import (uses the branch, semester and pattern chosen above) ----
-  const importInput = useRef<HTMLInputElement>(null);
-  const [excelBusy, setExcelBusy] = useState(false);
-  const [importResult, setImportResult] = useState<(StudentImportResult & { fileName: string }) | null>(null);
-
-  const downloadTemplate = async () => {
+  // ---- Excel import and email sheet (use the branch, semester and pattern chosen above) ----
+  const downloadSheet = async (get: (b: StudentBatch) => Promise<{ blob: Blob; fileName: string }>) => {
     const b = batch();
     if (!b) return;
-    setExcelBusy(true);
     try {
-      const { blob, fileName } = await StudentMasterService.DownloadTemplate(b);
+      const { blob, fileName } = await get(b);
       saveAs(blob, fileName);
     } catch (err) {
       // responseType "blob": the API's error body is a Blob too.
-      let message = "The template could not be downloaded.";
+      let message = "The sheet could not be downloaded.";
       const data = (err as { response?: { data?: unknown } })?.response?.data;
       if (data instanceof Blob) {
         try {
@@ -163,38 +160,12 @@ export default function StudentMaster() {
         }
       }
       Swal.fire("Download failed", message, "error");
-    } finally {
-      setExcelBusy(false);
     }
   };
-
-  const importFile = async (file: File | undefined) => {
-    const b = batch();
-    if (!file || !b) return;
-    if (!/\.xlsx$/i.test(file.name)) {
-      Swal.fire("Wrong file", "Choose the filled-in template (.xlsx).", "warning");
-      return;
-    }
-    const ok = await Swal.fire({
-      icon: "question",
-      title: "Import students?",
-      text: `${file.name} → ${courseName}, ${semesterName}, ${pattern}, ${academicYear}`,
-      showCancelButton: true,
-      confirmButtonText: "Import",
-    });
-    if (!ok.isConfirmed) return;
-
-    setExcelBusy(true);
-    setImportResult(null);
-    try {
-      const result = await StudentMasterService.ImportStudents(b, file);
-      setImportResult({ ...result, fileName: file.name });
-    } catch (err) {
-      setImportResult({ success: false, message: apiReason(err, "The file could not be imported."), errors: [], fileName: file.name });
-    } finally {
-      setExcelBusy(false);
-    }
-  };
+  /** Only called after ready() (batch() is not null then). */
+  const forBatch = (send: (b: StudentBatch, file: File, preview: boolean) => ReturnType<typeof StudentMasterService.ImportStudents>) =>
+    (file: File, preview: boolean) => send(batch()!, file, preview);
+  const classLabel = [courseName, semesterName, pattern, academicYear].filter(Boolean).join(", ");
 
   // ---- Find students ----
   const [findCourse, setFindCourse] = useState("");
@@ -273,6 +244,7 @@ export default function StudentMaster() {
   const [savedPhoto, setSavedPhoto] = useState<string | null>(null);
   const [savedSign, setSavedSign] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [editEmailNote, setEditEmailNote] = useState<string | null>(null);
 
   const openEdit = async (row: StudentRow) => {
     setEditing(row);
@@ -292,7 +264,9 @@ export default function StudentMaster() {
         gender: s.gender === "Male" || s.gender === "Female" ? s.gender : "",
         studentType: s.studentType ?? "",
         dyslexia: !!s.dyslexia,
+        email: s.email ?? "",
       });
+      setEditEmailNote(s.emailStatus === "Flagged" ? `Flagged: ${s.emailFlagReason ?? "check this email"}` : null);
       setEditCourse(s.courseId ?? "");
       setEditSemester(s.semesterId ?? "");
       setEditPattern(s.pattern || onlyPattern);
@@ -308,7 +282,7 @@ export default function StudentMaster() {
 
   const saveEdit = async () => {
     if (!editing) return;
-    const problem = checkStudentFields(editFields) ?? (!editCourse || !editSemester || !editPattern ? "Choose the branch, semester and pattern." : null);
+    const problem = checkStudentFields(editFields, { emailRequired: false }) ?? (!editCourse || !editSemester || !editPattern ? "Choose the branch, semester and pattern." : null);
     if (problem) {
       Swal.fire("Student details", problem, "warning");
       return;
@@ -330,6 +304,7 @@ export default function StudentMaster() {
         gender: editFields.gender,
         studentType: editFields.studentType,
         dyslexia: editFields.dyslexia,
+        email: editFields.email.trim() || null,
         photoUrl: editPhoto, // only a new picture (data: URL) replaces the saved one
         signUrl: editSign,
       });
@@ -422,7 +397,7 @@ export default function StudentMaster() {
               <div
                 role="group"
                 aria-label="How to add students"
-                className="grid shrink-0 grid-cols-2 overflow-hidden rounded-lg border border-gray-300 @min-[860px]:flex dark:border-gray-700"
+                className="grid shrink-0 grid-cols-3 overflow-hidden rounded-lg border border-gray-300 @min-[860px]:flex dark:border-gray-700"
               >
                 <button type="button" aria-pressed={mode === "single"} className={tabClass(mode === "single", true)} onClick={() => setMode("single")}>
                   <User className="size-4" aria-hidden="true" /> Single student
@@ -434,6 +409,15 @@ export default function StudentMaster() {
                   onClick={() => setMode("excel")}
                 >
                   <FileSpreadsheet className="size-4" aria-hidden="true" /> Excel import
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={mode === "emails"}
+                  title="Add emails to students already saved"
+                  className={`${tabClass(mode === "emails", true)} border-l border-gray-300 dark:border-gray-700`}
+                  onClick={() => setMode("emails")}
+                >
+                  <Mail className="size-4" aria-hidden="true" /> Emails
                 </button>
               </div>
             </div>
@@ -458,103 +442,45 @@ export default function StudentMaster() {
                   </>
                 }
               />
+            ) : mode === "excel" ? (
+              <SheetImportPanel
+                key="excel"
+                ready={() => !!batch()}
+                reason={apiReason}
+                downloadLabel="Download template"
+                onDownload={() => downloadSheet(StudentMasterService.DownloadTemplate)}
+                upload={forBatch(StudentMasterService.ImportStudents)}
+                saveLabel="Save students"
+                steps={[
+                  { title: "Download the template", text: "Made for the branch, semester and pattern above." },
+                  {
+                    title: "Fill one row per student",
+                    text: "First name, mother's name, gender, student type (E, D or M) and email are required; middle name, last name, category and ERN are optional. Photos are added later per student.",
+                  },
+                  {
+                    title: "Upload, check, save",
+                    text: `Every row is checked first and shown below; Save adds them to ${classLabel || "the class above"}. Nothing is saved while a row has an error. Students get their IDs in the order of the rows.`,
+                  },
+                ]}
+              />
             ) : (
-              <div className="flex flex-col gap-4 p-4 sm:p-5">
-                <ol className="grid grid-cols-1 gap-4 @min-[860px]:grid-cols-3">
-                  <li className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-                    <div className="flex items-start gap-3">
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
-                        1
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 dark:text-white/90">Download the template</p>
-                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Made for the branch, semester and pattern above.</p>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-auto self-start"
-                      onClick={downloadTemplate}
-                      disabled={excelBusy}
-                      startIcon={<Download className="size-4" />}
-                    >
-                      Download template
-                    </Button>
-                  </li>
-                  <li className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-                    <div className="flex items-start gap-3">
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
-                        2
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 dark:text-white/90">Fill one row per student</p>
-                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          First name, mother's name, gender and student type (E, D or M) are required; middle name, last name, category and ERN are optional. Photos are added later per student.
-                        </p>
-                      </div>
-                    </div>
-                  </li>
-                  <li className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-                    <div className="flex items-start gap-3">
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
-                        3
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 dark:text-white/90">Import the file</p>
-                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          Every row is checked first; nothing is saved unless all rows are right. Students get their IDs in the order of the rows.
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      className="mt-auto self-start"
-                      onClick={() => batch() && importInput.current?.click()}
-                      disabled={excelBusy}
-                      startIcon={<Upload className="size-4" />}
-                    >
-                      {excelBusy ? "Working…" : "Import file"}
-                    </Button>
-                    <input
-                      ref={importInput}
-                      type="file"
-                      accept=".xlsx"
-                      aria-label="Filled-in template (.xlsx)"
-                      className="hidden"
-                      onChange={(e) => {
-                        importFile(e.target.files?.[0]);
-                        e.target.value = "";
-                      }}
-                    />
-                  </li>
-                </ol>
-
-                {importResult && (
-                  <div
-                    role="status"
-                    className={`rounded-xl border p-4 text-sm ${
-                      importResult.success
-                        ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-400"
-                        : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400"
-                    }`}
-                  >
-                    <p className="flex items-start gap-2 font-medium">
-                      <FileSpreadsheet className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                      <span className="min-w-0 break-words">
-                        {importResult.fileName}: {importResult.message}
-                      </span>
-                    </p>
-                    {importResult.errors.length > 0 && (
-                      <ul className="mt-2 max-h-60 list-disc space-y-0.5 overflow-y-auto pl-5">
-                        {importResult.errors.map((e) => (
-                          <li key={e}>{e}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-              </div>
+              <SheetImportPanel
+                key="emails"
+                ready={() => !!batch()}
+                reason={apiReason}
+                downloadLabel="Download email sheet"
+                onDownload={() => downloadSheet(StudentMasterService.DownloadEmailSheet)}
+                upload={forBatch(StudentMasterService.ImportEmails)}
+                saveLabel="Save emails"
+                steps={[
+                  { title: "Download the email sheet", text: "Lists the students already saved in the branch, semester and pattern above." },
+                  { title: "Type each student's email", text: "Only the Email column can be changed. Leave it blank to keep a student as is." },
+                  {
+                    title: "Upload, check, save",
+                    text: "Rows are matched by Student ID and shown below before anything changes. Nothing is saved while a row has an error.",
+                  },
+                ]}
+              />
             )}
           </div>
         )}
@@ -624,6 +550,8 @@ export default function StudentMaster() {
                     onPhotoChange={setEditPhoto}
                     onSignChange={setEditSign}
                     onImageError={imageError}
+                    emailRequired={false}
+                    emailNote={editEmailNote}
                     actions={
                       <>
                         <Button variant="outline" onClick={() => setEditing(null)} disabled={editSaving}>

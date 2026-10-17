@@ -33,6 +33,8 @@ export interface StudentFields {
   gender: "Male" | "Female" | "";
   studentType: string;
   dyslexia: boolean;
+  /** Task links and OTPs go here; the API stores it trimmed and lower-case. */
+  email: string;
 }
 
 export const emptyStudentFields = (): StudentFields => ({
@@ -45,15 +47,24 @@ export const emptyStudentFields = (): StudentFields => ({
   gender: "",
   studentType: "",
   dyslexia: false,
+  email: "",
 });
 
-/** Null when the details can be saved, otherwise what to fix. */
-export const checkStudentFields = (f: StudentFields): string | null => {
+/** The same shape check as the API (one @, no spaces, a dot in the domain). */
+export const isValidEmail = (email: string) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(email.trim());
+
+/**
+ * Null when the details can be saved, otherwise what to fix. Email is required for a new student; a student
+ * saved before it was asked may be edited without one.
+ */
+export const checkStudentFields = (f: StudentFields, { emailRequired = true } = {}): string | null => {
   if (!f.firstName.trim()) return "Enter the first name.";
   if (!f.motherName.trim()) return "Enter the mother's name.";
   if (!f.category) return "Choose the category.";
   if (!f.gender) return "Choose the gender.";
   if (!f.studentType) return "Choose the student type.";
+  if (!f.email.trim()) return emailRequired ? "Enter the student's email." : null;
+  if (!isValidEmail(f.email)) return "Enter a valid email address.";
   return null;
 };
 
