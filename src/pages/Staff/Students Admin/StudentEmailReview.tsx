@@ -274,7 +274,7 @@ export default function StudentEmailReview({ ayid, academicYear, courseOptions, 
 }
 
 /** Whether emails can go out at all (the account is set by the platform admin), and today's count. */
-function SenderBanner() {
+export function SenderBanner() {
   const [status, setStatus] = useState<SenderStatus | null>(null);
 
   useEffect(() => {

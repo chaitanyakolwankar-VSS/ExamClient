@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { saveAs } from "file-saver";
 import Swal from "sweetalert2";
-import { FileSpreadsheet, Mail, MailCheck, Pencil, Search, Trash2, User, UserPlus } from "lucide-react";
+import { FileSpreadsheet, Mail, MailCheck, Pencil, Search, Send, Trash2, User, UserPlus } from "lucide-react";
 import PageMeta from "../../../components/common/PageMeta";
 import ComponentCard from "../../../components/common/ComponentCard";
 import AuthImage from "../../../components/common/AuthImage";
@@ -24,6 +24,7 @@ import type { StudentBatch } from "../../../services/Student_MasterService";
 import StudentForm from "./StudentForm";
 import SheetImportPanel from "./SheetImportPanel";
 import StudentEmailReview from "./StudentEmailReview";
+import StudentLinks from "./StudentLinks";
 import { useAuth } from "../../../context/AuthContext";
 import { checkStudentFields, emptyStudentFields } from "./studentFields";
 import type { StudentFields } from "./studentFields";
@@ -64,7 +65,7 @@ export default function StudentMaster() {
   const patternOptions = useMemo(() => toPatternOptions(patterns), [patterns]);
   const onlyPattern = patternOptions.length === 1 ? patternOptions[0].value : "";
 
-  const [tab, setTab] = useState<"add" | "find" | "emails">("add");
+  const [tab, setTab] = useState<"add" | "find" | "emails" | "links">("add");
   const { isAdmin } = useAuth();
   const [mode, setMode] = useState<"single" | "excel" | "emails">("single");
 
@@ -387,6 +388,9 @@ export default function StudentMaster() {
             <button type="button" className={`${tabClass(tab === "emails")} border-l border-gray-300 dark:border-gray-700`} onClick={() => setTab("emails")}>
               <MailCheck className="size-4" /> Check emails
             </button>
+            <button type="button" className={`${tabClass(tab === "links")} border-l border-gray-300 dark:border-gray-700`} onClick={() => setTab("links")}>
+              <Send className="size-4" /> Student links
+            </button>
           </div>
         </div>
 
@@ -399,6 +403,10 @@ export default function StudentMaster() {
             isAdmin={isAdmin}
             reason={apiReason}
           />
+        )}
+
+        {tab === "links" && (
+          <StudentLinks ayid={ayid} academicYear={academicYear} courseOptions={courseOptions} semesterOptions={semesterOptions} reason={apiReason} />
         )}
 
         {tab === "add" && (

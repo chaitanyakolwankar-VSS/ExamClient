@@ -42,6 +42,9 @@ const DeclareResult = lazy(() => import("./pages/Staff/Students Admin/DeclareRes
 const ReleaseHallTicket = lazy(() => import("./pages/Staff/Students Admin/ReleaseHallTicket.tsx"));
 const StudentAssignReport = lazy(() => import("./pages/Staff/Reports/StudentAssignReport.tsx"));
 const ATKTCommulativeReport = lazy(() => import("./pages/Staff/Reports/ATKTCommulativeReport.tsx"));
+// Student site: reached from an emailed link, no staff sign-in.
+const StudentPortal = lazy(() => import("./pages/StudentSite/StudentPortal.tsx"));
+const StudentLinkEntry = lazy(() => import("./pages/StudentSite/StudentPortal.tsx").then((m) => ({ default: m.StudentLinkEntry })));
 
 
 export default function App() {
@@ -111,8 +114,9 @@ export default function App() {
             </Route>
           </Route>
 
-          {/* FUTURE: STUDENT PORTAL (Master Page 2) */}
-          {/* <Route path="/student" element={<StudentLayout />}> ... </Route> */}
+          {/* STUDENT SITE: an emailed link (/s/<token>) and a 6-digit code; its own session, no staff sign-in */}
+          <Route path="/s/:token" element={<StudentLinkEntry />} />
+          <Route path="/student" element={<StudentPortal />} />
 
           {/* AUTHENTICATION (Shared) */}
           <Route path="/signin" element={<SignIn />} />
