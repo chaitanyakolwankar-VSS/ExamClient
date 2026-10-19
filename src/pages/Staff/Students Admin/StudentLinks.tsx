@@ -3,6 +3,7 @@ import Swal from "sweetalert2";
 import { BellRing, CalendarClock, ChevronDown, ChevronRight, Lock, Pencil, RefreshCw, Send, Square } from "lucide-react";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Select from "../../../components/form/Select";
+import Input from "../../../components/form/input/InputField";
 import Button from "../../../components/ui/button/Button";
 import DataTable from "../../../components/ui/table/DataTable";
 import { SenderBanner } from "./StudentEmailReview";
@@ -70,6 +71,7 @@ export default function StudentLinks({ ayid, academicYear, courseOptions, semest
   const [course, setCourse] = useState("");
   const [semester, setSemester] = useState("");
   const [days, setDays] = useState("14");
+  const [only, setOnly] = useState("");
   const [fields, setFields] = useState<Set<StudentField>>(new Set(ALL_FIELDS));
   const [sending, setSending] = useState(false);
   const [batches, setBatches] = useState<LinkBatch[] | null>(null);
@@ -126,12 +128,13 @@ export default function StudentLinks({ ayid, academicYear, courseOptions, semest
   const send = async () => {
     const className = `${courseOptions.find((o) => o.value === course)?.label ?? "All branches"}${semester ? `, ${semesterOptions.find((o) => o.value === semester)?.label ?? semester}` : ""}`;
     const editable = ALL_FIELDS.filter((f) => fields.has(f));
+    const studentIds = only.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean);
     const until = new Date();
     until.setDate(until.getDate() + Number(days));
     const ok = await Swal.fire({
       icon: "question",
       title: "Send details links?",
-      html: `<p>${className} (${academicYear})</p><p>Links work until <b>${day(until.toISOString())}</b>.</p><p>Students can change: <b>${
+      html: `<p>${className} (${academicYear})${studentIds.length ? `: only ${studentIds.length} student(s)` : ": the whole class"}</p><p>Links work until <b>${day(until.toISOString())}</b>.</p><p>Students can change: <b>${
         editable.length === 0 ? "nothing (view only)" : editable.length === ALL_FIELDS.length ? "everything" : editable.map((f) => FIELD_LABEL[f]).join(", ")
       }</b></p><p style="font-size:13px;color:#6b7280">A student's earlier link for this is stopped. Students without a usable email are skipped.</p>`,
       showCancelButton: true,
@@ -140,7 +143,7 @@ export default function StudentLinks({ ayid, academicYear, courseOptions, semest
     if (!ok.isConfirmed) return;
     setSending(true);
     try {
-      const r = await StudentLinksService.send({ ayid, courseId: course, semesterId: semester, days: Number(days), editableFields: editable });
+      const r = await StudentLinksService.send({ ayid, courseId: course, semesterId: semester, days: Number(days), editableFields: editable, studentIds });
       const skipped = [r.noEmail && `${r.noEmail} without an email`, r.flagged && `${r.flagged} flagged`, r.inactive && `${r.inactive} inactive`].filter(Boolean);
       Swal.fire({
         icon: "success",
@@ -266,6 +269,15 @@ export default function StudentLinks({ ayid, academicYear, courseOptions, semest
           <Select options={courseOptions} placeholder="All branches" value={course} onChange={setCourse} />
           <Select options={semesterOptions} placeholder="All semesters" value={semester} onChange={setSemester} />
           <Select options={DAY_OPTIONS} placeholder="Open for" value={days} onChange={(v) => setDays(v || "14")} />
+          <div className="sm:col-span-3">
+            <Input
+              label="Only these students (optional)"
+              placeholder="Whole class"
+              hint="Student IDs, separated by commas or spaces. Empty sends to everyone in the branch and semester above."
+              value={only}
+              onChange={(e) => setOnly(e.target.value)}
+            />
+          </div>
         </div>
 
         <div>

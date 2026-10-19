@@ -90,7 +90,8 @@ const appUrl = () => `${window.location.origin}${import.meta.env.BASE_URL}`.repl
 
 /** Student Master > Student links (api/StudentLinks). */
 export const StudentLinksService = {
-  async send(p: { ayid: string; courseId?: string; semesterId?: string; days: number; editableFields: StudentField[] }): Promise<SendLinksResult> {
+  /** studentIds: only these students of the class; empty = all of them. */
+  async send(p: { ayid: string; courseId?: string; semesterId?: string; days: number; editableFields: StudentField[]; studentIds: string[] }): Promise<SendLinksResult> {
     const res = await apiClient.post<SendLinksResult>("/StudentLinks/send", {
       ayid: p.ayid,
       courseId: p.courseId || null,
@@ -98,6 +99,7 @@ export const StudentLinksService = {
       taskType: "STUDENT_MASTER",
       days: p.days,
       editableFields: p.editableFields,
+      studentIds: p.studentIds,
       appUrl: appUrl(),
     });
     return res.data;
