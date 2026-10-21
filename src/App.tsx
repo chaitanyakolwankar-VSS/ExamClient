@@ -43,6 +43,7 @@ const ReleaseHallTicket = lazy(() => import("./pages/Staff/Students Admin/Releas
 const StudentAssignReport = lazy(() => import("./pages/Staff/Reports/StudentAssignReport.tsx"));
 const ATKTCommulativeReport = lazy(() => import("./pages/Staff/Reports/ATKTCommulativeReport.tsx"));
 // Student site: reached from an emailed link, no staff sign-in.
+const ForgotPassword = lazy(() => import("./pages/AuthPages/ForgotPassword.tsx"));
 const StudentPortal = lazy(() => import("./pages/StudentSite/StudentPortal.tsx"));
 const StudentLinkEntry = lazy(() => import("./pages/StudentSite/StudentPortal.tsx").then((m) => ({ default: m.StudentLinkEntry })));
 
@@ -120,6 +121,7 @@ export default function App() {
 
           {/* AUTHENTICATION (Shared) */}
           <Route path="/signin" element={<SignIn />} />
+          <Route path="/reset-password" element={<ForgotPassword />} />
 
           {/* DEFAULT REDIRECT */}
           <Route

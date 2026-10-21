@@ -118,4 +118,43 @@ export const StudentAccessService = {
   async signOut(): Promise<void> {
     await studentClient.post("/StudentAccess/signout");
   },
+  /** Only the fields this link allows are read by the API; the rest are ignored. */
+  async saveDetails(update: StudentDetailsUpdate): Promise<StudentSaveResult> {
+    return (await studentClient.put<StudentSaveResult>("/StudentAccess/details", update)).data;
+  },
+  /** image: a data URL (shrunk in the browser first). */
+  async saveImage(kind: StudentImageKind, image: string): Promise<StudentSaveResult> {
+    return (await studentClient.put<StudentSaveResult>(`/StudentAccess/${kind}`, { image })).data;
+  },
+  /** An object URL of the student's own picture (the header can't go on an <img>), or null when there is none. */
+  async imageUrl(kind: StudentImageKind): Promise<string | null> {
+    try {
+      const res = await studentClient.get(`/StudentAccess/${kind}`, { responseType: "blob" });
+      return URL.createObjectURL(res.data as Blob);
+    } catch {
+      return null;
+    }
+  },
 };
+
+export type StudentImageKind = "photo" | "signature";
+
+export interface StudentDetailsUpdate {
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  motherName?: string;
+  /** yyyy-mm-dd, or null to clear. */
+  dateOfBirth?: string | null;
+  gender?: string;
+  category?: string;
+  phone?: string;
+  address?: string;
+  prn?: string;
+}
+
+export interface StudentSaveResult {
+  /** Labels of what changed ("Phone", "Photo"); empty when nothing was different. */
+  changed: string[];
+  home: StudentHome;
+}

@@ -48,6 +48,8 @@ export interface LinkRow {
   email: string | null;
   state: LinkState;
   note: string | null;
+  /** What the student changed last, e.g. "Phone: '' -> '9876543210'". */
+  changes: string | null;
   sentAt: string | null;
   openedAt: string | null;
   updatedAt: string | null;

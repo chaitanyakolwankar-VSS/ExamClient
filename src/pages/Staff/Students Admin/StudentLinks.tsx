@@ -235,6 +235,16 @@ export default function StudentLinks({ ayid, academicYear, courseOptions, semest
         <div className="max-w-64">
           <Pill className={STATE_STYLE[r.state]}>{r.state === "Updated" ? `Updated ${day(r.updatedAt)}` : STATE_LABEL[r.state]}</Pill>
           {r.note && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{r.note}</p>}
+          {r.changes && (
+            <details className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              <summary className="cursor-pointer text-brand-500">Changed: {r.changes.split("; ").map((c) => c.split(":")[0]).join(", ")}</summary>
+              <ul className="mt-1 space-y-0.5">
+                {r.changes.split("; ").map((c) => (
+                  <li key={c} className="break-words">{c}</li>
+                ))}
+              </ul>
+            </details>
+          )}
           {r.state === "Opened" && r.openedAt && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Opened {day(r.openedAt)}</p>}
         </div>
       ),
