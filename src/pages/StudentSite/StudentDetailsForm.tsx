@@ -1,24 +1,38 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, CheckCircle2, Clock, Loader2, Lock, PenLine, RotateCcw, Save, XCircle } from "lucide-react";
+import { Camera, CheckCircle2, Loader2, PenLine, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StudentAccessService, studentReason } from "../../services/StudentAccessService";
 import type { StudentDetailsUpdate, StudentHome, StudentImageKind } from "../../services/StudentAccessService";
-import { FIELD_GROUPS } from "../../services/StudentLinksService";
+import { FIELD_LABEL } from "../../services/StudentLinksService";
 import type { StudentField } from "../../services/StudentLinksService";
 import { STUDENT_CATEGORIES } from "../Staff/Students Admin/studentFields";
 import { shrinkImage } from "../../utils/shrinkImage";
+import { day } from "./format";
 
 type TextField = Exclude<StudentField, "photo" | "signature">;
 type Draft = Record<TextField, string>;
 
-const day = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
+/** Form order: pairs that read naturally side by side on a phone. */
+const ORDER: TextField[] = ["firstName", "middleName", "lastName", "motherName", "dateOfBirth", "gender", "category", "phone", "address", "prn"];
+const WIDE = new Set<string>(["address", "email"]);
+
+/** Two columns; a field left alone in its row takes the whole row, so the grid stays even whatever the link allows. */
+function rows<T extends string>(keys: T[]): { key: T; wide: boolean }[] {
+  const out: { key: T; wide: boolean }[] = [];
+  let col = 0;
+  keys.forEach((key, i) => {
+    const next = keys[i + 1];
+    const wide = WIDE.has(key) || (col === 0 && (!next || WIDE.has(next)));
+    out.push({ key, wide });
+    col = wide ? 0 : 1 - col;
+  });
+  return out;
+}
 
 const fromHome = (s: StudentHome["student"]): Draft => ({
   firstName: s.firstName ?? "",
@@ -42,29 +56,30 @@ function check(field: TextField, value: string): string | null {
     case "firstName":
     case "lastName":
     case "motherName":
-      if (!v) return "Required.";
-      return v.length > 50 || !NAME.test(v) ? "Letters only (spaces, dots and hyphens are fine)." : null;
+      if (!v) return "Required";
+      return v.length > 50 || !NAME.test(v) ? "Letters only" : null;
     case "middleName":
-      return v && (v.length > 50 || !NAME.test(v)) ? "Letters only." : null;
+      return v && (v.length > 50 || !NAME.test(v)) ? "Letters only" : null;
     case "phone": {
       let d = v.replace(/\D/g, "");
       if (!d) return null;
       if (d.length === 12 && d.startsWith("91")) d = d.slice(2);
       else if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
-      return d.length !== 10 || d[0] < "6" ? "A 10-digit mobile number." : null;
+      return d.length !== 10 || d[0] < "6" ? "10-digit mobile number" : null;
     }
     case "dateOfBirth":
-      return v && new Date(v) > new Date() ? "This date is in the future." : null;
+      return v && new Date(v) > new Date() ? "Date is in the future" : null;
     case "gender":
-      return v ? null : "Choose one.";
     case "category":
-      return v ? null : "Choose one.";
+      return v ? null : "Choose one";
     case "address":
-      return v.length > 300 ? "At most 300 characters." : null;
+      return v.length > 300 ? "At most 300 characters" : null;
     case "prn":
-      return v && !/^[A-Za-z0-9/-]+$/.test(v) ? "Letters, digits, - and / only." : null;
+      return v && !/^[A-Za-z0-9/-]+$/.test(v) ? "Letters, digits, - and / only" : null;
   }
 }
+
+type Flash = { ok: boolean; text: string };
 
 interface Props {
   home: StudentHome;
@@ -74,9 +89,9 @@ interface Props {
 }
 
 /**
- * The student's details: the fields this link lets them change are inputs, the rest are shown with a lock. Photo
- * and signature upload as soon as they are picked (shrunk in the browser first). Text changes are saved together
- * from a bar that appears once something is changed.
+ * The student's details. The top is their ID card (photo and signature change by tapping them; they upload at
+ * once, shrunk in the browser first). Below are the fields this link lets them change, then what the college holds
+ * that they can't. Text changes are saved together from a bar that appears once something is changed.
  */
 export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
   const s = home.student;
@@ -85,7 +100,7 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
   const [draft, setDraft] = useState<Draft>(saved);
   const [touched, setTouched] = useState<Set<TextField>>(new Set());
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [flash, setFlash] = useState<Flash | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [signUrl, setSignUrl] = useState<string | null>(null);
 
@@ -123,25 +138,38 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
     };
   }, [s.hasPhoto, s.hasSignature, home]);
 
-  const textFields = (Object.keys(draft) as TextField[]).filter((f) => editable.has(f));
-  const changed = textFields.filter((f) => draft[f].trim() !== saved[f].trim());
-  const errors = Object.fromEntries(textFields.map((f) => [f, check(f, draft[f])])) as Record<TextField, string | null>;
+  // A good-news message clears itself; a problem stays until the next action.
+  useEffect(() => {
+    if (!flash?.ok) return;
+    const t = setTimeout(() => setFlash(null), 3500);
+    return () => clearTimeout(t);
+  }, [flash]);
+
+  const fields = ORDER.filter((f) => editable.has(f));
+  const locked: (TextField | "email")[] = [...ORDER.filter((f) => !editable.has(f)), "email"];
+  const changed = fields.filter((f) => draft[f].trim() !== saved[f].trim());
+  const errors = Object.fromEntries(fields.map((f) => [f, check(f, draft[f])])) as Record<TextField, string | null>;
   const hasErrors = changed.some((f) => errors[f]);
 
   const set = (f: TextField, v: string) => {
     setDraft((d) => ({ ...d, [f]: v }));
-    setMessage(null);
+    setFlash(null);
   };
-  const blur = (f: TextField) => setTouched((t) => new Set(t).add(f));
+
+  const failed = (err: unknown, fallback: string) => {
+    if ((err as { response?: { status?: number } })?.response?.status === 401) onEnded();
+    else setFlash({ ok: false, text: studentReason(err, fallback) });
+  };
 
   const save = async () => {
-    setTouched(new Set(textFields));
+    setTouched(new Set(fields));
     if (hasErrors) {
-      setMessage({ ok: false, text: "Fix the fields marked in red first." });
+      setFlash({ ok: false, text: "Fix the fields in red" });
+      document.querySelector<HTMLElement>("[aria-invalid=true]")?.focus();
       return;
     }
     const update: StudentDetailsUpdate = {};
-    for (const f of textFields) {
+    for (const f of fields) {
       if (f === "dateOfBirth") update.dateOfBirth = draft.dateOfBirth || null;
       else update[f] = draft[f].trim();
     }
@@ -152,213 +180,160 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
       setDraft(fromHome(result.home.student));
       onHome(result.home);
       setTouched(new Set());
-      setMessage(
-        result.changed.length
-          ? { ok: true, text: `Saved: ${result.changed.join(", ")}. We've emailed you a note about the change.` }
-          : { ok: true, text: "Nothing was different, so nothing changed." },
-      );
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      setFlash({ ok: true, text: result.changed.length ? "Saved. We've emailed you a note." : "Nothing was different" });
     } catch (err) {
-      if ((err as { response?: { status?: number } })?.response?.status === 401) onEnded();
-      else setMessage({ ok: false, text: studentReason(err, "Your changes could not be saved. Try again.") });
+      failed(err, "Your changes could not be saved. Try again.");
     } finally {
       setSaving(false);
     }
   };
 
+  const upload = async (kind: StudentImageKind, file: File) => {
+    const label = kind === "photo" ? "Photo" : "Signature";
+    try {
+      const dataUrl = await shrinkImage(file, kind === "photo" ? 900 : 700);
+      const result = await StudentAccessService.saveImage(kind, dataUrl);
+      onHome(result.home);
+      setFlash({ ok: true, text: `${label} saved. We've emailed you a note.` });
+      return dataUrl;
+    } catch (err) {
+      failed(err, (err as Error)?.message || `The ${label.toLowerCase()} could not be saved.`);
+      return null;
+    }
+  };
+
   const name = [s.firstName, s.middleName, s.lastName].filter(Boolean).join(" ");
   const initials = [s.firstName, s.lastName].map((x) => x?.[0] ?? "").join("").toUpperCase() || "S";
-  const nothingEditable = home.editableFields.length === 0;
+  const recordValue = (f: TextField | "email") =>
+    f === "email" ? s.email : f === "dateOfBirth" ? day(saved.dateOfBirth || null) : saved[f];
 
   return (
-    <div className="space-y-4 pb-28">
-      {/* Who and where they are */}
-      <Card>
-        <CardContent className="flex items-center gap-4">
-          <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-lg font-semibold text-primary ring-2 ring-background">
-            {photoUrl ? <img src={photoUrl} alt="" className="size-full object-cover" /> : initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-semibold">{name || "Your details"}</p>
-            <p className="text-sm text-muted-foreground">Student ID {s.studentId}</p>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {home.updatedAt ? (
-                <Badge className="gap-1 bg-success-500 text-white">
-                  <CheckCircle2 className="size-3" /> Updated {day(home.updatedAt)}
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Not updated yet</Badge>
-              )}
-              <Badge variant="outline" className="gap-1">
-                <Clock className="size-3" /> Open until {day(home.deadline)}
-              </Badge>
+    <div className="pb-32">
+      {/* The student's ID card */}
+      <section aria-label="ID card" className="rounded-2xl bg-primary p-4 text-primary-foreground shadow-lg shadow-primary/20 sm:p-5">
+        <div className="flex gap-4">
+          <Picture kind="photo" url={photoUrl} editable={editable.has("photo")} fallback={initials} onPick={upload} />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <p className="text-lg font-semibold leading-snug break-words">{name || "Your name"}</p>
+            <p className="mt-0.5 text-sm text-primary-foreground/75">Student ID {s.studentId}</p>
+            <div className="mt-auto pt-3">
+              <Picture kind="signature" url={signUrl} editable={editable.has("signature")} onPick={upload} />
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {message && (
-        <p
-          role="status"
-          className={`flex items-start gap-2 rounded-xl px-4 py-3 text-sm ${
-            message.ok ? "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400" : "bg-destructive/10 text-destructive"
-          }`}
-        >
-          {message.ok ? <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> : <XCircle className="mt-0.5 size-4 shrink-0" />}
-          {message.text}
-        </p>
-      )}
-
-      {nothingEditable && (
-        <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
-          This link is for checking only. If something is wrong, contact {home.helpEmail ?? "your college office"}.
-        </p>
-      )}
-
-      {FIELD_GROUPS.map((g) => {
-        if (g.title === "Photo and signature")
-          return (
-            <Card key={g.title}>
-              <CardHeader>
-                <CardTitle>Photo and signature</CardTitle>
-                <CardDescription>
-                  {editable.has("photo") || editable.has("signature")
-                    ? "Tap a box to take or choose a picture. It uploads straight away."
-                    : "Shown as the college has them."}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 items-start gap-3">
-                <ImageTile kind="photo" label="Photo" url={photoUrl} editable={editable.has("photo")} onHome={onHome} onEnded={onEnded} onMessage={setMessage} />
-                <ImageTile kind="signature" label="Signature" url={signUrl} editable={editable.has("signature")} onHome={onHome} onEnded={onEnded} onMessage={setMessage} />
-              </CardContent>
-            </Card>
-          );
-        const fields = g.fields as { key: TextField; label: string }[];
-        return (
-          <Card key={g.title}>
-            <CardHeader>
-              <CardTitle>{g.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {fields.map((f) => (
-                <FieldRow
-                  key={f.key}
-                  field={f.key}
-                  label={f.label}
-                  value={draft[f.key]}
-                  editable={editable.has(f.key)}
-                  error={touched.has(f.key) || changed.includes(f.key) ? errors[f.key] : null}
-                  changed={changed.includes(f.key)}
-                  onChange={(v) => set(f.key, v)}
-                  onBlur={() => blur(f.key)}
-                />
-              ))}
-            </CardContent>
-          </Card>
-        );
-      })}
-
-      <Card size="sm">
-        <CardContent className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <span className="text-muted-foreground">Email (codes and links go here)</span>
-          <span className="flex min-w-0 items-center gap-1.5 break-all">
-            <Lock className="size-3.5 shrink-0 text-muted-foreground" /> {s.email}
-          </span>
-        </CardContent>
-      </Card>
-
-      {home.helpEmail && (
-        <p className="px-1 text-xs text-muted-foreground">
-          Something wrong in a locked field? Contact{" "}
-          <a className="font-medium text-primary underline-offset-4 hover:underline" href={`mailto:${home.helpEmail}`}>
-            {home.helpEmail}
-          </a>
-          .
-        </p>
-      )}
-
-      {/* Save bar: only while something is changed */}
-      <div
-        className={`fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 backdrop-blur transition-transform duration-200 ${
-          changed.length ? "translate-y-0" : "translate-y-full"
-        }`}
-        aria-hidden={!changed.length}
-      >
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-          <p className="min-w-0 flex-1 truncate text-sm">
-            <b className="font-semibold">{changed.length}</b> change{changed.length === 1 ? "" : "s"} not saved
-          </p>
-          <Button variant="ghost" size="lg" onClick={() => setDraft(saved)} disabled={saving}>
-            <RotateCcw /> Undo
-          </Button>
-          <Button size="lg" className="h-10 px-5" onClick={save} disabled={saving}>
-            {saving ? <Loader2 className="animate-spin" /> : <Save />} {saving ? "Saving…" : "Save changes"}
-          </Button>
         </div>
+      </section>
+
+      <div className={`mt-3 flex items-center gap-3 px-1 text-sm text-muted-foreground ${home.updatedAt ? "justify-between" : "justify-center"}`}>
+        {home.updatedAt && (
+          <span className="flex items-center gap-1.5 text-success-600 dark:text-success-400">
+            <CheckCircle2 className="size-4" /> Saved {day(home.updatedAt)}
+          </span>
+        )}
+        <span>Open until {day(home.deadline)}</span>
       </div>
+
+      {fields.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-base font-semibold">Your details</h2>
+          <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-5">
+            {rows(fields).map(({ key, wide }) => (
+              <FieldControl
+                key={key}
+                field={key}
+                wide={wide}
+                value={draft[key]}
+                error={touched.has(key) || changed.includes(key) ? errors[key] : null}
+                changed={changed.includes(key)}
+                onChange={(v) => set(key, v)}
+                onBlur={() => setTouched((t) => new Set(t).add(key))}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="mt-8 rounded-2xl bg-muted/60 p-4 sm:p-5">
+        <h2 className="text-base font-semibold">On college record</h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          {home.helpEmail ? (
+            <>
+              To change these, write to{" "}
+              <a className="font-medium text-primary underline-offset-4 hover:underline" href={`mailto:${home.helpEmail}`}>
+                {home.helpEmail}
+              </a>
+            </>
+          ) : (
+            "To change these, ask your college office."
+          )}
+        </p>
+        <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-4">
+          {rows(locked).map(({ key, wide }) => (
+            <div key={key} className={wide ? "col-span-2" : undefined}>
+              <dt className="text-xs text-muted-foreground">{key === "email" ? "Email" : FIELD_LABEL[key]}</dt>
+              <dd className="mt-0.5 text-sm font-medium break-words">{recordValue(key) || <span className="text-muted-foreground">Not given</span>}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <SaveBar
+        count={changed.length}
+        saving={saving}
+        flash={flash}
+        onUndo={() => {
+          setDraft(saved);
+          setFlash(null);
+        }}
+        onSave={save}
+      />
     </div>
   );
 }
 
-function FieldRow({
+function FieldControl({
   field,
-  label,
+  wide,
   value,
-  editable,
   error,
   changed,
   onChange,
   onBlur,
 }: {
   field: TextField;
-  label: string;
+  wide: boolean;
   value: string;
-  editable: boolean;
   error: string | null;
   changed: boolean;
   onChange: (v: string) => void;
   onBlur: () => void;
 }) {
   const id = `f-${field}`;
-  if (!editable) {
-    const shown = field === "dateOfBirth" ? day(value || null) : value;
-    return (
-      <div className="space-y-1.5">
-        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Lock className="size-3" /> {label}
-        </p>
-        <p className="min-h-9 rounded-lg bg-muted/60 px-3 py-2 text-sm">{shown || <span className="text-muted-foreground">—</span>}</p>
-      </div>
-    );
-  }
-
-  const invalid = !!error;
-  const common = { id, "aria-invalid": invalid || undefined, onBlur };
+  const invalid = error ? true : undefined;
+  const common = { id, "aria-invalid": invalid, "aria-describedby": error ? `${id}-e` : undefined, onBlur };
   let control: React.ReactNode;
   if (field === "gender")
     control = (
-      <div role="radiogroup" aria-labelledby={`${id}-l`} className="grid grid-cols-2 gap-2">
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        spacing={0}
+        value={value}
+        onValueChange={(v) => v && onChange(v)}
+        aria-labelledby={`${id}-l`}
+        className="w-full"
+      >
         {["Male", "Female"].map((g) => (
-          <button
-            key={g}
-            type="button"
-            role="radio"
-            aria-checked={value === g}
-            onClick={() => onChange(g)}
-            className={`h-10 rounded-lg border text-sm font-medium transition-colors ${
-              value === g ? "border-primary bg-primary/10 text-primary" : "border-input hover:bg-muted"
-            }`}
-          >
+          <ToggleGroupItem key={g} value={g} className="h-11 flex-1 data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary">
             {g}
-          </button>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
     );
   else if (field === "category")
     control = (
       <Select value={value || undefined} onValueChange={onChange}>
-        <SelectTrigger id={id} aria-invalid={invalid || undefined} className="h-10 w-full">
-          <SelectValue placeholder="Choose category" />
+        <SelectTrigger id={id} aria-invalid={invalid} className="h-11! w-full">
+          <SelectValue placeholder="Choose" />
         </SelectTrigger>
         <SelectContent>
           {STUDENT_CATEGORIES.map((c) => (
@@ -372,12 +347,12 @@ function FieldRow({
   else if (field === "address")
     control = <Textarea {...common} value={value} rows={3} maxLength={300} placeholder="House, street, area, city, PIN" onChange={(e) => onChange(e.target.value)} />;
   else if (field === "dateOfBirth")
-    control = <Input {...common} type="date" className="h-10" value={value} max={new Date().toISOString().slice(0, 10)} onChange={(e) => onChange(e.target.value)} />;
+    control = <Input {...common} type="date" className="h-11" value={value} max={new Date().toISOString().slice(0, 10)} onChange={(e) => onChange(e.target.value)} />;
   else
     control = (
       <Input
         {...common}
-        className="h-10"
+        className="h-11"
         value={value}
         maxLength={field === "phone" ? 16 : field === "prn" ? 30 : 50}
         inputMode={field === "phone" ? "tel" : undefined}
@@ -388,94 +363,132 @@ function FieldRow({
     );
 
   return (
-    <div className={`space-y-1.5 ${field === "address" ? "sm:col-span-2" : ""}`}>
-      <Label htmlFor={id} id={`${id}-l`} className="flex items-center gap-1.5">
-        <PenLine className="size-3 text-primary" /> {label}
-        {changed && <span className="ml-auto text-xs font-normal text-primary">changed</span>}
+    <div className={`min-w-0 space-y-1.5 ${wide ? "col-span-2" : ""}`}>
+      <Label htmlFor={id} id={`${id}-l`} className="gap-1.5">
+        {FIELD_LABEL[field]}
+        {changed && <span className="size-1.5 rounded-full bg-primary" aria-label="changed" />}
       </Label>
       {control}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-e`} className="text-xs text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
 
-function ImageTile({
+/** Photo or signature on the ID card. Tapping it picks a picture, which is shrunk and uploaded at once. */
+function Picture({
   kind,
-  label,
   url,
   editable,
-  onHome,
-  onEnded,
-  onMessage,
+  fallback,
+  onPick,
 }: {
   kind: StudentImageKind;
-  label: string;
   url: string | null;
   editable: boolean;
-  onHome: (home: StudentHome) => void;
-  onEnded: () => void;
-  onMessage: (m: { ok: boolean; text: string }) => void;
+  fallback?: string;
+  onPick: (kind: StudentImageKind, file: File) => Promise<string | null>;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const label = kind === "photo" ? "photo" : "signature";
+  const shown = preview ?? url;
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
     setBusy(true);
-    try {
-      const dataUrl = await shrinkImage(file, kind === "photo" ? 900 : 700);
-      setPreview(dataUrl);
-      const result = await StudentAccessService.saveImage(kind, dataUrl);
-      onHome(result.home);
-      onMessage({ ok: true, text: `${label} saved. We've emailed you a note about the change.` });
-    } catch (err) {
-      setPreview(null);
-      if ((err as { response?: { status?: number } })?.response?.status === 401) onEnded();
-      else onMessage({ ok: false, text: studentReason(err, (err as Error)?.message || `The ${label.toLowerCase()} could not be saved.`) });
-    } finally {
-      setBusy(false);
-      if (input.current) input.current.value = "";
-    }
+    const saved = await onPick(kind, file);
+    if (saved) setPreview(saved);
+    setBusy(false);
+    if (input.current) input.current.value = "";
   };
 
-  const shown = preview ?? url;
+  const photo = kind === "photo";
   const box = (
-    <div
-      className={`relative flex w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed bg-muted/40 ${
-        kind === "signature" ? "aspect-[2/1]" : "aspect-[4/5]"
-      } ${editable ? "border-primary/40 transition-colors group-hover:border-primary group-hover:bg-primary/5" : "border-border"}`}
+    <span
+      className={`relative flex items-center justify-center overflow-hidden ${
+        photo ? "h-32 w-26 rounded-xl bg-primary-foreground/15 ring-2 ring-primary-foreground/70" : "h-12 w-full max-w-44 rounded-lg bg-white"
+      }`}
     >
       {shown ? (
-        <img src={shown} alt={label} className="size-full object-contain" />
-      ) : (
-        <span className="flex flex-col items-center gap-1 text-xs text-muted-foreground">
-          {editable ? <Camera className="size-6 text-primary" /> : <Lock className="size-5" />}
-          {editable ? `Add ${label.toLowerCase()}` : "Not uploaded"}
+        <img src={shown} alt={`Your ${label}`} className={`size-full ${photo ? "object-cover" : "object-contain p-1"}`} />
+      ) : photo && editable ? (
+        <span className="flex flex-col items-center gap-1 text-xs font-medium">
+          <Camera className="size-7" /> Add photo
         </span>
+      ) : photo ? (
+        <span className="text-2xl font-semibold">{fallback}</span>
+      ) : (
+        <span className="text-xs text-gray-500">{editable ? "Add signature" : "No signature"}</span>
       )}
       {busy && (
-        <span className="absolute inset-0 flex items-center justify-center bg-background/70">
-          <Loader2 className="size-6 animate-spin text-primary" />
+        <span className="absolute inset-0 flex items-center justify-center bg-black/40">
+          <Loader2 className="size-6 animate-spin text-white" />
         </span>
       )}
-    </div>
+      {editable && shown && !busy && (
+        <span className={`absolute flex items-center justify-center rounded-full bg-white text-primary shadow ${photo ? "right-1.5 bottom-1.5 size-7" : "top-1 right-1 size-5"}`}>
+          {photo ? <Camera className="size-4" /> : <PenLine className="size-3" />}
+        </span>
+      )}
+    </span>
   );
 
+  if (!editable) return <span className={photo ? "shrink-0" : "block"}>{box}</span>;
   return (
-    <div className="space-y-1.5">
-      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        {editable ? <PenLine className="size-3 text-primary" /> : <Lock className="size-3" />} {label}
-      </p>
-      {editable ? (
-        <button type="button" className="group block w-full text-left" onClick={() => input.current?.click()} disabled={busy} aria-label={`Change ${label.toLowerCase()}`}>
-          {box}
-          <span className="mt-1.5 block text-center text-xs font-medium text-primary">{shown ? "Tap to change" : "Tap to add"}</span>
-        </button>
-      ) : (
-        box
-      )}
+    <>
+      <button
+        type="button"
+        className={`${photo ? "shrink-0" : "block w-full"} rounded-xl text-left transition-transform outline-none focus-visible:ring-3 focus-visible:ring-primary-foreground/60 active:scale-[0.98]`}
+        onClick={() => input.current?.click()}
+        disabled={busy}
+        aria-label={shown ? `Change ${label}` : `Add ${label}`}
+      >
+        {box}
+      </button>
       <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
+    </>
+  );
+}
+
+/** Bottom bar: while something is changed it offers Undo and Save; after an action it says how it went. */
+function SaveBar({ count, saving, flash, onUndo, onSave }: { count: number; saving: boolean; flash: Flash | null; onUndo: () => void; onSave: () => void }) {
+  const open = count > 0 || !!flash;
+  // While sliding away it keeps showing what it said last, not "0 changes".
+  const last = useRef({ count, flash });
+  if (open) last.current = { count, flash };
+  ({ count, flash } = last.current);
+  return (
+    <div
+      className={`fixed inset-x-0 bottom-0 z-30 px-4 pb-4 transition-all duration-200 ${open ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-full opacity-0"}`}
+      aria-hidden={!open}
+    >
+      <div className="mx-auto flex min-h-14 max-w-lg items-center gap-2 rounded-2xl border bg-background py-2 pr-2 pl-4 shadow-xl" role="status">
+        {flash && !(count > 0 && flash.ok) ? (
+          <p className={`flex min-w-0 flex-1 items-center gap-2 text-sm ${flash.ok ? "text-success-600 dark:text-success-400" : "text-destructive"}`}>
+            {flash.ok ? <CheckCircle2 className="size-4 shrink-0" /> : <XCircle className="size-4 shrink-0" />}
+            <span className="min-w-0">{flash.text}</span>
+          </p>
+        ) : (
+          <p className="min-w-0 flex-1 text-sm">
+            {count} change{count === 1 ? "" : "s"}
+          </p>
+        )}
+        {count > 0 && (
+          <>
+            <Button variant="ghost" size="lg" onClick={onUndo} disabled={saving}>
+              Undo
+            </Button>
+            <Button size="lg" className="h-10 px-5" onClick={onSave} disabled={saving}>
+              {saving && <Loader2 className="animate-spin" />} {saving ? "Saving" : "Save"}
+            </Button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
