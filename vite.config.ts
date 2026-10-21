@@ -61,5 +61,9 @@ export default defineConfig(({ mode }) => {
   return {
     base,
     plugins: [react(), iisWebConfig(base)],
+    resolve: {
+      // "@/x" -> src/x (shadcn/ui imports); a leading "/" resolves from the project root.
+      alias: { "@": "/src" },
+    },
   };
 });
