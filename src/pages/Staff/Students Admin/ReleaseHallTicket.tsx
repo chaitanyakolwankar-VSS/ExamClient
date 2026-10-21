@@ -7,8 +7,11 @@ import {
   DeclareHallTicketApiResponse,
   ReleaseHallticketService,
 } from "../../../services/ReleaseHallticketService.ts";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Mail } from "lucide-react";
+import Swal from "sweetalert2";
 import Alert from "../../../components/ui/alert/Alert";
+import Button from "../../../components/ui/button/Button";
+import { StudentLinksService } from "../../../services/StudentLinksService.ts";
 
 interface Option {
   value: string;
@@ -37,6 +40,8 @@ const ReleaseHallTicket = () => {
     [],
   );
   const [loadingTableRow, setLoadingTableRow] = useState(false);
+
+  const [sendingExamId, setSendingExamId] = useState<string | null>(null);
 
   const dateInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -228,6 +233,43 @@ const ReleaseHallTicket = () => {
     }
   };
 
+  const sendHallTickets = async (row: DeclareHallTicketApiResponse) => {
+    if (!ayid) return;
+    const ok = await Swal.fire({
+      icon: "question",
+      title: "Email hall tickets to students?",
+      html: `<p>Each student of <b>${row.examname.replace(/[<>&]/g, "")}</b> gets an email with a link to view and save their hall ticket. A student missing a photo or signature adds it first.</p><p style="font-size:13px;color:#6b7280">An earlier hall ticket link for this exam stops working.</p>`,
+      input: "select",
+      inputOptions: { "7": "Links work for 7 days", "14": "Links work for 14 days", "30": "Links work for 30 days", "45": "Links work for 45 days", "60": "Links work for 60 days" },
+      inputValue: "30",
+      showCancelButton: true,
+      confirmButtonText: "Send emails",
+    });
+    if (!ok.isConfirmed) return;
+    setSendingExamId(row.examId);
+    try {
+      const r = await StudentLinksService.sendHallTickets({
+        ayid,
+        courseId,
+        semester,
+        pattern,
+        examId: row.examId,
+        days: Number(ok.value) || 30,
+      });
+      const skipped = [r.noEmail && `${r.noEmail} without an email`, r.flagged && `${r.flagged} flagged`, r.inactive && `${r.inactive} inactive`].filter(Boolean);
+      Swal.fire({
+        icon: "success",
+        title: "Hall tickets emailed",
+        html: `<p>${r.message}</p>${skipped.length ? `<p style="font-size:13px;color:#6b7280">Skipped ${skipped.join(", ")}. Fix them under Student Master &gt; Check emails.</p>` : ""}<p style="font-size:13px;color:#6b7280">Follow who downloaded it under Student Master &gt; Student links.</p>`,
+      });
+    } catch (error) {
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      Swal.fire("Not sent", message || "The hall tickets could not be emailed. Try again.", "error");
+    } finally {
+      setSendingExamId(null);
+    }
+  };
+
   const columns = [
     { key: "examname", label: "Exam Name", sortable: true },
     { key: "semester", label: "Semester", sortable: false },
@@ -282,6 +324,25 @@ const ReleaseHallTicket = () => {
           </button>
         </div>
       ),
+    },
+    {
+      key: "emailHallTickets",
+      label: "",
+      sortable: false,
+      render: (row: DeclareHallTicketApiResponse) =>
+        row.releaseHallTicket ? (
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => sendHallTickets(row)}
+              disabled={sendingExamId !== null}
+              startIcon={<Mail className="size-4" />}
+            >
+              {sendingExamId === row.examId ? "Sending…" : "Email hall tickets"}
+            </Button>
+          </div>
+        ) : null,
     },
   ];
 

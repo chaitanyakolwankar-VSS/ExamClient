@@ -179,11 +179,13 @@ const CollegeDetail = () => {
 
   const [controllerSignUrl, setControllerSignUrl] = useState<string | null>(null);
   const [principalSignUrl, setPrincipalSignUrl] = useState<string | null>(null);
+  const [sealUrl, setSealUrl] = useState<string | null>(null);
 
   const reloadSignatures = async () => {
     const data = await collegedetailService.getCollege();
     setControllerSignUrl(data?.controllerSignUrl ?? null);
     setPrincipalSignUrl(data?.principalSignUrl ?? null);
+    setSealUrl(data?.sealUrl ?? null);
   };
 
   useEffect(() => {
@@ -204,6 +206,7 @@ const CollegeDetail = () => {
           setBannerUrl(data.bannerUrl);
           setControllerSignUrl(data.controllerSignUrl ?? null);
           setPrincipalSignUrl(data.principalSignUrl ?? null);
+          setSealUrl(data.sealUrl ?? null);
 
           setIsSaved(true);
           setIsEditting(false);
@@ -471,6 +474,7 @@ const CollegeDetail = () => {
         college={{ name, collegeCode: code, collegeCenter: center, address, contactEmail: email, contactPhone: phone }}
         controllerSignUrl={controllerSignUrl}
         principalSignUrl={principalSignUrl}
+        sealUrl={sealUrl}
         onSaved={reloadSignatures}
         onMessage={(variant, title, message) => showAlert(variant, title, message)}
       />

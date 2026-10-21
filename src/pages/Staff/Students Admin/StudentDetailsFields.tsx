@@ -19,7 +19,7 @@ interface Props {
 }
 
 /**
- * Name, mother's name, category, ERN, gender, student type, dyslexia and email of one student in four rows; used by "Add student" and the edit dialog.
+ * Name, mother's name, category, ERN, gender, student type, dyslexia, email and ABC ID of one student in four rows; used by "Add student" and the edit dialog.
  * (ERN is only the label: the field is still `prn` / `studentPRN` in code and in the API.)
  */
 export default function StudentDetailsFields({ value, onChange, emailRequired = true, emailNote }: Props) {
@@ -104,6 +104,15 @@ export default function StudentDetailsFields({ value, onChange, emailRequired = 
           onChange={(e) => set({ email: e.target.value.replace(/\s/g, "") })}
         />
       </div>
+      <Input
+        label="ABC ID"
+        placeholder="12 digits, if the student has one"
+        value={value.abcId}
+        maxLength={12}
+        error={value.abcId.length > 0 && value.abcId.length !== 12}
+        hint={value.abcId.length > 0 && value.abcId.length !== 12 ? "12 digits" : undefined}
+        onChange={(e) => set({ abcId: e.target.value.replace(/\D/g, "") })}
+      />
     </div>
   );
 }

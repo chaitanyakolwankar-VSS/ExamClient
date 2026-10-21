@@ -61,6 +61,9 @@ const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padSt
 const canChange = (fields: StudentField[]) =>
   fields.length === 0 ? "nothing" : fields.length === ALL_FIELDS.length ? "everything" : fields.map((f) => FIELD_LABEL[f]).join(", ");
 
+/** Hall ticket batches: "Updated" means the student downloaded the hall ticket. */
+const isHallTicket = (b: { taskType: string }) => b.taskType === "HALL_TICKET";
+
 function Pill({ className, children }: { className: string; children: React.ReactNode }) {
   return <span className={`inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-medium ${className}`}>{children}</span>;
 }
@@ -94,7 +97,7 @@ function Progress({ b }: { b: LinkBatch }) {
   return (
     <span className="flex w-40 flex-col gap-1">
       <span className="text-right text-xs text-gray-600 dark:text-gray-400">
-        <b className="font-semibold text-gray-800 dark:text-white/90">{b.updated}</b> of {b.total - b.stopped} updated
+        <b className="font-semibold text-gray-800 dark:text-white/90">{b.updated}</b> of {b.total - b.stopped} {isHallTicket(b) ? "downloaded" : "updated"}
       </span>
       <span className="flex h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
         <span className="bg-success-500" style={{ width: `${(b.updated / live) * 100}%` }} />
@@ -250,7 +253,7 @@ export default function StudentLinks({ ayid, academicYear, courseOptions, semest
       input: "radio",
       inputOptions: {
         notOpened: `Students who haven't opened it (${notOpened})`,
-        notUpdated: `Everyone who hasn't updated yet (${notUpdated})`,
+        notUpdated: `Everyone who hasn't ${isHallTicket(b) ? "downloaded it" : "updated"} yet (${notUpdated})`,
       },
       inputValue: notOpened > 0 ? "notOpened" : "notUpdated",
       customClass: { input: "flex! flex-col! items-start! gap-3! px-10! text-left" },
@@ -286,7 +289,7 @@ export default function StudentLinks({ ayid, academicYear, courseOptions, semest
       sortable: true,
       render: (r: LinkRow) => (
         <div className="max-w-64">
-          <Pill className={STATE_STYLE[r.state]}>{r.state === "Updated" ? `Updated ${day(r.updatedAt)}` : STATE_LABEL[r.state]}</Pill>
+          <Pill className={STATE_STYLE[r.state]}>{r.state === "Updated" ? `${open && isHallTicket(open) ? "Downloaded" : "Updated"} ${day(r.updatedAt)}` : STATE_LABEL[r.state]}</Pill>
           {r.note && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{r.note}</p>}
           {r.changes && (
             <details className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
@@ -459,7 +462,9 @@ export default function StudentLinks({ ayid, academicYear, courseOptions, semest
                     <div className="space-y-3 border-t border-gray-200 px-4 py-4 dark:border-gray-800">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {open.updated} updated, {open.opened} opened, {open.notOpened} not opened. Students can change {canChange(open.editableFields)}.
+                          {isHallTicket(open)
+                            ? `${open.updated} downloaded, ${open.opened} opened, ${open.notOpened} not opened. Students missing a photo or signature add it first.`
+                            : `${open.updated} updated, ${open.opened} opened, ${open.notOpened} not opened. Students can change ${canChange(open.editableFields)}.`}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" variant="outline" onClick={() => resendBatch(open)} disabled={!!busy || !open.isOpen} startIcon={<RefreshCw className="size-4" />}>

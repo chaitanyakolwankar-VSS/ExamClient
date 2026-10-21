@@ -24,6 +24,8 @@ import Switch from "../../../components/form/switch/Switch";
 import Alert from "../../../components/ui/alert/Alert";
 import Button from "../../../components/ui/button/Button";
 import { appStorage } from "../../../utils/appStorage";
+import type { HallTicketCollegeInfo } from "../../../components/HallTicket/Hallticket";
+import { hallTicketTitle } from "../../../components/HallTicket/title";
 
 export type RenderResult = {
   content?: React.ReactNode;
@@ -41,31 +43,10 @@ interface Column<T = any> {
   render?: (row: T) => React.ReactNode | RenderResult;
 }
 
-interface Subject {
-  code: string;
-  name: string;
-  date: string;
-  time: string;
-}
-
-interface College {
-  logo: string;
-  center: string;
-  collegeName?: string;
-  CourseNmae: string;
-  principalSign?: string;
-}
-
-interface Student {
-  name: string;
-  centre: string;
-  seat: string;
-  subjects: Subject[];
-}
 
 interface HallTicketData {
-  college: College;
-  students: Student[];
+  college: HallTicketCollegeInfo;
+  students: StudentHallTicketData[];
 }
 
 type AlertVariant = "success" | "warning" | "error" | "info";
@@ -426,14 +407,22 @@ export default function GenerateHallTicket() {
     
     const data: StudentHallTicketData[] = await GenerateHallTicketService.getHallTicketStudents(payload);
     const collegedata = await GenerateHallTicketService.getcollegeDataExam();
-    
+    const exam = exams.data?.find((e) => e.examId === Exam);
+
     const hallTicketData: HallTicketData = {
       college: {
         logo: collegedata.logo,
         center: collegedata.center,
         collegeName: collegedata.collegeName,
         principalSign: collegedata.principalSign,
-        CourseNmae: `${(courseOptions.find((c) => c.value === courseId)?.label ?? "").toUpperCase()} (${pattern})`
+        controllerSign: collegedata.controllerSign,
+        seal: collegedata.seal,
+        title: hallTicketTitle({
+          branch: courseOptions.find((c) => c.value === courseId)?.label ?? "",
+          pattern,
+          examType: exam?.examType,
+          examName: exam?.name,
+        }),
       },
       students: data 
     };

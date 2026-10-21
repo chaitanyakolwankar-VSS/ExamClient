@@ -7,6 +7,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { StudentAccessService, studentReason, studentStore } from "../../services/StudentAccessService";
 import type { LinkInfo, StudentHome } from "../../services/StudentAccessService";
 import StudentDetailsForm from "./StudentDetailsForm";
+import StudentHallTicket from "./StudentHallTicket";
 import { day } from "./format";
 
 /** /s/:token, the address in the email: keeps the token for this tab and moves to /student, so it leaves the address bar. */
@@ -20,11 +21,11 @@ export function StudentLinkEntry() {
 }
 
 /** The page frame: college name on top, one centred column that reads well on a phone (where most students open the email). */
-export function Shell({ college, wide, action, children }: { college?: string | null; wide?: boolean; action?: React.ReactNode; children: React.ReactNode }) {
-  const width = wide ? "max-w-lg" : "max-w-sm";
+export function Shell({ college, wide, action, children }: { college?: string | null; wide?: boolean | "page"; action?: React.ReactNode; children: React.ReactNode }) {
+  const width = wide === "page" ? "max-w-4xl" : wide ? "max-w-lg" : "max-w-sm";
   return (
     <div className="student-site min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur print:hidden">
         <div className={`mx-auto flex h-14 items-center gap-3 px-4 ${width}`}>
           <img src={`${import.meta.env.BASE_URL}images/logo/logo-icon.svg`} alt="" className="size-7" />
           <p className="min-w-0 flex-1 truncate text-sm font-medium">{college || "GradeSphere"}</p>
@@ -198,15 +199,19 @@ export default function StudentPortal() {
     return (
       <Shell
         college={home.college}
-        wide
+        wide={home.taskType === "HALL_TICKET" ? "page" : true}
         action={
           <Button variant="ghost" size="sm" onClick={signOut} className="-mr-2 shrink-0 text-muted-foreground">
             <LogOut /> Sign out
           </Button>
         }
       >
-        <PageMeta title={`${home.college} | My details`} description="Your student details" />
-        <StudentDetailsForm home={home} onHome={setHome} onEnded={() => loadHome()} />
+        <PageMeta title={`${home.college} | ${home.taskType === "HALL_TICKET" ? "Hall ticket" : "My details"}`} description="Your student details" />
+        {home.taskType === "HALL_TICKET" ? (
+          <StudentHallTicket home={home} onEnded={() => loadHome()} />
+        ) : (
+          <StudentDetailsForm home={home} onHome={setHome} onEnded={() => loadHome()} />
+        )}
       </Shell>
     );
 
@@ -241,7 +246,7 @@ export default function StudentPortal() {
           <>
             <h1 className="text-2xl font-semibold">Hi {info.firstName || "there"}</h1>
             <p className="mt-2 text-muted-foreground">
-              {task} by {day(info.deadline)}.
+              {info.taskType === "HALL_TICKET" ? `Your hall ticket is ready. The link works until ${day(info.deadline)}.` : `${task} by ${day(info.deadline)}.`}
             </p>
           </>
         ) : (

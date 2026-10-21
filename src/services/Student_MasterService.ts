@@ -81,6 +81,8 @@ export interface StudentDetails {
   studentType: string | null;
   category: string | null;
   studentPRN: string | null;
+  /** ABC ID, 12 digits; null when not given. */
+  abcId?: string | null;
   photoUrl: string | null;
   signUrl: string | null;
   dyslexia: boolean;

@@ -30,6 +30,8 @@ export interface StudentFields {
   motherName: string;
   category: string;
   prn: string;
+  /** ABC ID: 12 digits, or empty. */
+  abcId: string;
   gender: "Male" | "Female" | "";
   studentType: string;
   dyslexia: boolean;
@@ -44,6 +46,7 @@ export const emptyStudentFields = (): StudentFields => ({
   motherName: "",
   category: "",
   prn: "",
+  abcId: "",
   gender: "",
   studentType: "",
   dyslexia: false,

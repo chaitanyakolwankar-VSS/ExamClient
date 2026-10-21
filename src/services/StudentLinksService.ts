@@ -12,6 +12,7 @@ export type StudentField =
   | "phone"
   | "address"
   | "prn"
+  | "abcId"
   | "photo"
   | "signature";
 
@@ -30,7 +31,7 @@ export const FIELD_GROUPS: { title: string; fields: { key: StudentField; label: 
   },
   { title: "Contact", fields: [{ key: "phone", label: "Phone" }, { key: "address", label: "Address" }] },
   { title: "Photo and signature", fields: [{ key: "photo", label: "Photo" }, { key: "signature", label: "Signature" }] },
-  { title: "Registration", fields: [{ key: "prn", label: "ERN / PRN" }] },
+  { title: "Registration", fields: [{ key: "prn", label: "ERN / PRN" }, { key: "abcId", label: "ABC ID" }] },
 ];
 
 export const ALL_FIELDS: StudentField[] = FIELD_GROUPS.flatMap((g) => g.fields.map((f) => f.key));
@@ -102,6 +103,19 @@ export const StudentLinksService = {
       days: p.days,
       editableFields: p.editableFields,
       student: p.student?.trim() || null,
+      appUrl: appUrl(),
+    });
+    return res.data;
+  },
+  /** Emails every student of a released exam a link to view and save their hall ticket (valid for `days`). */
+  async sendHallTickets(p: { ayid: string; courseId: string; semester: string; pattern: string; examId: string; days: number }): Promise<SendLinksResult> {
+    const res = await apiClient.post<SendLinksResult>("/StudentLinks/hallticket", {
+      ayid: p.ayid,
+      courseId: p.courseId,
+      semester: p.semester,
+      pattern: p.pattern,
+      examId: p.examId,
+      days: p.days,
       appUrl: appUrl(),
     });
     return res.data;

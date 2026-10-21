@@ -11,26 +11,35 @@ interface Subject {
   time: string;
 }
 
-interface College {
+export interface HallTicketCollegeInfo {
   logo: string;
   center: string;
   /** Shown as a text header when there is no logo (or it cannot be loaded). */
   collegeName?: string;
-  CourseNmae: string;
-  /** Stored path of the Principal's signature image, printed above the Principal line. */
+  /** The first line, from hallTicketTitle(): "EXAMINATION OF : CIVIL ENGINEERING (NEP - R-24) REGULAR DEC 2026". */
+  title: string;
+  /** Stored paths (or blob: URLs) of the Principal's and the Controller of Examinations' signatures and the office seal. */
   principalSign?: string;
+  controllerSign?: string;
+  seal?: string;
 }
 
-interface Student {
+export interface HallTicketStudent {
   name: string;
   centre: string;
   seat: string;
-  studentid:string;
+  studentid: string;
+  /** ERN and ABC ID; empty when not on record. */
+  ern?: string;
+  abcId?: string;
   photo?: string | null;
   /** Stored path of the student's signature image (null when none). */
   sign?: string | null;
   subjects: Subject[];
 }
+
+type College = HallTicketCollegeInfo;
+type Student = HallTicketStudent;
 
 interface HallTicketData {
   college: College;
@@ -70,11 +79,23 @@ const td: React.CSSProperties = {
 // Code, date and time never wrap; the subject name takes the remaining width.
 const tdNoWrap: React.CSSProperties = { ...td, whiteSpace: "nowrap" };
 
-// Height reserved at the bottom of each card for the signature block (absolutely positioned).
-const SIGNATURE_BLOCK_HEIGHT_PX = 70;
+// Height reserved at the bottom of each card for the signature and seal block (absolutely positioned).
+const SIGNATURE_BLOCK_HEIGHT_PX = 130;
+
+/** A signature over its title line at the bottom of the card. */
+const Signatory = ({ src, alt, title }: { src?: string; alt: string; title: string }) => (
+  <div style={{ width: "210px", textAlign: "center" }}>
+    {src ? (
+      <AuthImage src={src} alt={alt} style={{ display: "block", height: "40px", maxWidth: "190px", objectFit: "contain", margin: "0 auto 2px" }} />
+    ) : (
+      <div style={{ height: "42px" }} />
+    )}
+    <div style={{ borderTop: "1px solid black", paddingTop: "5px", fontSize: "13px" }}>{title}</div>
+  </div>
+);
 
 // ================= CARD =================
-const HallTicketCard = ({
+export const HallTicketCard = ({
   student,
   college,
 }: {
@@ -107,7 +128,7 @@ const HallTicketCard = ({
           fontSize: "18px",
         }}
       >
-        UNIVERSITY EXAMINATION OF : {college.CourseNmae}
+        {college.title}
       </h2>
 
       {/* STUDENT DETAILS */}
@@ -140,7 +161,7 @@ const HallTicketCard = ({
             <td style={label}>Candidate Name</td>
             <td colSpan={2} style={value}>{student.name}</td>
             <td
-              rowSpan={4}
+              rowSpan={6}
               style={{
                 border: "1px solid black",
                 textAlign: "center",
@@ -218,6 +239,14 @@ const HallTicketCard = ({
             <td style={label}>Student ID </td>
             <td colSpan={2} style={value}>{student.studentid}</td>
           </tr>
+          <tr>
+            <td style={label}>ERN No.</td>
+            <td colSpan={2} style={value}>{student.ern || "—"}</td>
+          </tr>
+          <tr>
+            <td style={label}>ABC ID</td>
+            <td colSpan={2} style={value}>{student.abcId || "—"}</td>
+          </tr>
         </tbody>
       </table>
 
@@ -265,40 +294,29 @@ const HallTicketCard = ({
         <b>Note:</b> Please see notice board for updates.
       </div>
 
-      {/* SIGNATURE */}
-   {/* ✅ Signature Fixed Bottom */}
-  <div
-    style={{
-      position: "absolute",
-      bottom: "20px",
-      left: "15px",
-      right: "15px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "flex-end"
-    }}
-  >
-    <div style={{ width: "200px", textAlign: "center" }}>
-      <div style={{ borderTop: "1px solid black", paddingTop: "5px" }}>
-        Signature of Candidate
-      </div>
-    </div>
-
-    <div style={{ width: "200px", textAlign: "center" }}>
-      {college.principalSign && (
+      {/* Signatures and the office seal, fixed at the bottom of the sheet */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          left: "15px",
+          right: "15px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+        }}
+      >
+        <Signatory src={college.controllerSign} alt="controller of examinations signature" title="Controller of Examinations" />
+        {/* The round seal, printed from College Details; a blank circle marks where to stamp when there is none. */}
         <AuthImage
-          src={college.principalSign}
-          alt="principal signature"
-          style={{ display: "block", height: "34px", maxWidth: "180px", objectFit: "contain", margin: "0 auto 2px" }}
+          src={college.seal}
+          alt="college seal"
+          style={{ width: "100px", height: "100px", objectFit: "contain" }}
+          fallback={<div style={{ width: "100px", height: "100px", border: "1px dashed #999", borderRadius: "50%" }} />}
         />
-      )}
-      <div style={{ borderTop: "1px solid black", paddingTop: "5px" }}>
-        Principal
+        <Signatory src={college.principalSign} alt="principal signature" title="Principal" />
       </div>
     </div>
-  </div>
-
-</div>
   );
 };
 
@@ -313,7 +331,7 @@ export default function HallTicketPage() {
   const college: College = parsedData?.college || {
     logo: "",
     center: "",
-    CourseNmae: "",
+    title: "",
   };
 
   const data: Student[] = parsedData?.students || [];
@@ -323,7 +341,7 @@ export default function HallTicketPage() {
   // missing/failed image cannot block printing forever.
   const expectedImages =
     (college.logo ? 1 : 0) +
-    (college.principalSign ? data.length : 0) +
+    ((college.principalSign ? 1 : 0) + (college.controllerSign ? 1 : 0) + (college.seal ? 1 : 0)) * data.length +
     data.filter((s) => s.photo).length +
     data.filter((s) => s.sign).length;
   React.useEffect(() => {

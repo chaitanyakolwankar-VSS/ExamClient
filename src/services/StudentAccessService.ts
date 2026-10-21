@@ -76,6 +76,7 @@ export interface StudentDetails {
   phone: string | null;
   address: string | null;
   prn: string | null;
+  abcId: string | null;
   email: string | null;
   hasPhoto: boolean;
   hasSignature: boolean;
@@ -126,6 +127,23 @@ export const StudentAccessService = {
   async saveImage(kind: StudentImageKind, image: string): Promise<StudentSaveResult> {
     return (await studentClient.put<StudentSaveResult>(`/StudentAccess/${kind}`, { image })).data;
   },
+  /** A hall ticket link: the hall ticket, or why it can't show yet. */
+  async hallTicket(): Promise<StudentHallTicketView> {
+    return (await studentClient.get<StudentHallTicketView>("/StudentAccess/hallticket")).data;
+  },
+  /** An object URL of the college's logo, a signature or the seal for the hall ticket, or null when there is none. */
+  async hallTicketImage(kind: "logo" | "principal" | "controller" | "seal"): Promise<string | null> {
+    try {
+      const res = await studentClient.get(`/StudentAccess/hallticket/${kind}`, { responseType: "blob" });
+      return URL.createObjectURL(res.data as Blob);
+    } catch {
+      return null;
+    }
+  },
+  /** Tells staff the hall ticket was downloaded (only the first time counts). */
+  async hallTicketDownloaded(): Promise<void> {
+    await studentClient.post("/StudentAccess/hallticket/downloaded");
+  },
   /** An object URL of the student's own picture (the header can't go on an <img>), or null when there is none. */
   async imageUrl(kind: StudentImageKind): Promise<string | null> {
     try {
@@ -139,6 +157,34 @@ export const StudentAccessService = {
 
 export type StudentImageKind = "photo" | "signature";
 
+/** api/StudentAccess/hallticket. */
+export interface StudentHallTicketView {
+  /** False while the hall ticket can't show yet; message says why. */
+  ready: boolean;
+  message: string | null;
+  /** Pictures the student must add first. */
+  missing: StudentImageKind[];
+  examName: string;
+  examType: string;
+  branch: string;
+  pattern: string;
+  collegeName: string;
+  center: string;
+  hasLogo: boolean;
+  hasPrincipalSign: boolean;
+  hasControllerSign: boolean;
+  hasSeal: boolean;
+  student: {
+    name: string;
+    centre: string;
+    seat: string;
+    studentid: string;
+    ern: string;
+    abcId: string;
+    subjects: { code: string; name: string; date: string; time: string }[];
+  } | null;
+}
+
 export interface StudentDetailsUpdate {
   firstName?: string;
   middleName?: string;
@@ -151,6 +197,7 @@ export interface StudentDetailsUpdate {
   phone?: string;
   address?: string;
   prn?: string;
+  abcId?: string;
 }
 
 export interface StudentSaveResult {

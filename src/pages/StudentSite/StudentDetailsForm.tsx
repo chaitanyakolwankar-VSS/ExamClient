@@ -18,7 +18,7 @@ type TextField = Exclude<StudentField, "photo" | "signature">;
 type Draft = Record<TextField, string>;
 
 /** Form order: pairs that read naturally side by side on a phone. */
-const ORDER: TextField[] = ["firstName", "middleName", "lastName", "motherName", "dateOfBirth", "gender", "category", "phone", "address", "prn"];
+const ORDER: TextField[] = ["firstName", "middleName", "lastName", "motherName", "dateOfBirth", "gender", "category", "phone", "address", "prn", "abcId"];
 const WIDE = new Set<string>(["address", "email"]);
 
 /** Two columns; a field left alone in its row takes the whole row, so the grid stays even whatever the link allows. */
@@ -45,6 +45,7 @@ const fromHome = (s: StudentHome["student"]): Draft => ({
   phone: s.phone ?? "",
   address: s.address ?? "",
   prn: s.prn ?? "",
+  abcId: s.abcId ?? "",
 });
 
 const NAME = /^\p{L}[\p{L} .'-]*$/u;
@@ -76,6 +77,9 @@ function check(field: TextField, value: string): string | null {
       return v.length > 300 ? "At most 300 characters" : null;
     case "prn":
       return v && !/^[A-Za-z0-9/-]+$/.test(v) ? "Letters, digits, - and / only" : null;
+    case "abcId":
+      if (!v) return null;
+      return !/^[\d\s-]+$/.test(v) ? "Digits only" : v.replace(/[\s-]/g, "").length !== 12 ? "12 digits" : null;
   }
 }
 
@@ -366,10 +370,10 @@ function FieldControl({
         {...common}
         className="h-11"
         value={value}
-        maxLength={field === "phone" ? 16 : field === "prn" ? 30 : 50}
-        inputMode={field === "phone" ? "tel" : undefined}
+        maxLength={field === "phone" ? 16 : field === "prn" ? 30 : field === "abcId" ? 14 : 50}
+        inputMode={field === "phone" ? "tel" : field === "abcId" ? "numeric" : undefined}
         autoComplete={field === "phone" ? "tel" : field === "firstName" ? "given-name" : field === "lastName" ? "family-name" : "off"}
-        placeholder={field === "phone" ? "10-digit mobile" : field === "prn" ? "If issued" : undefined}
+        placeholder={field === "phone" ? "10-digit mobile" : field === "prn" ? "If issued" : field === "abcId" ? "12 digits" : undefined}
         onChange={(e) => onChange(e.target.value)}
       />
     );
@@ -391,7 +395,7 @@ function FieldControl({
 }
 
 /** Photo or signature on the ID card. Tapping it picks a picture, which is shrunk and uploaded at once. */
-function Picture({
+export function Picture({
   kind,
   url,
   editable,
