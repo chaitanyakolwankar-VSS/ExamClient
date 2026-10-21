@@ -207,30 +207,46 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
   const recordValue = (f: TextField | "email") =>
     f === "email" ? s.email : f === "dateOfBirth" ? day(saved.dateOfBirth || null) : saved[f];
 
+  // What this link is for, in the student's words.
+  const pictures = (["photo", "signature"] as const).filter((k) => editable.has(k));
+  const heading =
+    fields.length > 0
+      ? "Check and correct your details"
+      : pictures.length === 2
+        ? "Update your photo and signature"
+        : pictures.length === 1
+          ? `Update your ${pictures[0]}`
+          : "Check your details";
+
   return (
     <div className="pb-32">
-      {/* The student's ID card */}
-      <section aria-label="ID card" className="rounded-2xl bg-primary p-4 text-primary-foreground shadow-lg shadow-primary/20 sm:p-5">
-        <div className="flex gap-4">
+      <div className="mb-4 px-1">
+        <h1 className="text-xl font-semibold">{heading}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {fields.length === 0 && pictures.length > 0 && `Tap ${pictures.length === 2 ? "them" : "it"} on your card below. `}
+          Open until {day(home.deadline)}.
+        </p>
+        {home.updatedAt && (
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-success-600 dark:text-success-400">
+            <CheckCircle2 className="size-4" /> Saved {day(home.updatedAt)}
+          </p>
+        )}
+      </div>
+
+      {/* The student's ID card: college band on top, photo, name and signature below */}
+      <section aria-label="ID card" className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+        <div className="truncate bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">{home.college}</div>
+        <div className="flex gap-4 p-4">
           <Picture kind="photo" url={photoUrl} editable={editable.has("photo")} fallback={initials} onPick={upload} />
           <div className="flex min-w-0 flex-1 flex-col">
             <p className="text-lg font-semibold leading-snug break-words">{name || "Your name"}</p>
-            <p className="mt-0.5 text-sm text-primary-foreground/75">Student ID {s.studentId}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">Student ID {s.studentId}</p>
             <div className="mt-auto pt-3">
               <Picture kind="signature" url={signUrl} editable={editable.has("signature")} onPick={upload} />
             </div>
           </div>
         </div>
       </section>
-
-      <div className={`mt-3 flex items-center gap-3 px-1 text-sm text-muted-foreground ${home.updatedAt ? "justify-between" : "justify-center"}`}>
-        {home.updatedAt && (
-          <span className="flex items-center gap-1.5 text-success-600 dark:text-success-400">
-            <CheckCircle2 className="size-4" /> Saved {day(home.updatedAt)}
-          </span>
-        )}
-        <span>Open until {day(home.deadline)}</span>
-      </div>
 
       {fields.length > 0 && (
         <section className="mt-8">
@@ -252,28 +268,24 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
         </section>
       )}
 
-      <section className="mt-8 rounded-2xl bg-muted/60 p-4 sm:p-5">
-        <h2 className="text-base font-semibold">On college record</h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          {home.helpEmail ? (
-            <>
-              To change these, write to{" "}
-              <a className="font-medium text-primary underline-offset-4 hover:underline" href={`mailto:${home.helpEmail}`}>
-                {home.helpEmail}
-              </a>
-            </>
-          ) : (
-            "To change these, ask your college office."
-          )}
-        </p>
-        <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-4">
-          {rows(locked).map(({ key, wide }) => (
-            <div key={key} className={wide ? "col-span-2" : undefined}>
-              <dt className="text-xs text-muted-foreground">{key === "email" ? "Email" : FIELD_LABEL[key]}</dt>
-              <dd className="mt-0.5 text-sm font-medium break-words">{recordValue(key) || <span className="text-muted-foreground">Not given</span>}</dd>
+      <section className="mt-8">
+        <h2 className="px-1 text-base font-semibold">On college record</h2>
+        <dl className="mt-3 divide-y rounded-2xl border bg-card px-4">
+          {locked.map((key) => (
+            <div key={key} className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="shrink-0 text-sm text-muted-foreground">{key === "email" ? "Email" : FIELD_LABEL[key]}</dt>
+              <dd className="min-w-0 text-right text-sm font-medium break-words">{recordValue(key) || <span className="font-normal text-muted-foreground">Not given</span>}</dd>
             </div>
           ))}
         </dl>
+        <p className="mt-3 px-1 text-sm text-muted-foreground">
+          Something wrong here? {home.helpEmail ? "Write to " : "Ask your college office."}
+          {home.helpEmail && (
+            <a className="font-medium text-primary underline-offset-4 hover:underline" href={`mailto:${home.helpEmail}`}>
+              {home.helpEmail}
+            </a>
+          )}
+        </p>
       </section>
 
       <SaveBar
@@ -411,19 +423,19 @@ function Picture({
   const box = (
     <span
       className={`relative flex items-center justify-center overflow-hidden ${
-        photo ? "h-32 w-26 rounded-xl bg-primary-foreground/15 ring-2 ring-primary-foreground/70" : "h-12 w-full max-w-44 rounded-lg bg-white"
+        photo ? `h-32 w-26 rounded-xl bg-primary/10 ${shown || !editable ? "" : "border-2 border-dashed border-primary/30"}` : `h-12 w-full max-w-44 rounded-lg bg-white ${shown || !editable ? "border" : "border-2 border-dashed border-primary/30"}`
       }`}
     >
       {shown ? (
         <img src={shown} alt={`Your ${label}`} className={`size-full ${photo ? "object-cover" : "object-contain p-1"}`} />
       ) : photo && editable ? (
-        <span className="flex flex-col items-center gap-1 text-xs font-medium">
+        <span className="flex flex-col items-center gap-1 text-xs font-medium text-primary">
           <Camera className="size-7" /> Add photo
         </span>
       ) : photo ? (
-        <span className="text-2xl font-semibold">{fallback}</span>
+        <span className="text-2xl font-semibold text-primary">{fallback}</span>
       ) : (
-        <span className="text-xs text-gray-500">{editable ? "Add signature" : "No signature"}</span>
+        <span className={`text-xs font-medium ${editable ? "text-primary" : "text-gray-500"}`}>{editable ? "Add signature" : "No signature"}</span>
       )}
       {busy && (
         <span className="absolute inset-0 flex items-center justify-center bg-black/40">
@@ -431,7 +443,7 @@ function Picture({
         </span>
       )}
       {editable && shown && !busy && (
-        <span className={`absolute flex items-center justify-center rounded-full bg-white text-primary shadow ${photo ? "right-1.5 bottom-1.5 size-7" : "top-1 right-1 size-5"}`}>
+        <span className={`absolute flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow ${photo ? "right-1.5 bottom-1.5 size-7" : "top-1 right-1 size-5"}`}>
           {photo ? <Camera className="size-4" /> : <PenLine className="size-3" />}
         </span>
       )}
@@ -443,7 +455,7 @@ function Picture({
     <>
       <button
         type="button"
-        className={`${photo ? "shrink-0" : "block w-full"} rounded-xl text-left transition-transform outline-none focus-visible:ring-3 focus-visible:ring-primary-foreground/60 active:scale-[0.98]`}
+        className={`${photo ? "shrink-0" : "block w-full"} rounded-xl text-left transition-transform outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.98]`}
         onClick={() => input.current?.click()}
         disabled={busy}
         aria-label={shown ? `Change ${label}` : `Add ${label}`}

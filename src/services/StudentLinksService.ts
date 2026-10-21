@@ -92,8 +92,8 @@ const appUrl = () => `${window.location.origin}${import.meta.env.BASE_URL}`.repl
 
 /** Student Master > Student links (api/StudentLinks). */
 export const StudentLinksService = {
-  /** studentIds: only these students of the class; empty = all of them. */
-  async send(p: { ayid: string; courseId?: string; semesterId?: string; days: number; editableFields: StudentField[]; studentIds: string[] }): Promise<SendLinksResult> {
+  /** student: one student by Student ID or email (branch and semester are then ignored); empty = the whole class. */
+  async send(p: { ayid: string; courseId?: string; semesterId?: string; days: number; editableFields: StudentField[]; student?: string }): Promise<SendLinksResult> {
     const res = await apiClient.post<SendLinksResult>("/StudentLinks/send", {
       ayid: p.ayid,
       courseId: p.courseId || null,
@@ -101,7 +101,7 @@ export const StudentLinksService = {
       taskType: "STUDENT_MASTER",
       days: p.days,
       editableFields: p.editableFields,
-      studentIds: p.studentIds,
+      student: p.student?.trim() || null,
       appUrl: appUrl(),
     });
     return res.data;
@@ -122,8 +122,9 @@ export const StudentLinksService = {
   async stopBatch(id: string): Promise<number> {
     return (await apiClient.post<{ stopped: number }>(`/StudentLinks/batches/${id}/stop`)).data.stopped;
   },
-  async remind(id: string): Promise<number> {
-    return (await apiClient.post<{ reminded: number }>(`/StudentLinks/batches/${id}/remind`)).data.reminded;
+  /** Emails the link again: who="notOpened" (default) or "notUpdated" (everyone who hasn't saved yet). */
+  async remind(id: string, who: "notOpened" | "notUpdated" = "notOpened"): Promise<number> {
+    return (await apiClient.post<{ reminded: number }>(`/StudentLinks/batches/${id}/remind`, null, { params: { who } })).data.reminded;
   },
   async stopLink(id: string): Promise<LinkRow> {
     return (await apiClient.post<LinkRow>(`/StudentLinks/links/${id}/stop`)).data;
