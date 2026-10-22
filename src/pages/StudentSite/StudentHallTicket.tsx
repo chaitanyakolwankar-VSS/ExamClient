@@ -94,15 +94,32 @@ export default function StudentHallTicket({ home, onEnded }: Props) {
     load();
   }, [load]);
 
-  const upload = async (kind: StudentImageKind, file: File) => {
+  // Missing pictures are picked first (shown on the card), then saved together.
+  const [staged, setStaged] = useState<Partial<Record<StudentImageKind, string>>>({});
+  const [saving, setSaving] = useState(false);
+
+  const pick = async (kind: StudentImageKind, file: File) => {
     try {
       const dataUrl = await shrinkImage(file, STUDENT_PICTURE[kind].maxSide, STUDENT_PICTURE[kind].maxBytes);
-      await StudentAccessService.saveImage(kind, dataUrl);
-      await load();
+      setStaged((p) => ({ ...p, [kind]: dataUrl }));
+      setError(null);
       return dataUrl;
     } catch (err) {
-      failed(err, (err as Error)?.message || "The picture could not be saved.");
+      setError((err as Error)?.message || "That picture can't be used. Try another one.");
       return null;
+    }
+  };
+
+  const savePictures = async () => {
+    setSaving(true);
+    try {
+      await StudentAccessService.saveDetails({ photo: staged.photo, signature: staged.signature });
+      setStaged({});
+      await load();
+    } catch (err) {
+      failed(err, "The pictures could not be saved. Try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -126,6 +143,7 @@ export default function StudentHallTicket({ home, onEnded }: Props) {
   if (view.missing.length > 0) {
     const both = view.missing.length === 2;
     const name = [home.student.firstName, home.student.middleName, home.student.lastName].filter(Boolean).join(" ");
+    const ready = view.missing.every((k) => staged[k]);
     return (
       <div className="mx-auto max-w-lg">
         <h1 className="px-1 text-xl font-semibold">Add your {both ? "photo and signature" : view.missing[0]}</h1>
@@ -135,17 +153,25 @@ export default function StudentHallTicket({ home, onEnded }: Props) {
         <section aria-label="ID card" className="mt-4 overflow-hidden rounded-2xl border bg-card shadow-sm">
           <div className="truncate bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">{home.college}</div>
           <div className="flex gap-4 p-4">
-            <Picture kind="photo" url={images.photo ?? null} editable={view.missing.includes("photo")} fallback="" onPick={upload} />
+            <Picture kind="photo" url={staged.photo ?? images.photo ?? null} pending={!!staged.photo} editable={view.missing.includes("photo")} fallback="" onPick={pick} />
             <div className="flex min-w-0 flex-1 flex-col">
               <p className="text-lg font-semibold leading-snug break-words">{name}</p>
               <p className="mt-0.5 text-sm text-muted-foreground">Student ID {home.student.studentId}</p>
               <div className="mt-auto pt-3">
-                <Picture kind="signature" url={images.signature ?? null} editable={view.missing.includes("signature")} onPick={upload} />
+                <Picture kind="signature" url={staged.signature ?? images.signature ?? null} pending={!!staged.signature} editable={view.missing.includes("signature")} onPick={pick} />
               </div>
             </div>
           </div>
         </section>
         <PictureGuide kinds={view.missing} />
+        <div className="mt-4">
+          <Button size="lg" className="h-12 w-full text-base" onClick={savePictures} disabled={!ready || saving}>
+            {saving && <Loader2 className="animate-spin" />} {saving ? "Saving" : "Save and show my hall ticket"}
+          </Button>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            {ready ? "Check them first: to change them later, contact your college office." : `Add your ${both ? "photo and signature" : view.missing[0]} to continue.`}
+          </p>
+        </div>
         {error && (
           <p role="alert" className="mt-4 text-sm text-destructive">
             {error}

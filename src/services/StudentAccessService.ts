@@ -198,6 +198,9 @@ export interface StudentDetailsUpdate {
   address?: string;
   prn?: string;
   abcId?: string;
+  /** A new photo or signature (data URL, already shrunk); saved with the rest in one go. */
+  photo?: string;
+  signature?: string;
 }
 
 export interface StudentSaveResult {

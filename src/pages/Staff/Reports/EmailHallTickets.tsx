@@ -11,7 +11,7 @@ import { SenderBanner } from "../Students Admin/StudentEmailReview";
 import { StudentLinksService } from "../../../services/StudentLinksService";
 import type { HallTicketSelection, HallTicketSendPreview } from "../../../services/StudentLinksService";
 
-const DAY_OPTIONS = [7, 14, 21, 30, 45, 60].map((d) => ({ value: String(d), label: `Links open for ${d} days` }));
+const DAY_OPTIONS = [7, 14, 21, 30, 45, 60].map((d) => ({ value: String(d), label: `${d} days` }));
 
 const day = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";

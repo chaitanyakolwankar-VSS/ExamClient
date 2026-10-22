@@ -60,7 +60,7 @@ export default function PictureGuide({ kinds }: { kinds: StudentImageKind[] }) {
         })}
       </div>
       <p className="border-t py-3 text-xs text-muted-foreground">
-        A JPG or PNG straight from your phone is fine. We make it smaller before it's saved (photo under 300 KB, signature under 100 KB).
+        JPG or PNG. Large pictures are resized automatically.
       </p>
     </section>
   );

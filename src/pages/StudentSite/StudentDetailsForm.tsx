@@ -94,9 +94,10 @@ interface Props {
 }
 
 /**
- * The student's details. The top is their ID card (photo and signature change by tapping them; they upload at
- * once, shrunk in the browser first). Below are the fields this link lets them change, then what the college holds
- * that they can't. Text changes are saved together from a bar that appears once something is changed.
+ * The student's details. The top is their ID card (photo and signature change by tapping them; shrunk in the
+ * browser and shown at once, saved with the rest). Below are the fields this link lets them change, then what the
+ * college holds that they can't. Everything is saved together from a bar that appears once something is changed,
+ * and one email says what was saved.
  */
 export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
   const s = home.student;
@@ -108,6 +109,8 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
   const [flash, setFlash] = useState<Flash | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [signUrl, setSignUrl] = useState<string | null>(null);
+  // Pictures picked but not saved yet (data URLs): they go with the next Save.
+  const [staged, setStaged] = useState<Partial<Record<StudentImageKind, string>>>({});
 
   // New saved values (after a save or an upload) replace the fields the student has not touched since.
   const lastSaved = useRef(saved);
@@ -153,6 +156,7 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
   const fields = ORDER.filter((f) => editable.has(f));
   const locked: (TextField | "email")[] = [...ORDER.filter((f) => !editable.has(f)), "email"];
   const changed = fields.filter((f) => draft[f].trim() !== saved[f].trim());
+  const stagedKinds = (["photo", "signature"] as const).filter((k) => staged[k]);
   const errors = Object.fromEntries(fields.map((f) => [f, check(f, draft[f])])) as Record<TextField, string | null>;
   const hasErrors = changed.some((f) => errors[f]);
 
@@ -173,7 +177,7 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
       document.querySelector<HTMLElement>("[aria-invalid=true]")?.focus();
       return;
     }
-    const update: StudentDetailsUpdate = {};
+    const update: StudentDetailsUpdate = { photo: staged.photo, signature: staged.signature };
     for (const f of fields) {
       if (f === "dateOfBirth") update.dateOfBirth = draft.dateOfBirth || null;
       else update[f] = draft[f].trim();
@@ -183,9 +187,11 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
       const result = await StudentAccessService.saveDetails(update);
       // The form takes what was stored (the API tidies values, e.g. "98765 43210" -> "9876543210").
       setDraft(fromHome(result.home.student));
+      setStaged({});
       onHome(result.home);
       setTouched(new Set());
-      setFlash({ ok: true, text: result.changed.length ? "Saved. We've emailed you a note." : "Nothing was different" });
+      setFlash({ ok: true, text: result.changed.length ? "Saved. We've emailed you what changed." : "Nothing was different" });
+      if (result.changed.length) window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       failed(err, "Your changes could not be saved. Try again.");
     } finally {
@@ -193,16 +199,15 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
     }
   };
 
-  const upload = async (kind: StudentImageKind, file: File) => {
-    const label = kind === "photo" ? "Photo" : "Signature";
+  // A picked picture is shrunk and shown on the card; it is saved with the rest.
+  const pick = async (kind: StudentImageKind, file: File) => {
     try {
       const dataUrl = await shrinkImage(file, STUDENT_PICTURE[kind].maxSide, STUDENT_PICTURE[kind].maxBytes);
-      const result = await StudentAccessService.saveImage(kind, dataUrl);
-      onHome(result.home);
-      setFlash({ ok: true, text: `${label} saved. We've emailed you a note.` });
+      setStaged((p) => ({ ...p, [kind]: dataUrl }));
+      setFlash(null);
       return dataUrl;
     } catch (err) {
-      failed(err, (err as Error)?.message || `The ${label.toLowerCase()} could not be saved.`);
+      setFlash({ ok: false, text: (err as Error)?.message || "That picture can't be used. Try another one." });
       return null;
     }
   };
@@ -231,23 +236,31 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
           {fields.length === 0 && pictures.length > 0 && `Tap ${pictures.length === 2 ? "them" : "it"} on your card below. `}
           Open until {day(home.deadline)}.
         </p>
-        {home.updatedAt && (
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-success-600 dark:text-success-400">
-            <CheckCircle2 className="size-4" /> Saved {day(home.updatedAt)}
-          </p>
-        )}
       </div>
+
+      {/* After a save: it's done, and a mistake can still be put right while the link is open. */}
+      {home.updatedAt && editable.size > 0 && (
+        <div role="status" className="mb-4 flex gap-3 rounded-2xl border border-success-200 bg-success-50 px-4 py-3 dark:border-success-500/30 dark:bg-success-500/10">
+          <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success-600 dark:text-success-400" />
+          <div className="text-sm">
+            <p className="font-medium text-success-800 dark:text-success-300">Saved on {day(home.updatedAt)}</p>
+            <p className="mt-0.5 text-success-700/90 dark:text-success-400/90">
+              We've emailed you what changed. Spotted a mistake? Correct it below and save again, until {day(home.deadline)}.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* The student's ID card: college band on top, photo, name and signature below */}
       <section aria-label="ID card" className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="truncate bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">{home.college}</div>
         <div className="flex gap-4 p-4">
-          <Picture kind="photo" url={photoUrl} editable={editable.has("photo")} fallback={initials} onPick={upload} />
+          <Picture kind="photo" url={staged.photo ?? photoUrl} pending={!!staged.photo} editable={editable.has("photo")} fallback={initials} onPick={pick} />
           <div className="flex min-w-0 flex-1 flex-col">
             <p className="text-lg font-semibold leading-snug break-words">{name || "Your name"}</p>
             <p className="mt-0.5 text-sm text-muted-foreground">Student ID {s.studentId}</p>
             <div className="mt-auto pt-3">
-              <Picture kind="signature" url={signUrl} editable={editable.has("signature")} onPick={upload} />
+              <Picture kind="signature" url={staged.signature ?? signUrl} pending={!!staged.signature} editable={editable.has("signature")} onPick={pick} />
             </div>
           </div>
         </div>
@@ -295,11 +308,12 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
       </section>
 
       <SaveBar
-        count={changed.length}
+        count={changed.length + stagedKinds.length}
         saving={saving}
         flash={flash}
         onUndo={() => {
           setDraft(saved);
+          setStaged({});
           setFlash(null);
         }}
         onSave={save}
@@ -396,31 +410,34 @@ function FieldControl({
   );
 }
 
-/** Photo or signature on the ID card. Tapping it picks a picture, which is shrunk and uploaded at once. */
+/**
+ * Photo or signature on the ID card. Tapping it picks a picture; the parent prepares it and shows it through `url`
+ * (`pending` while it isn't saved yet).
+ */
 export function Picture({
   kind,
   url,
+  pending = false,
   editable,
   fallback,
   onPick,
 }: {
   kind: StudentImageKind;
   url: string | null;
+  pending?: boolean;
   editable: boolean;
   fallback?: string;
   onPick: (kind: StudentImageKind, file: File) => Promise<string | null>;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
   const label = kind === "photo" ? "photo" : "signature";
-  const shown = preview ?? url;
+  const shown = url;
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
     setBusy(true);
-    const saved = await onPick(kind, file);
-    if (saved) setPreview(saved);
+    await onPick(kind, file);
     setBusy(false);
     if (input.current) input.current.value = "";
   };
@@ -430,7 +447,7 @@ export function Picture({
     <span
       className={`relative flex items-center justify-center overflow-hidden ${
         photo ? `h-32 w-26 rounded-xl bg-primary/10 ${shown || !editable ? "" : "border-2 border-dashed border-primary/30"}` : `h-12 w-full max-w-44 rounded-lg bg-white ${shown || !editable ? "border" : "border-2 border-dashed border-primary/30"}`
-      }`}
+      } ${pending ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : ""}`}
     >
       {shown ? (
         <img src={shown} alt={`Your ${label}`} className={`size-full ${photo ? "object-cover" : "object-contain p-1"}`} />

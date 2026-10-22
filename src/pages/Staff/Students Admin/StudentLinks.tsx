@@ -79,7 +79,7 @@ export function Choice<T extends string>({ value, options, onChange }: { value: 
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+          className={`whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium transition ${
             value === o.value ? "bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
           }`}
         >
