@@ -82,6 +82,12 @@ const tdNoWrap: React.CSSProperties = { ...td, whiteSpace: "nowrap" };
 // Height reserved at the bottom of each card for the signature and seal block (absolutely positioned).
 const SIGNATURE_BLOCK_HEIGHT_PX = 130;
 
+/**
+ * The first line stays on one line: long branch names ("COMPUTER SCIENCE & ENGINEERING (AIML) …") get a smaller
+ * font instead of wrapping. ~750px of line on an A4 card; bold Arial capitals measure about 0.6em wide, so aim at 730px.
+ */
+const titleSize = (title: string) => Math.max(9, Math.min(18, Math.floor(730 / (Math.max(title.length, 1) * 0.62))));
+
 /** A signature over its title line at the bottom of the card. */
 const Signatory = ({ src, alt, title }: { src?: string; alt: string; title: string }) => (
   <div style={{ width: "210px", textAlign: "center" }}>
@@ -125,7 +131,8 @@ export const HallTicketCard = ({
         style={{
           textAlign: "center",
           margin: "10px 0",
-          fontSize: "18px",
+          fontSize: `${titleSize(college.title)}px`,
+          whiteSpace: "nowrap",
         }}
       >
         {college.title}
