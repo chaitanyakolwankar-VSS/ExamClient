@@ -88,6 +88,31 @@ export interface SendLinksResult {
   message: string;
 }
 
+/** One exam of a class, as chosen on Generate Hall Ticket. */
+export interface HallTicketSelection {
+  ayid: string;
+  courseId: string;
+  semester: string;
+  pattern: string;
+  examId: string;
+}
+
+export interface HallTicketSendPreview {
+  /** Students with this hall ticket. */
+  students: number;
+  /** Of those, the ones the email can go to. */
+  sendable: number;
+  noEmail: number;
+  flagged: number;
+  inactive: number;
+  /** Subject codes these students sit without a saved date and time; sending waits until it is empty. */
+  missingTimetable: string[];
+  /** Students holding a link that still works. */
+  emailed: number;
+  downloaded: number;
+  lastSentAt: string | null;
+}
+
 /** The student site as this browser sees it; the API only accepts an address it already trusts. */
 const appUrl = () => `${window.location.origin}${import.meta.env.BASE_URL}`.replace(/\/+$/, "");
 
@@ -107,17 +132,17 @@ export const StudentLinksService = {
     });
     return res.data;
   },
-  /** Emails every student of a released exam a link to view and save their hall ticket (valid for `days`). */
-  async sendHallTickets(p: { ayid: string; courseId: string; semester: string; pattern: string; examId: string; days: number }): Promise<SendLinksResult> {
-    const res = await apiClient.post<SendLinksResult>("/StudentLinks/hallticket", {
-      ayid: p.ayid,
-      courseId: p.courseId,
-      semester: p.semester,
-      pattern: p.pattern,
-      examId: p.examId,
-      days: p.days,
-      appUrl: appUrl(),
-    });
+  /**
+   * Emails each student with this exam's hall ticket a link to view and save it (valid for `days`); sending is the
+   * release. `student`: one Student ID only; `onlyNotDownloaded`: a fresh link to those who haven't downloaded it.
+   */
+  async sendHallTickets(p: HallTicketSelection & { days: number; student?: string; onlyNotDownloaded?: boolean }): Promise<SendLinksResult> {
+    const res = await apiClient.post<SendLinksResult>("/StudentLinks/hallticket", { ...p, appUrl: appUrl() });
+    return res.data;
+  },
+  /** Who an email of this hall ticket reaches, subjects still without a date, and how earlier sends went. */
+  async previewHallTickets(p: HallTicketSelection): Promise<HallTicketSendPreview> {
+    const res = await apiClient.post<HallTicketSendPreview>("/StudentLinks/hallticket/preview", p);
     return res.data;
   },
   async batches(p: { ayid: string; courseId?: string; semesterId?: string }): Promise<LinkBatch[]> {

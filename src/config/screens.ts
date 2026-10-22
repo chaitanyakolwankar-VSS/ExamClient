@@ -36,6 +36,8 @@ export interface Screen {
   aliases?: string[];
   /** College admin / platform admin only (AdminRoute). Permissions are never consulted for these. */
   adminOnly?: boolean;
+  /** Left out of the sidebar; the page still opens by its address (and still needs its permission). */
+  hidden?: boolean;
 }
 
 export const DASHBOARD_PATH = "/Staff/dashboard";
@@ -53,7 +55,8 @@ export const SCREENS: Screen[] = [
   { key: "examMaster", label: "Exam Master", module: "Academic Master", path: "/Staff/ExamMaster", aliases: ["Exam Masters"] },
 
   { key: "declareResult", label: "Declare Result", module: "Students Admin", path: "/Staff/DeclareResult", aliases: ["Declare Results"] },
-  { key: "releaseHallTicket", label: "Release Hallticket", module: "Students Admin", path: "/Staff/ReleaseHallTicket", aliases: ["Release Hall Ticket", "Release Hall Tickets"] },
+  // Hidden: hall tickets now go out by email from Generate Hall Ticket; sending is the release.
+  { key: "releaseHallTicket", label: "Release Hallticket", module: "Students Admin", path: "/Staff/ReleaseHallTicket", aliases: ["Release Hall Ticket", "Release Hall Tickets"], hidden: true },
   { key: "studentMaster", label: "Student Master", module: "Students Admin", path: "/Staff/Student_Master", aliases: ["Student Masters", "Students"] },
 
   { key: "regularExam", label: "Regular Exam", module: "Conduct Exam", path: "/Staff/RegularExam", aliases: ["Regular Exams"] },

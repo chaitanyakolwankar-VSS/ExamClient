@@ -26,6 +26,7 @@ import Button from "../../../components/ui/button/Button";
 import { appStorage } from "../../../utils/appStorage";
 import type { HallTicketCollegeInfo } from "../../../components/HallTicket/Hallticket";
 import { hallTicketTitle } from "../../../components/HallTicket/title";
+import EmailHallTickets from "./EmailHallTickets";
 
 export type RenderResult = {
   content?: React.ReactNode;
@@ -97,6 +98,9 @@ export default function GenerateHallTicket() {
   const [loading, setLoading] = useState(false);
 
   const [printingTT, setPrintingTT] = useState(false);
+
+  // Bumped when the timetable is saved: Email hall tickets checks the subjects still without a date again.
+  const [savedCount, setSavedCount] = useState(0);
 
   // Every branch's saved time table of the selected exam; the "Print time tables" button shows only when there is one.
   const queryClient = useQueryClient();
@@ -343,6 +347,7 @@ export default function GenerateHallTicket() {
           showConfirmButton: false,
         });
         queryClient.invalidateQueries({ queryKey: timeTableKey });
+        setSavedCount((n) => n + 1);
       } else {
         Swal.fire({
           title: "Failed!",
@@ -590,6 +595,19 @@ export default function GenerateHallTicket() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Email each student their hall ticket link (sending is the release) */}
+      {Subjects.length > 0 && ayid && Exam && (
+        <EmailHallTickets
+          ayid={ayid}
+          courseId={courseId}
+          semester={semester}
+          pattern={pattern}
+          examId={Exam}
+          examName={(exams.data ?? []).find((e) => e.examId === Exam)?.name ?? ""}
+          refreshKey={savedCount}
+        />
       )}
 
       {/* Subjects Datatable */}

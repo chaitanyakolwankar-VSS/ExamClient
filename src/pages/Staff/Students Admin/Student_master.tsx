@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { saveAs } from "file-saver";
 import Swal from "sweetalert2";
 import { FileSpreadsheet, Mail, MailCheck, Pencil, Search, Send, Trash2, User, UserPlus } from "lucide-react";
@@ -65,7 +66,9 @@ export default function StudentMaster() {
   const patternOptions = useMemo(() => toPatternOptions(patterns), [patterns]);
   const onlyPattern = patternOptions.length === 1 ? patternOptions[0].value : "";
 
-  const [tab, setTab] = useState<"add" | "find" | "emails" | "links">("add");
+  // ?tab=links opens Student links (Generate Hall Ticket links here to follow who downloaded).
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<"add" | "find" | "emails" | "links">(params.get("tab") === "links" ? "links" : "add");
   const { isAdmin } = useAuth();
   const [mode, setMode] = useState<"single" | "excel" | "emails">("single");
 

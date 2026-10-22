@@ -69,7 +69,7 @@ function Pill({ className, children }: { className: string; children: React.Reac
 }
 
 /** Two or more side-by-side choices, one selected. */
-function Choice<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+export function Choice<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
   return (
     <div className="inline-flex rounded-lg bg-gray-100 p-1 dark:bg-white/[0.05]" role="radiogroup">
       {options.map((o) => (
