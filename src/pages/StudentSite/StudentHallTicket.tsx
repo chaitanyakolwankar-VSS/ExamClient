@@ -6,8 +6,9 @@ import type { HallTicketCollegeInfo, HallTicketStudent } from "../../components/
 import { hallTicketTitle } from "../../components/HallTicket/title";
 import { StudentAccessService, studentReason } from "../../services/StudentAccessService";
 import type { StudentHallTicketView, StudentHome, StudentImageKind } from "../../services/StudentAccessService";
-import { shrinkImage } from "../../utils/shrinkImage";
+import { STUDENT_PICTURE, shrinkImage } from "../../utils/shrinkImage";
 import { Picture } from "./StudentDetailsForm";
+import PictureGuide from "./PictureGuide";
 
 /** An A4 hall ticket at 96 dpi; the preview is scaled down to the screen width. */
 const SHEET_PX = 794;
@@ -95,7 +96,7 @@ export default function StudentHallTicket({ home, onEnded }: Props) {
 
   const upload = async (kind: StudentImageKind, file: File) => {
     try {
-      const dataUrl = await shrinkImage(file, kind === "photo" ? 900 : 700);
+      const dataUrl = await shrinkImage(file, STUDENT_PICTURE[kind].maxSide, STUDENT_PICTURE[kind].maxBytes);
       await StudentAccessService.saveImage(kind, dataUrl);
       await load();
       return dataUrl;
@@ -144,6 +145,7 @@ export default function StudentHallTicket({ home, onEnded }: Props) {
             </div>
           </div>
         </section>
+        <PictureGuide kinds={view.missing} />
         {error && (
           <p role="alert" className="mt-4 text-sm text-destructive">
             {error}

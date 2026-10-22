@@ -11,7 +11,8 @@ import type { StudentDetailsUpdate, StudentHome, StudentImageKind } from "../../
 import { FIELD_LABEL } from "../../services/StudentLinksService";
 import type { StudentField } from "../../services/StudentLinksService";
 import { STUDENT_CATEGORIES } from "../Staff/Students Admin/studentFields";
-import { shrinkImage } from "../../utils/shrinkImage";
+import { STUDENT_PICTURE, shrinkImage } from "../../utils/shrinkImage";
+import PictureGuide from "./PictureGuide";
 import { day } from "./format";
 
 type TextField = Exclude<StudentField, "photo" | "signature">;
@@ -195,7 +196,7 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
   const upload = async (kind: StudentImageKind, file: File) => {
     const label = kind === "photo" ? "Photo" : "Signature";
     try {
-      const dataUrl = await shrinkImage(file, kind === "photo" ? 900 : 700);
+      const dataUrl = await shrinkImage(file, STUDENT_PICTURE[kind].maxSide, STUDENT_PICTURE[kind].maxBytes);
       const result = await StudentAccessService.saveImage(kind, dataUrl);
       onHome(result.home);
       setFlash({ ok: true, text: `${label} saved. We've emailed you a note.` });
@@ -251,6 +252,7 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
           </div>
         </div>
       </section>
+      <PictureGuide kinds={pictures} />
 
       {fields.length > 0 && (
         <section className="mt-8">
