@@ -123,9 +123,29 @@ export default function StudentHallTicket({ home, onEnded }: Props) {
     }
   };
 
-  const save = () => {
-    StudentAccessService.hallTicketDownloaded().catch(() => undefined);
-    window.print();
+  // The hall ticket as shown, captured and written to an A4 PDF that downloads straight away (no print window).
+  const sheet = useRef<HTMLDivElement>(null);
+  const [making, setMaking] = useState(false);
+  const download = async () => {
+    const card = sheet.current?.querySelector<HTMLElement>(".hallticket-card");
+    if (!card || !view?.student) return;
+    setMaking(true);
+    try {
+      const [{ toJpeg }, { jsPDF }] = await Promise.all([import("html-to-image"), import("jspdf")]);
+      const image = await toJpeg(card, { quality: 0.92, pixelRatio: 2, backgroundColor: "#ffffff", skipFonts: true });
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      // 8 mm margins; a long subject list is scaled down to stay on one page.
+      const maxW = 194, maxH = 281;
+      const ratio = card.offsetHeight / card.offsetWidth;
+      const w = Math.min(maxW, maxH / ratio);
+      pdf.addImage(image, "JPEG", (210 - w) / 2, 8, w, w * ratio);
+      pdf.save(`Hall ticket ${view.student.studentid} ${view.examName}.pdf`.replace(/[\\/:*?"<>|]/g, "-"));
+      StudentAccessService.hallTicketDownloaded().catch(() => undefined);
+    } catch {
+      setError("The PDF could not be made. Try again, or use a different browser.");
+    } finally {
+      setMaking(false);
+    }
   };
 
   if (!view)
@@ -214,16 +234,19 @@ export default function StudentHallTicket({ home, onEnded }: Props) {
       <div className="mb-4 flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between print:hidden">
         <div>
           <h1 className="text-xl font-semibold">Your hall ticket</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {view.examName}. In the print window, choose Save as PDF.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{view.examName}. Keep the PDF and print it for the exam.</p>
         </div>
-        <Button size="lg" className="h-11 px-5" onClick={save}>
-          <Download /> Save as PDF
+        <Button size="lg" className="h-11 px-5" onClick={download} disabled={making}>
+          {making ? <Loader2 className="animate-spin" /> : <Download />} {making ? "Preparing…" : "Download PDF"}
         </Button>
       </div>
+      {error && (
+        <p role="alert" className="mb-4 px-1 text-sm text-destructive">
+          {error}
+        </p>
+      )}
 
-      <div className="ht-print">
+      <div className="ht-print" ref={sheet}>
         <FitToWidth>
           <HallTicketCard student={student} college={college} />
         </FitToWidth>

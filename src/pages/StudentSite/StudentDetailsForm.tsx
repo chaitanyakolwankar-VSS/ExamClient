@@ -51,20 +51,21 @@ const fromHome = (s: StudentHome["student"]): Draft => ({
 
 const NAME = /^\p{L}[\p{L} .'-]*$/u;
 
+/** Every field a link allows must be filled in, except this one (not everyone has a surname). */
+const OPTIONAL = new Set<TextField>(["lastName"]);
+
 /** The same checks as the API, so most mistakes show next to the field before saving. */
 function check(field: TextField, value: string): string | null {
   const v = value.trim();
+  if (!v && !OPTIONAL.has(field)) return field === "gender" || field === "category" ? "Choose one" : "Required";
   switch (field) {
     case "firstName":
+    case "middleName":
     case "lastName":
     case "motherName":
-      if (!v) return "Required";
-      return v.length > 50 || !NAME.test(v) ? "Letters only" : null;
-    case "middleName":
       return v && (v.length > 50 || !NAME.test(v)) ? "Letters only" : null;
     case "phone": {
       let d = v.replace(/\D/g, "");
-      if (!d) return null;
       if (d.length === 12 && d.startsWith("91")) d = d.slice(2);
       else if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
       return d.length !== 10 || d[0] < "6" ? "10-digit mobile number" : null;
@@ -79,7 +80,6 @@ function check(field: TextField, value: string): string | null {
     case "prn":
       return v && !/^[A-Za-z0-9/-]+$/.test(v) ? "Letters, digits, - and / only" : null;
     case "abcId":
-      if (!v) return null;
       return !/^[\d\s-]+$/.test(v) ? "Digits only" : v.replace(/[\s-]/g, "").length !== 12 ? "12 digits" : null;
   }
 }
@@ -158,7 +158,7 @@ export default function StudentDetailsForm({ home, onHome, onEnded }: Props) {
   const changed = fields.filter((f) => draft[f].trim() !== saved[f].trim());
   const stagedKinds = (["photo", "signature"] as const).filter((k) => staged[k]);
   const errors = Object.fromEntries(fields.map((f) => [f, check(f, draft[f])])) as Record<TextField, string | null>;
-  const hasErrors = changed.some((f) => errors[f]);
+  const hasErrors = fields.some((f) => errors[f]);
 
   const set = (f: TextField, v: string) => {
     setDraft((d) => ({ ...d, [f]: v }));
@@ -389,7 +389,7 @@ function FieldControl({
         maxLength={field === "phone" ? 16 : field === "prn" ? 30 : field === "abcId" ? 14 : 50}
         inputMode={field === "phone" ? "tel" : field === "abcId" ? "numeric" : undefined}
         autoComplete={field === "phone" ? "tel" : field === "firstName" ? "given-name" : field === "lastName" ? "family-name" : "off"}
-        placeholder={field === "phone" ? "10-digit mobile" : field === "prn" ? "If issued" : field === "abcId" ? "12 digits" : undefined}
+        placeholder={field === "phone" ? "10-digit mobile" : field === "prn" ? "As on your college ID" : field === "abcId" ? "12 digits" : undefined}
         onChange={(e) => onChange(e.target.value)}
       />
     );
@@ -398,6 +398,7 @@ function FieldControl({
     <div className={`min-w-0 space-y-1.5 ${wide ? "col-span-2" : ""}`}>
       <Label htmlFor={id} id={`${id}-l`} className="gap-1.5">
         {FIELD_LABEL[field]}
+        {OPTIONAL.has(field) && <span className="font-normal text-muted-foreground">(optional)</span>}
         {changed && <span className="size-1.5 rounded-full bg-primary" aria-label="changed" />}
       </Label>
       {control}
