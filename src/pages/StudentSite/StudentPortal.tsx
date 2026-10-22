@@ -10,9 +10,14 @@ import StudentDetailsForm from "./StudentDetailsForm";
 import StudentHallTicket from "./StudentHallTicket";
 import { day } from "./format";
 
-/** /s/:token, the address in the email: keeps the token for this tab and moves to /student, so it leaves the address bar. */
+/**
+ * The address in the email, /s#token (the part after "#" never reaches the server, so the token stays out of its
+ * logs; links sent earlier as /s/:token still work): keeps the token for this tab and moves to /student, so it
+ * leaves the address bar.
+ */
 export function StudentLinkEntry() {
-  const { token } = useParams();
+  const params = useParams();
+  const token = params.token || window.location.hash.replace(/^#/, "");
   if (token) {
     studentStore.clear();
     studentStore.setToken(token);

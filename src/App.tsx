@@ -115,7 +115,8 @@ export default function App() {
             </Route>
           </Route>
 
-          {/* STUDENT SITE: an emailed link (/s/<token>) and a 6-digit code; its own session, no staff sign-in */}
+          {/* STUDENT SITE: an emailed link (/s#<token>; older ones /s/<token>) and a 6-digit code; its own session, no staff sign-in */}
+          <Route path="/s" element={<StudentLinkEntry />} />
           <Route path="/s/:token" element={<StudentLinkEntry />} />
           <Route path="/student" element={<StudentPortal />} />
 
