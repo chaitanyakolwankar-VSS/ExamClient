@@ -20,7 +20,7 @@ type Draft = Record<TextField, string>;
 
 /** Form order: pairs that read naturally side by side on a phone. */
 const ORDER: TextField[] = ["firstName", "middleName", "lastName", "motherName", "dateOfBirth", "gender", "category", "phone", "address", "prn", "abcId"];
-const WIDE = new Set<string>(["address", "email"]);
+const WIDE = new Set<string>(["address", "email", "prn"]);
 
 /** Two columns; a field left alone in its row takes the whole row, so the grid stays even whatever the link allows. */
 function rows<T extends string>(keys: T[]): { key: T; wide: boolean }[] {
@@ -50,6 +50,11 @@ const fromHome = (s: StudentHome["student"]): Draft => ({
 });
 
 const NAME = /^\p{L}[\p{L} .'-]*$/u;
+
+/** A line under the field saying where the student finds the value. */
+const HINT: Partial<Record<TextField, string>> = {
+  prn: "Your ERN from the Mumbai University Samarth portal",
+};
 
 /** Every field a link allows must be filled in, except this one (not everyone has a surname). */
 const OPTIONAL = new Set<TextField>(["lastName"]);
@@ -389,7 +394,7 @@ function FieldControl({
         maxLength={field === "phone" ? 16 : field === "prn" ? 30 : field === "abcId" ? 14 : 50}
         inputMode={field === "phone" ? "tel" : field === "abcId" ? "numeric" : undefined}
         autoComplete={field === "phone" ? "tel" : field === "firstName" ? "given-name" : field === "lastName" ? "family-name" : "off"}
-        placeholder={field === "phone" ? "10-digit mobile" : field === "prn" ? "As on your college ID" : field === "abcId" ? "12 digits" : undefined}
+        placeholder={field === "phone" ? "10-digit mobile" : field === "prn" ? "e.g. MU0341120250235761" : field === "abcId" ? "12 digits" : undefined}
         onChange={(e) => onChange(e.target.value)}
       />
     );
@@ -402,10 +407,12 @@ function FieldControl({
         {changed && <span className="size-1.5 rounded-full bg-primary" aria-label="changed" />}
       </Label>
       {control}
-      {error && (
+      {error ? (
         <p id={`${id}-e`} className="text-xs text-destructive">
           {error}
         </p>
+      ) : (
+        HINT[field] && <p className="text-xs text-muted-foreground">{HINT[field]}</p>
       )}
     </div>
   );
