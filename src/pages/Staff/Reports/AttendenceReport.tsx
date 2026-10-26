@@ -116,6 +116,8 @@ export default function AttendenceReport() {
 
   const [bannerDataUrl, setBannerDataUrl] =
     useState<string | null>(null);
+  // The signed-in college, printed on the packing slips.
+  const [collegeName, setCollegeName] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -123,6 +125,7 @@ export default function AttendenceReport() {
     const loadCollegeBanner = async () => {
       try {
         const college = await collegedetailService.getCollege();
+        if (!cancelled) setCollegeName(college?.name ?? "");
         const path = college?.bannerUrl?.trim();
 
         if (!path) {
@@ -311,10 +314,10 @@ export default function AttendenceReport() {
         return;
       }
 
-      if (!courseId || !pattern || !semester || !Exam || !Event) {
+      if (!courseId || !pattern || !semester || !Exam) {
         Swal.fire(
           "Warning",
-          "Please select Course, Pattern, Semester, Exam and Event.",
+          "Please select Course, Pattern, Semester and Exam.",
           "warning"
         );
         return;
@@ -381,10 +384,10 @@ export default function AttendenceReport() {
   // ============================================================
 
   const validateBlockDetails = (): boolean => {
-    if (!ayid || !courseId || !pattern || !semester || !Exam || !Event) {
+    if (!ayid || !courseId || !pattern || !semester || !Exam) {
       Swal.fire(
         "Warning",
-        "Please select Course, Pattern, Semester, Exam and Event.",
+        "Please select Course, Pattern, Semester and Exam.",
         "warning"
       );
       return false;
@@ -1353,7 +1356,7 @@ const handleSeatingArrangement = async () => {
                 <tr>
                   <td class="lbl-col">Name of College</td>
                   <td class="val-col">
-                    VIVA Institute of Technology Shirgaon Kumbhar Pada, Virar
+                    ${escapeHtml(collegeName)}
                   </td>
                 </tr>
 

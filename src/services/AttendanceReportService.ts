@@ -7,7 +7,6 @@ CourseId: string;
 Pattern: string;
 Semester: string;
 Exam: string;
-Event: string;
 }
 
 export interface AttendanceReportResponse {
