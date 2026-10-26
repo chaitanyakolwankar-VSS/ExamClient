@@ -16,6 +16,8 @@ export interface ReportPdfData {
   date: string;
   examinerName?: string;
   bannerSrc?: string; // PNG data URL of the college banner
+  collegeName?: string; // the signed-in college, printed in the signature table
+  collegeCenter?: string;
 }
 
 const s = StyleSheet.create({
@@ -142,7 +144,8 @@ function ResolutionBlock({ data }: { data: ReportPdfData }) {
           </View>
           <View style={[s.td, s.c2]}>
             <Text style={[s.small, { textAlign: "center" }]}>
-              VIVA Institute of Technology{"\n"}Virar(E)
+              {data.collegeName ?? ""}
+              {data.collegeCenter ? `\n${data.collegeCenter}` : ""}
             </Text>
           </View>
           <View style={[s.td, s.c3]} />

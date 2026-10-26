@@ -102,7 +102,7 @@ export default function ResolutionReport() {
   const [collegeName, setCollegeName] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [examinerName, setExaminerName] = useState("Santosh Suresh Raut");
+  const [examinerName, setExaminerName] = useState("");
   // 2. Lookup data from the shared cached hooks (src/data)
   const courses = useCourses();
   const patterns = usePatterns();
