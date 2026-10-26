@@ -42,6 +42,7 @@ const DeclareResult = lazy(() => import("./pages/Staff/Students Admin/DeclareRes
 const ReleaseHallTicket = lazy(() => import("./pages/Staff/Students Admin/ReleaseHallTicket.tsx"));
 const StudentAssignReport = lazy(() => import("./pages/Staff/Reports/StudentAssignReport.tsx"));
 const ATKTCommulativeReport = lazy(() => import("./pages/Staff/Reports/ATKTCommulativeReport.tsx"));
+const ResolutionReport = lazy(() => import("./pages/Staff/Reports/ResolutionReport.tsx"));
 // Student site: reached from an emailed link, no staff sign-in.
 const ForgotPassword = lazy(() => import("./pages/AuthPages/ForgotPassword.tsx"));
 const StudentPortal = lazy(() => import("./pages/StudentSite/StudentPortal.tsx"));
@@ -108,6 +109,7 @@ export default function App() {
                  <Route path="DeclareResult" element={<DeclareResult />} />
                  <Route path="ReleaseHallTicket" element={<ReleaseHallTicket />} />
                  <Route path="StudentAssignReport" element={<StudentAssignReport />} />
+                 <Route path="ResolutionReport" element={<ResolutionReport />} />
               {/* Add future staff pages here: /staff/exams, /staff/students */}
             </Route>
              <Route path="/hallticket" element={<HallTicketPage />} />
