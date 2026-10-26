@@ -57,7 +57,7 @@ const iisWebConfig = (base: string): Plugin => ({
 // `npm run build:gradesphere` = .env.gradesphere.
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "VITE_");
-  const base = slashed(env.VITE_BASE_PATH || "/ExamSoftware/");
+  const base = slashed(env.VITE_BASE_PATH || "");
   return {
     base,
     plugins: [react(), iisWebConfig(base)],

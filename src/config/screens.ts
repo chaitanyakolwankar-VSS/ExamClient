@@ -70,6 +70,7 @@ export const SCREENS: Screen[] = [
   { key: "studentAssignReport", label: "Student Assign Report", module: "Reports", path: "/Staff/StudentAssignReport", aliases: ["Students Assign Report"] },
   { key: "atktCumulativeReport", label: "ATKT Cummulative Report", module: "Reports", path: "/Staff/ATKTCommulativeReport", aliases: ["ATKT Cumulative Report", "ATKT Cummulative"] },
   { key: "statisticalReport", label: "Statistic Report", module: "Reports", path: "/Staff/StatisticalReport", aliases: ["Statistical Report"] },
+  { key: "attendenceReport", label: "Attendance Report", module: "Reports", path: "/Staff/attendenceReport", aliases: ["Attendence Report"] },
 ];
 
 /** The module order shown in the menu. */

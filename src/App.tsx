@@ -41,6 +41,7 @@ const DeclareResult = lazy(() => import("./pages/Staff/Students Admin/DeclareRes
 const ReleaseHallTicket = lazy(() => import("./pages/Staff/Students Admin/ReleaseHallTicket.tsx"));
 const StudentAssignReport = lazy(() => import("./pages/Staff/Reports/StudentAssignReport.tsx"));
 const ATKTCommulativeReport = lazy(() => import("./pages/Staff/Reports/ATKTCommulativeReport.tsx"));
+const AttendenceReport =lazy(()=>import("./pages/Staff/Reports/AttendenceReport.tsx"))
 
 
 export default function App() {
@@ -99,6 +100,7 @@ export default function App() {
                  <Route path="Marksheet" element={<Marksheet />} />
                  <Route path="StatisticalReport" element={<StatisticalReportPage />} />
                       <Route path="ATKTCommulativeReport" element={<ATKTCommulativeReport />} />
+                        <Route path="AttendenceReport" element={<AttendenceReport />} />
                  <Route path="StudentPromotion" element={<StudentPromotion />} />
                  <Route path="DeclareResult" element={<DeclareResult />} />
                  <Route path="ReleaseHallTicket" element={<ReleaseHallTicket />} />
