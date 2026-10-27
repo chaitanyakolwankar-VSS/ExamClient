@@ -18,6 +18,7 @@ export type ScreenModule =
   | "Admin"
   | "Academic Master"
   | "Students Admin"
+  | "Staff Admin"
   | "Conduct Exam"
   | "Marks Entry"
   | "Reports";
@@ -59,6 +60,8 @@ export const SCREENS: Screen[] = [
   { key: "releaseHallTicket", label: "Release Hallticket", module: "Students Admin", path: "/Staff/ReleaseHallTicket", aliases: ["Release Hall Ticket", "Release Hall Tickets"], hidden: true },
   { key: "studentMaster", label: "Student Master", module: "Students Admin", path: "/Staff/Student_Master", aliases: ["Student Masters", "Students"] },
 
+  { key: "staffMaster", label: "Staff Master", module: "Staff Admin", path: "/Staff/StaffMaster", aliases: ["Staff Masters", "Staff"] },
+
   { key: "regularExam", label: "Regular Exam", module: "Conduct Exam", path: "/Staff/RegularExam", aliases: ["Regular Exams"] },
   { key: "atktRevalExam", label: "ATKT/Reval Exam", module: "Conduct Exam", path: "/Staff/AtktRevalExam", aliases: ["ATKT Reval Exam", "ATKT Exam", "Reval Exam"] },
   { key: "assignSeatNo", label: "Assign Seat No", module: "Conduct Exam", path: "/Staff/AssignSeatNo", aliases: ["Assign Seat Number", "Seat No"] },
@@ -82,6 +85,7 @@ export const MODULE_ORDER: ScreenModule[] = [
   "Admin",
   "Academic Master",
   "Students Admin",
+  "Staff Admin",
   "Conduct Exam",
   "Marks Entry",
   "Reports",

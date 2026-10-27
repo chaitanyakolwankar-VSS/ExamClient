@@ -44,6 +44,7 @@ const StudentAssignReport = lazy(() => import("./pages/Staff/Reports/StudentAssi
 const ATKTCommulativeReport = lazy(() => import("./pages/Staff/Reports/ATKTCommulativeReport.tsx"));
 const ResolutionReport = lazy(() => import("./pages/Staff/Reports/ResolutionReport.tsx"));
 const AttendenceReport = lazy(() => import("./pages/Staff/Reports/AttendenceReport.tsx"));
+const StaffMaster = lazy(() => import("./pages/Staff/Staff Admin/StaffMaster.tsx"));
 // Student site: reached from an emailed link, no staff sign-in.
 const ForgotPassword = lazy(() => import("./pages/AuthPages/ForgotPassword.tsx"));
 const StudentPortal = lazy(() => import("./pages/StudentSite/StudentPortal.tsx"));
@@ -96,6 +97,7 @@ export default function App() {
               <Route path="Ordinance" element={<Ordinance />} />
               <Route path="OverallMarksEntry" element={<OverallMarksEntry />} />
               <Route path="Student_master" element={<StudentMaster />} />
+              <Route path="StaffMaster" element={<StaffMaster />} />
                 <Route path="RegularExam" element={<RegularExam />} />
                 <Route path="AtktRevalExam" element={<AtktRevalExam />} />
                   <Route path="EnterEligibility" element={<EnterEligibility />} />

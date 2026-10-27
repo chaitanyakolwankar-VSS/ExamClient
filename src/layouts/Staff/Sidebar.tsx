@@ -12,6 +12,7 @@ import {
   FileUser,
   Ellipsis,
   ChevronDown,
+  IdCard,
 } from "lucide-react";
 import { useSidebar } from "../../context/SidebarContext";
 import { useAuth } from "../../context/AuthContext";
@@ -38,6 +39,7 @@ const GROUP_ICONS: Record<ScreenModule, React.ReactNode> = {
   Admin: <UserStar />,
   "Academic Master": <GraduationCap />,
   "Students Admin": <UserRoundPen />,
+  "Staff Admin": <IdCard />,
   "Conduct Exam": <BookOpenCheck />,
   "Marks Entry": <NotebookPen />,
   Reports: <FileUser />,

@@ -36,6 +36,7 @@ const [alert, setAlert] = useState<{
     { value: "Admin", label: "Admin" },
     { value: "Academic Master", label: "Academic Master" },
     { value: "Students Admin", label: "Students Admin" },
+    { value: "Staff Admin", label: "Staff Admin" },
     { value: "Conduct Exam", label: "Conduct Exam" },
     { value: "Marks Entry", label: "Marks Entry" },
     { value: "Reports", label: "Reports" },
