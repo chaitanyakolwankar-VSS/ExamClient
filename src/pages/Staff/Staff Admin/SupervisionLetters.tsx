@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import { AlertTriangle } from "lucide-react";
 import PageMeta from "../../../components/common/PageMeta";
-import Select from "../../../components/form/Select";
 import Checkbox from "../../../components/form/input/Checkbox";
 import { useAcademicYear } from "../../../context/AcademicYearContext";
 import { StaffService } from "../../../services/StaffService";
@@ -11,8 +10,8 @@ import { StaffLetterService } from "../../../services/StaffLetterService";
 import type { ExamGroup, SupervisionData } from "../../../services/StaffLetterService";
 import SupervisionGrid from "./SupervisionGrid";
 import type { DutyRow, GridPerson } from "./SupervisionGrid";
-import { LetterActionBar, LetterNotice, LetterPageHeader, LetterSearch } from "./LetterPageParts";
-import { apiReason, confirmLeave, confirmUndo, countWord, escapeHtml, letterInputClass, today } from "./letterHelpers";
+import { LetterActions, LetterNotice, LetterPageHeader, LetterSearch, LetterSummary } from "./LetterPageParts";
+import { apiReason, confirmLeave, confirmUndo, countWord, escapeHtml, today } from "./letterHelpers";
 
 /** Ticking a duty for someone with no role gives them this one (the most common). */
 const DEFAULT_ROLE = "Junior Supervisor";
@@ -253,49 +252,38 @@ export default function SupervisionLetters() {
   };
 
   const exam = data?.exam ?? exams.find((e) => e.examId === examId);
+  const info = exam
+    ? [exam.half, countWord(exam.slotCount, "date"), countWord(exam.letterCount, "letter")].filter(Boolean).join(" · ")
+    : !ayid
+      ? "Loading…"
+      : exams.length === 0
+        ? "No exam in this academic year has a timetable yet. Save its timetable in Generate Hall Ticket first."
+        : "Choose an exam to see its dates. Saving gives each person a numbered letter.";
 
   return (
     <>
       <PageMeta title="GradeSphere | Supervision Letters" description="Assign staff to exam supervision duties" />
-      <div className="min-w-0 space-y-5">
-        <LetterPageHeader title="Supervision Letters" intro="Choose a role and the dates each person supervises. Saving gives each person a numbered letter." />
-
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-start">
-            <Select label="Exam" placeholder="Choose exam" options={exams.map((e) => ({ value: e.examId, label: e.title }))} value={examId} onChange={chooseExam} />
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Letter date</span>
-              <input type="date" value={letterDate} onChange={(e) => setLetterDate(e.target.value)} className={letterInputClass} />
-              <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">Letters already made keep their own date.</span>
-            </label>
-          </div>
-          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            {exam
-              ? [exam.half, countWord(exam.slotCount, "date"), countWord(exam.letterCount, "letter")].filter(Boolean).join(" · ")
-              : !ayid
-                ? "Loading…"
-                : exams.length === 0
-                  ? "No exam in this academic year has a timetable yet. Save its timetable in Generate Hall Ticket first."
-                  : "Choose an exam to see its dates."}
-          </p>
-        </div>
-
-        <LetterNotice message={notice} onDismiss={() => setNotice("")} />
+      <div className="min-w-0 space-y-4">
+        <LetterPageHeader title="Supervision Letters" info={info} exams={exams} examId={examId} onExam={chooseExam} letterDate={letterDate} onLetterDate={setLetterDate} />
 
         {examId && loadingData && !data && <p className="text-sm text-gray-500 dark:text-gray-400">Loading the exam's dates and staff…</p>}
 
         {data && staff && data.slots.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">This exam has no dates yet.</p>}
 
         {data && staff && data.slots.length > 0 && (
-          <div className="min-w-0 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-            <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 dark:border-gray-800">
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
               <LetterSearch value={search} onChange={setSearch} placeholder="Name, ID, department or designation" label="Search staff" />
               <Checkbox label="Show assigned only" checked={onlyAssigned} onChange={setOnlyAssigned} />
+              <LetterSummary text={`${assignedCount} staff · ${dutyCount} ${dutyCount === 1 ? "duty" : "duties"}`} />
+              <LetterActions dirty={dirty} saving={saving} onUndo={undo} onSave={save} />
             </div>
 
+            <LetterNotice message={notice} onDismiss={() => setNotice("")} />
+
             {dropped > 0 && (
-              <p className="flex items-start gap-2 border-b border-gray-100 px-4 py-3 text-sm text-warning-700 sm:px-5 dark:border-gray-800 dark:text-orange-300">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <p className="flex items-center gap-2 border-b border-warning-200 bg-warning-50 px-4 py-1.5 text-xs text-warning-700 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-orange-300">
+                <AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" />
                 <span>
                   {countWord(dropped, "duty")} on saved letters {dropped === 1 ? "is" : "are"} no longer a date of this exam. Saving drops {dropped === 1 ? "it" : "them"} from the letters.
                 </span>
@@ -303,12 +291,10 @@ export default function SupervisionLetters() {
             )}
 
             {shown.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-gray-500 sm:px-5 dark:text-gray-400">{people.length === 0 ? "No staff yet. Add them in Staff Master first." : "No staff match your search."}</p>
+              <p className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">{people.length === 0 ? "No staff yet. Add them in Staff Master first." : "No staff match your search."}</p>
             ) : (
               <SupervisionGrid people={shown} rows={rows} slots={data.slots} roles={roles} slotCounts={slotCounts} onRole={setRole} onToggle={toggle} />
             )}
-
-            <LetterActionBar summary={`${assignedCount} staff · ${dutyCount} ${dutyCount === 1 ? "duty" : "duties"}`} dirty={dirty} saving={saving} onUndo={undo} onSave={save} />
           </div>
         )}
       </div>

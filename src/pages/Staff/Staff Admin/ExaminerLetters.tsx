@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import PageMeta from "../../../components/common/PageMeta";
-import Select from "../../../components/form/Select";
 import { useAcademicYear } from "../../../context/AcademicYearContext";
 import { StaffService } from "../../../services/StaffService";
 import type { Staff } from "../../../services/StaffService";
@@ -9,8 +8,8 @@ import { StaffLetterService } from "../../../services/StaffLetterService";
 import type { AppointmentData, AppointmentSubject, AppointmentType, ExamGroup } from "../../../services/StaffLetterService";
 import StaffPicker from "./StaffPicker";
 import type { PickedPerson } from "./StaffPicker";
-import { LetterActionBar, LetterNotice, LetterPageHeader, LetterSearch } from "./LetterPageParts";
-import { apiReason, confirmLeave, confirmUndo, countWord, escapeHtml, letterInputClass, today } from "./letterHelpers";
+import { LetterActions, LetterNotice, LetterPageHeader, LetterSearch, LetterSummary } from "./LetterPageParts";
+import { apiReason, confirmLeave, confirmUndo, countWord, escapeHtml, today } from "./letterHelpers";
 
 /** Who is down as examiner and as moderator for one subject (staff ids). */
 interface Pick {
@@ -26,6 +25,8 @@ const COLUMNS: { key: Column; type: AppointmentType; title: string }[] = [
 ];
 
 const NONE: string[] = [];
+
+const head = "sticky top-0 z-10 border-b border-gray-200 bg-gray-50 py-1.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400";
 
 /** A fingerprint of who is down for what; two screens with the same fingerprint would save the same letters. */
 const fingerprint = (picks: Picks) =>
@@ -231,59 +232,48 @@ export default function ExaminerLetters() {
   };
 
   const exam = data?.exam ?? exams.find((e) => e.examId === examId);
+  const info = data
+    ? `${countWord(data.subjects.length, "subject")} · ${countWord(data.exam.appointmentCount, "letter")}`
+    : !ayid
+      ? "Loading…"
+      : exams.length === 0
+        ? "No exam in this academic year has a timetable yet. Save its timetable in Generate Hall Ticket first."
+        : exam
+          ? "Loading the subjects…"
+          : "Choose an exam to see its subjects. Saving gives each person a numbered letter.";
 
   return (
     <>
       <PageMeta title="GradeSphere | Examiner Letters" description="Appoint examiners and moderators for the subjects of an exam" />
-      <div className="min-w-0 space-y-5">
-        <LetterPageHeader title="Examiner Letters" intro="Choose the examiner and moderator for each subject. Saving gives each person a numbered letter." />
-
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-start">
-            <Select label="Exam" placeholder="Choose exam" options={exams.map((e) => ({ value: e.examId, label: e.title }))} value={examId} onChange={chooseExam} />
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Letter date</span>
-              <input type="date" value={letterDate} onChange={(e) => setLetterDate(e.target.value)} className={letterInputClass} />
-              <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">Letters already made keep their own date.</span>
-            </label>
-          </div>
-          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            {data
-              ? `${countWord(data.subjects.length, "subject")} · ${countWord(data.exam.appointmentCount, "letter")}`
-              : !ayid
-                ? "Loading…"
-                : exams.length === 0
-                  ? "No exam in this academic year has a timetable yet. Save its timetable in Generate Hall Ticket first."
-                  : exam
-                    ? "Loading the subjects…"
-                    : "Choose an exam to see its subjects."}
-          </p>
-        </div>
-
-        <LetterNotice message={notice} onDismiss={() => setNotice("")} />
+      <div className="min-w-0 space-y-4">
+        <LetterPageHeader title="Examiner Letters" info={info} exams={exams} examId={examId} onExam={chooseExam} letterDate={letterDate} onLetterDate={setLetterDate} />
 
         {examId && loadingData && !data && <p className="text-sm text-gray-500 dark:text-gray-400">Loading the exam's subjects and staff…</p>}
 
         {data && staff && data.subjects.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">This exam has no subjects yet.</p>}
 
         {data && staff && data.subjects.length > 0 && (
-          <div className="min-w-0 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-            <div className="border-b border-gray-100 px-4 py-4 sm:px-5 dark:border-gray-800">
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
               <LetterSearch value={search} onChange={setSearch} placeholder="Subject code, name or branch" label="Search subjects" />
+              <LetterSummary text={`${countWord(examinerCount, "examiner")} · ${countWord(moderatorCount, "moderator")}`} />
+              <LetterActions dirty={dirty} saving={saving} onUndo={undo} onSave={save} />
             </div>
 
+            <LetterNotice message={notice} onDismiss={() => setNotice("")} />
+
             {rows.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-gray-500 sm:px-5 dark:text-gray-400">No subject matches your search.</p>
+              <p className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">No subject matches your search.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[44rem] border-collapse text-sm">
+              <div className="max-h-[70vh] overflow-auto overscroll-contain">
+                <table className="w-full min-w-[40rem] border-separate border-spacing-0 text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-600 dark:border-gray-800 dark:text-gray-400">
-                      <th scope="col" className="w-[30%] px-4 py-3 sm:pl-5">
+                    <tr>
+                      <th scope="col" className={`${head} w-[35%] px-4`}>
                         Subject
                       </th>
                       {COLUMNS.map((c) => (
-                        <th key={c.key} scope="col" className="px-3 py-3">
+                        <th key={c.key} scope="col" className={`${head} px-3`}>
                           {c.title}
                         </th>
                       ))}
@@ -292,19 +282,19 @@ export default function ExaminerLetters() {
                   <tbody>
                     {rows.map((r, i) =>
                       "group" in r ? (
-                        <tr key={`g${i}`} className="bg-gray-50 dark:bg-white/[0.03]">
-                          <th scope="colgroup" colSpan={3} className="px-4 py-2 text-left text-xs font-semibold text-gray-600 sm:pl-5 dark:text-gray-400">
+                        <tr key={`g${i}`}>
+                          <th scope="colgroup" colSpan={3} className="border-b border-gray-100 bg-gray-50 px-4 py-1.5 text-left text-xs font-semibold text-gray-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
                             {r.group}
                           </th>
                         </tr>
                       ) : (
-                        <tr key={r.subject.subjectId} className="border-b border-gray-100 align-top dark:border-gray-800">
-                          <th scope="row" className="px-4 py-3 text-left font-normal sm:pl-5">
-                            <span className="block font-semibold text-gray-800 dark:text-white/90">{r.subject.code}</span>
-                            <span className="block text-gray-600 dark:text-gray-400">{r.subject.name}</span>
+                        <tr key={r.subject.subjectId} className="align-middle">
+                          <th scope="row" className="border-b border-gray-100 px-4 py-1.5 text-left font-normal dark:border-gray-800">
+                            <span className="font-semibold text-gray-800 dark:text-white/90">{r.subject.code}</span>
+                            <span className="ml-2 text-gray-600 dark:text-gray-400">{r.subject.name}</span>
                           </th>
                           {COLUMNS.map((c, k) => (
-                            <td key={c.key} className="px-3 py-2.5">
+                            <td key={c.key} className="border-b border-gray-100 px-3 py-1.5 dark:border-gray-800">
                               <StaffPicker
                                 label={`${c.title} for ${r.subject.code}`}
                                 staff={staff}
@@ -322,8 +312,6 @@ export default function ExaminerLetters() {
                 </table>
               </div>
             )}
-
-            <LetterActionBar summary={`${countWord(examinerCount, "examiner")} · ${countWord(moderatorCount, "moderator")}`} dirty={dirty} saving={saving} onUndo={undo} onSave={save} />
           </div>
         )}
       </div>

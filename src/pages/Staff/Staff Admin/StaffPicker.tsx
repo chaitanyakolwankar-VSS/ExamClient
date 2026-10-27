@@ -23,8 +23,8 @@ interface Props {
   onRemove: (staffId: string) => void;
 }
 
-const PANEL_WIDTH = 288;
-const PANEL_HEIGHT = 320;
+const PANEL_WIDTH = 256;
+const PANEL_HEIGHT = 280;
 const MAX_SHOWN = 100;
 
 /** The line of small grey text under a name in the list. */
@@ -129,24 +129,26 @@ export default function StaffPicker({ label, staff, chosen, blocked, onAdd, onRe
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1">
       {chosen.map((c) => (
-        <span key={c.id} className="inline-flex items-center gap-1 rounded-lg bg-gray-100 py-1 pl-2.5 pr-1 text-sm text-gray-800 dark:bg-white/[0.06] dark:text-white/90">
-          <span className="flex flex-col leading-tight">
-            <span>
-              {c.name}
-              {c.external && <span className="text-gray-500 dark:text-gray-400"> · External</span>}
-            </span>
-            {c.letterNo && <span className="font-mono text-[11px] text-gray-400 dark:text-gray-500">{c.letterNo}</span>}
+        <span
+          key={c.id}
+          title={c.letterNo ? `${c.name} · ${c.letterNo}` : c.name}
+          className="inline-flex items-center gap-1 rounded-full bg-gray-100 py-0.5 pl-2 pr-0.5 text-xs text-gray-800 dark:bg-white/[0.06] dark:text-white/90"
+        >
+          <span>
+            {c.name}
+            {c.external && <span className="text-gray-500 dark:text-gray-400"> · External</span>}
           </span>
+          {c.letterNo && <span className="font-mono text-[10px] text-gray-400 dark:text-gray-500">{c.letterNo}</span>}
           <button
             type="button"
             onClick={() => onRemove(c.id)}
             aria-label={`Remove ${c.name} (${label})`}
             title="Remove"
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden dark:hover:bg-white/10 dark:hover:text-white"
+            className="rounded-full p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden dark:hover:bg-white/10 dark:hover:text-white"
           >
-            <X className="size-3.5" aria-hidden="true" />
+            <X className="size-3" aria-hidden="true" />
           </button>
         </span>
       ))}
@@ -158,9 +160,9 @@ export default function StaffPicker({ label, staff, chosen, blocked, onAdd, onRe
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={`Add ${label}`}
-        className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-brand-500 hover:bg-brand-50 focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden dark:text-brand-400 dark:hover:bg-white/[0.05]"
+        className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium text-brand-500 hover:bg-brand-50 focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden dark:text-brand-400 dark:hover:bg-white/[0.05]"
       >
-        <Plus className="size-4" aria-hidden="true" /> Add
+        <Plus className="size-3.5" aria-hidden="true" /> Add
       </button>
 
       {open &&
@@ -168,7 +170,7 @@ export default function StaffPicker({ label, staff, chosen, blocked, onAdd, onRe
           <div
             ref={panelRef}
             style={{ position: "fixed", left: place.left, top: place.top, bottom: place.bottom, width: PANEL_WIDTH }}
-            className="z-50 rounded-xl border border-gray-200 bg-white p-2 shadow-theme-lg dark:border-gray-700 dark:bg-gray-900"
+            className="z-50 rounded-lg border border-gray-200 bg-white p-1.5 shadow-theme-lg dark:border-gray-700 dark:bg-gray-900"
           >
             <input
               ref={inputRef}
@@ -187,9 +189,9 @@ export default function StaffPicker({ label, staff, chosen, blocked, onAdd, onRe
               onKeyDown={onKeyDown}
               placeholder="Name, ID or college"
               autoComplete="off"
-              className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:text-white/90"
+              className="h-8 w-full rounded-md border border-gray-300 bg-transparent px-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:text-white/90"
             />
-            <ul id={listId} role="listbox" aria-label={label} style={{ maxHeight: PANEL_HEIGHT - 70 }} className="mt-2 overflow-y-auto overscroll-contain">
+            <ul id={listId} role="listbox" aria-label={label} style={{ maxHeight: PANEL_HEIGHT - 56 }} className="mt-1.5 overflow-y-auto overscroll-contain">
               {shown.map((s, i) => (
                 <li
                   key={s.staffId}
@@ -199,15 +201,15 @@ export default function StaffPicker({ label, staff, chosen, blocked, onAdd, onRe
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => pick(s)}
                   onMouseMove={() => i !== active && setActive(i)}
-                  className={`cursor-pointer rounded-lg px-3 py-2 ${i === active ? "bg-brand-50 dark:bg-white/[0.06]" : ""}`}
+                  className={`cursor-pointer rounded-md px-2.5 py-1 ${i === active ? "bg-brand-50 dark:bg-white/[0.06]" : ""}`}
                 >
-                  <span className="block truncate text-sm text-gray-800 dark:text-white/90">{s.name}</span>
-                  {detailOf(s) && <span className="block truncate text-xs text-gray-500 dark:text-gray-400">{detailOf(s)}</span>}
+                  <span className="block truncate text-sm leading-tight text-gray-800 dark:text-white/90">{s.name}</span>
+                  {detailOf(s) && <span className="block truncate text-[11px] leading-tight text-gray-500 dark:text-gray-400">{detailOf(s)}</span>}
                 </li>
               ))}
             </ul>
-            {shown.length === 0 && <p className="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">{query.trim() ? "No one matches." : "No one left to add."}</p>}
-            {options.length > shown.length && <p className="px-3 pt-2 text-xs text-gray-500 dark:text-gray-400">Keep typing to narrow the list.</p>}
+            {shown.length === 0 && <p className="px-2.5 py-2 text-sm text-gray-500 dark:text-gray-400">{query.trim() ? "No one matches." : "No one left to add."}</p>}
+            {options.length > shown.length && <p className="px-2.5 pt-1.5 text-xs text-gray-500 dark:text-gray-400">Keep typing to narrow the list.</p>}
           </div>,
           document.body,
         )}
