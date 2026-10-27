@@ -92,7 +92,7 @@ const AppSidebar: React.FC = () => {
   const mainItems = useMemo(() => {
     const groups: NavItem[] = [];
     for (const module of MODULE_ORDER) {
-      const subItems = SCREENS.filter((s) => s.module === module && canAccess(s)).map((s) => ({
+      const subItems = SCREENS.filter((s) => s.module === module && !s.hidden && canAccess(s)).map((s) => ({
         icon: <SubMenuIcon />,
         name: s.label,
         path: s.path,

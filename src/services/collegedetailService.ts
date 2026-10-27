@@ -12,6 +12,8 @@ export interface CreateCollegePayload{
     /** Signature images printed on marksheets (and the Principal's on hall tickets). */
     controllerSignature?:File|null;
     principalSignature?:File|null;
+    /** The office round seal, printed on hall tickets. */
+    seal?:File|null;
 }
 
 const createCollege=async(payload:CreateCollegePayload)=>{
@@ -48,6 +50,7 @@ const updateCollege=async(id:string,payload:CreateCollegePayload)=>{
     if(payload.banner) formData.append("Banner",payload.banner);
     if(payload.controllerSignature) formData.append("ControllerSignature",payload.controllerSignature);
     if(payload.principalSignature) formData.append("PrincipalSignature",payload.principalSignature);
+    if(payload.seal) formData.append("Seal",payload.seal);
 
     const response=await apiClient.put(`/CollegeDetail/${id}`,formData,{
         headers:{"Content-Type":"multipart/form-data"}

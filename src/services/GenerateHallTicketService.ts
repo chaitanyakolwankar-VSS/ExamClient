@@ -40,6 +40,9 @@ export interface StudentHallTicketData {
     centre: string;
     seat:string;
     studentid:string;
+    /** ERN and ABC ID; empty when not on record. */
+    ern?: string;
+    abcId?: string;
     /** Stored path of the student photo; shown via the authenticated /Files endpoint. */
     photo?: string | null;
     /** Stored path of the student signature (same /Files access); null when none. */
@@ -74,6 +77,9 @@ export interface HallTicketCollege{
     collegeName?:string;
     /** Stored path of the Principal's signature image; empty when none. */
     principalSign?:string;
+    /** Stored paths of the Controller of Examinations' signature and the office seal; empty when none. */
+    controllerSign?:string;
+    seal?:string;
 }
  
 export const GenerateHallTicketService = {

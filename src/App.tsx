@@ -10,6 +10,7 @@ import PlatformLayout from "./layouts/Platform/Layout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import TopLoader from "./components/common/TopLoader";
 import PageFallback from "./components/common/PageFallback";
+import ResolutionReport from "./pages/Staff/Reports/ResolutionReport.tsx";
 
 // Pages load on first visit (their own chunks), so the sign-in page does not wait for the whole app.
 const NotFound = lazy(() => import("./pages/OtherPage/NotFound"));
@@ -86,8 +87,17 @@ const StudentAssignReport = lazy(
 const ATKTCommulativeReport = lazy(
   () => import("./pages/Staff/Reports/ATKTCommulativeReport.tsx"),
 );
-const ResolutionReport = lazy(
-  () => import("./pages/Staff/Reports/ResolutionReport.tsx"),
+// Student site: reached from an emailed link, no staff sign-in.
+const ForgotPassword = lazy(
+  () => import("./pages/AuthPages/ForgotPassword.tsx"),
+);
+const StudentPortal = lazy(
+  () => import("./pages/StudentSite/StudentPortal.tsx"),
+);
+const StudentLinkEntry = lazy(() =>
+  import("./pages/StudentSite/StudentPortal.tsx").then((m) => ({
+    default: m.StudentLinkEntry,
+  })),
 );
 
 export default function App() {
@@ -191,11 +201,14 @@ export default function App() {
               </Route>
             </Route>
 
-            {/* FUTURE: STUDENT PORTAL (Master Page 2) */}
-            {/* <Route path="/student" element={<StudentLayout />}> ... </Route> */}
+            {/* STUDENT SITE: an emailed link (/s#<token>; older ones /s/<token>) and a 6-digit code; its own session, no staff sign-in */}
+            <Route path="/s" element={<StudentLinkEntry />} />
+            <Route path="/s/:token" element={<StudentLinkEntry />} />
+            <Route path="/student" element={<StudentPortal />} />
 
             {/* AUTHENTICATION (Shared) */}
             <Route path="/signin" element={<SignIn />} />
+            <Route path="/reset-password" element={<ForgotPassword />} />
 
             {/* DEFAULT REDIRECT */}
             <Route

@@ -287,8 +287,9 @@ export default function Ordinance() {
           });
         }
       }
-    } catch {
-      setPageAlert({ variant: "error", title: "Error", message: "Unexpected error linking Grade Master." });
+    } catch (error) {
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setPageAlert({ variant: "error", title: "Error", message: apiMessage || "Unexpected error linking Grade Master." });
     } finally {
       setIsLinkingGrade(false);
     }
@@ -355,8 +356,9 @@ export default function Ordinance() {
       } else {
         setGradeModalAlert({ variant: "error", title: "Error", message: response.message });
       }
-    } catch {
-      setGradeModalAlert({ variant: "error", title: "Error", message: "Unexpected error occurred." });
+    } catch (error) {
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setGradeModalAlert({ variant: "error", title: "Error", message: apiMessage || "Unexpected error occurred." });
     } finally {
       setIsGradeSubmitting(false);
     }
@@ -502,11 +504,12 @@ export default function Ordinance() {
           message: response.message || "Operation failed.",
         });
       }
-    } catch {
+    } catch (error) {
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setPatternModalAlert({
         variant: "error",
         title: "Error!",
-        message: "An unexpected error occurred.",
+        message: apiMessage || "An unexpected error occurred.",
       });
     } finally {
       setIsSubmitting(false);
@@ -541,11 +544,12 @@ export default function Ordinance() {
               message: response.message || "Failed to delete pattern.",
             });
           }
-        } catch {
+        } catch (error) {
+          const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
           setPatternModalAlert({
             variant: "error",
             title: "Error!",
-            message: "An unexpected error occurred.",
+            message: apiMessage || "An unexpected error occurred.",
           });
         }
       }
@@ -667,11 +671,12 @@ export default function Ordinance() {
           message: response.message || "Operation failed.",
         });
       }
-    } catch {
+    } catch (error) {
+      const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setRuleSetModalAlert({
         variant: "error",
         title: "Error!",
-        message: "An unexpected error occurred.",
+        message: apiMessage || "An unexpected error occurred.",
       });
     } finally {
       setIsSubmitting(false);
@@ -705,11 +710,12 @@ export default function Ordinance() {
               message: response.message || "Failed to delete ruleset.",
             });
           }
-        } catch {
+        } catch (error) {
+          const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
           setRuleSetModalAlert({
             variant: "error",
             title: "Error!",
-            message: "An unexpected error occurred.",
+            message: apiMessage || "An unexpected error occurred.",
           });
         }
       }
@@ -907,11 +913,12 @@ export default function Ordinance() {
               message: response.message || "Failed to delete rule.",
             });
           }
-        } catch {
+        } catch (error) {
+          const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
           setPageAlert({
             variant: "error",
             title: "Error",
-            message: "An unexpected error occurred.",
+            message: apiMessage || "An unexpected error occurred.",
           });
         }
       }
