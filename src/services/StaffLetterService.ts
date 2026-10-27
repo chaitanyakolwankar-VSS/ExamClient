@@ -136,6 +136,70 @@ export interface LetterSettingsSave {
   capContact: string;
 }
 
+/** Which letters an email or a merged PDF is about. */
+export type LetterKind = "supervision" | "appointment";
+
+export interface LetterEmailRequest {
+  examId: string;
+  kind: LetterKind | "all";
+  /** Only these people; left out for everyone with a letter. */
+  staffIds?: string[];
+  /** Skip people who were already emailed. */
+  onlyNotSent: boolean;
+}
+
+export interface LetterEmailPreview {
+  /** People with a live letter of this kind for the exam (after the filters above). */
+  people: number;
+  withEmail: number;
+  alreadySent: number;
+  letters: number;
+  /** Names of the people with no email address. */
+  noEmail: string[];
+  /** False when no email account is set up, so nothing can be sent. */
+  senderReady: boolean;
+}
+
+export interface LetterEmailResult {
+  queued: number;
+  skipped: number;
+  message: string;
+}
+
+/** How far each person got with the link they were emailed (the latest link for the exam). */
+export interface LetterEmailStatus {
+  staffId: string;
+  sentAt: string | null;
+  openedAt: string | null;
+  downloadedAt: string | null;
+}
+
+/** The address of this app, so the emailed link points back to it. */
+const appUrl = () => `${window.location.origin}${import.meta.env.BASE_URL}`.replace(/\/+$/, "");
+
+/** A PDF response; when the API answers with an error the blob holds its JSON, so the reason is read out of it. */
+async function getPdf(url: string, params?: Record<string, string>): Promise<{ blob: Blob; fileName: string }> {
+  try {
+    const res = await apiClient.get<Blob>(url, { params, responseType: "blob" });
+    const disposition = String(res.headers["content-disposition"] ?? "");
+    const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+    return { blob: new Blob([res.data], { type: "application/pdf" }), fileName: match ? decodeURIComponent(match[1]) : "Letter.pdf" };
+  } catch (err) {
+    const data = (err as { response?: { data?: unknown } })?.response?.data;
+    if (data instanceof Blob) {
+      let message = "";
+      try {
+        const parsed = JSON.parse(await data.text());
+        message = typeof parsed === "string" ? parsed : (parsed?.message ?? "");
+      } catch {
+        /* not JSON: the fallback wording is used */
+      }
+      throw { response: { data: { message } } };
+    }
+    throw err;
+  }
+}
+
 export const StaffLetterService = {
   async exams(ayid: string): Promise<ExamGroup[]> {
     const res = await apiClient.get<ExamGroup[]>("/StaffLetters/exams", { params: { ayid } });
@@ -159,6 +223,31 @@ export const StaffLetterService = {
 
   async saveAppointments(dto: AppointmentSave): Promise<AppointmentSaveResult> {
     const res = await apiClient.put<AppointmentSaveResult>("/StaffLetters/appointments", dto);
+    return res.data;
+  },
+
+  /** One letter as a PDF. */
+  pdf(letterId: string) {
+    return getPdf(`/StaffLetters/${letterId}/pdf`);
+  },
+
+  /** Every live letter of one kind for the exam, in one PDF. */
+  pdfAll(examId: string, kind: LetterKind) {
+    return getPdf("/StaffLetters/pdf", { examId, kind });
+  },
+
+  async emailPreview(dto: LetterEmailRequest): Promise<LetterEmailPreview> {
+    const res = await apiClient.post<LetterEmailPreview>("/StaffLetters/email/preview", dto);
+    return res.data;
+  },
+
+  async emailSend(dto: LetterEmailRequest): Promise<LetterEmailResult> {
+    const res = await apiClient.post<LetterEmailResult>("/StaffLetters/email", { ...dto, appUrl: appUrl() });
+    return res.data;
+  },
+
+  async emailStatus(examId: string): Promise<LetterEmailStatus[]> {
+    const res = await apiClient.get<LetterEmailStatus[]>("/StaffLetters/email/status", { params: { examId } });
     return res.data;
   },
 

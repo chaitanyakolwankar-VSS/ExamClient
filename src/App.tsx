@@ -51,6 +51,8 @@ const ExaminerLetters = lazy(() => import("./pages/Staff/Staff Admin/ExaminerLet
 const ForgotPassword = lazy(() => import("./pages/AuthPages/ForgotPassword.tsx"));
 const StudentPortal = lazy(() => import("./pages/StudentSite/StudentPortal.tsx"));
 const StudentLinkEntry = lazy(() => import("./pages/StudentSite/StudentPortal.tsx").then((m) => ({ default: m.StudentLinkEntry })));
+const StaffPortal = lazy(() => import("./pages/StaffSite/StaffPortal.tsx"));
+const StaffLinkEntry = lazy(() => import("./pages/StaffSite/StaffPortal.tsx").then((m) => ({ default: m.StaffLinkEntry })));
 
 
 export default function App() {
@@ -129,6 +131,9 @@ export default function App() {
           <Route path="/s" element={<StudentLinkEntry />} />
           <Route path="/s/:token" element={<StudentLinkEntry />} />
           <Route path="/student" element={<StudentPortal />} />
+          {/* STAFF LETTERS SITE: an emailed link (/t#<token>) and a 6-digit code; its own session, no staff sign-in */}
+          <Route path="/t" element={<StaffLinkEntry />} />
+          <Route path="/staff-letters" element={<StaffPortal />} />
 
           {/* AUTHENTICATION (Shared) */}
           <Route path="/signin" element={<SignIn />} />

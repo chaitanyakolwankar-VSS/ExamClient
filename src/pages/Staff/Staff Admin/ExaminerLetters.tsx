@@ -1,14 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import PageMeta from "../../../components/common/PageMeta";
+import ComponentCard from "../../../components/common/ComponentCard";
+import Select from "../../../components/form/Select";
+import Checkbox from "../../../components/form/input/Checkbox";
 import { useAcademicYear } from "../../../context/AcademicYearContext";
 import { StaffService } from "../../../services/StaffService";
 import type { Staff } from "../../../services/StaffService";
 import { StaffLetterService } from "../../../services/StaffLetterService";
 import type { AppointmentData, AppointmentSubject, AppointmentType, ExamGroup } from "../../../services/StaffLetterService";
-import StaffPicker from "./StaffPicker";
-import type { PickedPerson } from "./StaffPicker";
-import { LetterActions, LetterNotice, LetterPageHeader, LetterSearch, LetterSummary } from "./LetterPageParts";
+import LettersView from "./LettersView";
+import type { LetterRow } from "./LettersView";
+import {
+  ExamField,
+  GroupedSelect,
+  LetterActions,
+  LetterDateField,
+  LetterNotice,
+  LetterPageHeader,
+  LetterSearch,
+  LetterSummary,
+  MiniChoice,
+  tableCell,
+  tableHead,
+} from "./LetterPageParts";
+import type { LetterView } from "./LetterPageParts";
 import { apiReason, confirmLeave, confirmUndo, countWord, escapeHtml, today } from "./letterHelpers";
 
 /** Who is down as examiner and as moderator for one subject (staff ids). */
@@ -17,16 +33,11 @@ interface Pick {
   moderators: string[];
 }
 type Picks = Record<string, Pick>;
-type Column = keyof Pick;
 
-const COLUMNS: { key: Column; type: AppointmentType; title: string }[] = [
-  { key: "examiners", type: "EXAMINER", title: "Examiner" },
-  { key: "moderators", type: "MODERATOR", title: "Moderator" },
-];
+/** What a person is for the chosen subject. */
+type Role = "none" | "examiner" | "moderator";
 
 const NONE: string[] = [];
-
-const head = "sticky top-0 z-10 border-b border-gray-200 bg-gray-50 py-1.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400";
 
 /** A fingerprint of who is down for what; two screens with the same fingerprint would save the same letters. */
 const fingerprint = (picks: Picks) =>
@@ -53,10 +64,30 @@ const groupTitle = (s: AppointmentSubject) => [s.branch, semesterText(s.semester
 
 const letterKey = (subjectId: string, type: AppointmentType, staffId: string) => `${subjectId}|${type}|${staffId}`;
 
-/** Examiner and moderator letters: choose who assesses each subject of an exam; saving numbers and records one letter each. */
+/** One line of the table: a member of staff, or someone who left but still holds a letter for this subject. */
+interface Person {
+  id: string;
+  name: string;
+  detail: string;
+  department: string;
+  external: boolean;
+  left: boolean;
+}
+
+const personOf = (s: Staff): Person => ({
+  id: s.staffId,
+  name: s.name,
+  detail: s.isExternal ? ["External", s.externalCollege].filter(Boolean).join(" · ") : [s.employeeCode, s.designation].filter(Boolean).join(" · "),
+  department: s.department ?? "",
+  external: s.isExternal,
+  left: false,
+});
+
+/** Examiner and moderator letters: pick a subject, mark who assesses it, save. Saving numbers and records one letter per person and subject. */
 export default function ExaminerLetters() {
   const { ayid } = useAcademicYear();
 
+  const [view, setView] = useState<LetterView>("assign");
   const [exams, setExams] = useState<ExamGroup[]>([]);
   const [examId, setExamId] = useState("");
   const [staff, setStaff] = useState<Staff[] | null>(null);
@@ -67,7 +98,11 @@ export default function ExaminerLetters() {
   const [letterDate, setLetterDate] = useState(today);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
+
+  const [subjectId, setSubjectId] = useState("");
   const [search, setSearch] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [externalOnly, setExternalOnly] = useState(false);
 
   const requestId = useRef(0);
   const dirty = !!data && fingerprint(picks) !== baseline;
@@ -113,6 +148,8 @@ export default function ExaminerLetters() {
       setData(d);
       setPicks(p);
       setBaseline(fingerprint(p));
+      // The first subject is chosen for you; after a save the subject you were on stays.
+      setSubjectId((current) => (d.subjects.some((s) => s.subjectId === current) ? current : (d.subjects[0]?.subjectId ?? "")));
     } catch (err) {
       if (mine !== requestId.current) return;
       setData(null);
@@ -123,6 +160,10 @@ export default function ExaminerLetters() {
   }, []);
 
   useEffect(() => {
+    setSubjectId("");
+    setSearch("");
+    setDepartmentId("");
+    setExternalOnly(false);
     if (!examId) {
       requestId.current++;
       setData(null);
@@ -149,7 +190,7 @@ export default function ExaminerLetters() {
   };
 
   const undo = async () => {
-    if (data && (await confirmUndo("The screen goes back to what is saved."))) setPicks(picksFromLetters(data));
+    if (data && (await confirmUndo("The choices go back to what is saved."))) setPicks(picksFromLetters(data));
   };
 
   // ---- who is who ----
@@ -157,40 +198,65 @@ export default function ExaminerLetters() {
   const savedLetters = useMemo(() => new Map((data?.letters ?? []).map((l) => [letterKey(l.subjectId, l.type, l.staffId), l])), [data]);
   // A person who left may still hold a letter; their name comes from the letter.
   const letterNames = useMemo(() => new Map((data?.letters ?? []).map((l) => [l.staffId, l.staffName])), [data]);
+  const subjectsById = useMemo(() => new Map((data?.subjects ?? []).map((s) => [s.subjectId, s])), [data]);
+  const departments = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const s of staff ?? []) if (s.departmentId && s.department) seen.set(s.departmentId, s.department);
+    return [...seen].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [staff]);
 
-  const chosenFor = (subjectId: string, column: (typeof COLUMNS)[number]): PickedPerson[] =>
-    (picks[subjectId]?.[column.key] ?? NONE).map((id) => ({
-      id,
-      name: staffById.get(id)?.name ?? letterNames.get(id) ?? "Unknown",
-      external: !!staffById.get(id)?.isExternal,
-      letterNo: savedLetters.get(letterKey(subjectId, column.type, id))?.letterNo ?? "",
-    }));
+  const roleOf = (subject: string, staffId: string): Role =>
+    picks[subject]?.examiners.includes(staffId) ? "examiner" : picks[subject]?.moderators.includes(staffId) ? "moderator" : "none";
 
-  const change = (subjectId: string, column: Column, fn: (ids: string[]) => string[]) =>
+  const setRole = (subject: string, staffId: string, role: Role) =>
     setPicks((current) => {
-      const row = current[subjectId] ?? { examiners: [], moderators: [] };
-      return { ...current, [subjectId]: { ...row, [column]: fn(row[column]) } };
+      const row = current[subject] ?? { examiners: [], moderators: [] };
+      const examiners = row.examiners.filter((x) => x !== staffId);
+      const moderators = row.moderators.filter((x) => x !== staffId);
+      if (role === "examiner") examiners.push(staffId);
+      if (role === "moderator") moderators.push(staffId);
+      return { ...current, [subject]: { examiners, moderators } };
     });
 
   // ---- what is shown ----
-  const rows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const list: ({ group: string } | { subject: AppointmentSubject })[] = [];
-    let last = "";
-    for (const s of data?.subjects ?? []) {
-      if (q && !`${s.code} ${s.name} ${s.branch}`.toLowerCase().includes(q)) continue;
-      const title = groupTitle(s);
-      if (title !== last) {
-        list.push({ group: title });
-        last = title;
-      }
-      list.push({ subject: s });
-    }
-    return list;
-  }, [data, search]);
+  const subject = subjectsById.get(subjectId);
 
-  const examinerCount = Object.values(picks).reduce((n, p) => n + p.examiners.length, 0);
-  const moderatorCount = Object.values(picks).reduce((n, p) => n + p.moderators.length, 0);
+  const subjectGroups = useMemo(() => {
+    const groups = new Map<string, { title: string; options: { value: string; label: string }[] }>();
+    for (const s of data?.subjects ?? []) {
+      const title = groupTitle(s) || "Subjects";
+      const group = groups.get(title) ?? { title, options: [] };
+      const p = picks[s.subjectId];
+      group.options.push({
+        value: s.subjectId,
+        label: `${s.code} ${s.name} (${countWord(p?.examiners.length ?? 0, "examiner")}, ${countWord(p?.moderators.length ?? 0, "moderator")})`,
+      });
+      groups.set(title, group);
+    }
+    return [...groups.values()];
+  }, [data, picks]);
+
+  const shown = useMemo(() => {
+    if (!subject) return [];
+    const q = search.trim().toLowerCase();
+    const list = (staff ?? [])
+      .filter((s) => {
+        if (departmentId && s.departmentId !== departmentId) return false;
+        if (externalOnly && !s.isExternal) return false;
+        return !q || `${s.name} ${s.employeeCode ?? ""} ${s.externalCollege ?? ""} ${s.department ?? ""} ${s.designation ?? ""}`.toLowerCase().includes(q);
+      })
+      .map(personOf);
+    // Someone who left but still holds a letter for this subject stays in view, so the letter can be cancelled.
+    const p = picks[subject.subjectId] ?? { examiners: NONE, moderators: NONE };
+    const left = [...p.examiners, ...p.moderators]
+      .filter((id) => !staffById.has(id))
+      .map<Person>((id) => ({ id, name: letterNames.get(id) ?? "Unknown", detail: "No longer in the staff list", department: "", external: false, left: true }));
+    return [...left, ...list];
+  }, [subject, staff, staffById, picks, letterNames, search, departmentId, externalOnly]);
+
+  const examinerTotal = Object.values(picks).reduce((n, p) => n + p.examiners.length, 0);
+  const moderatorTotal = Object.values(picks).reduce((n, p) => n + p.moderators.length, 0);
+  const here = subject ? picks[subject.subjectId] : undefined;
 
   // ---- save ----
   const save = async () => {
@@ -205,12 +271,11 @@ export default function ExaminerLetters() {
 
     const cancelled = data.letters.filter((l) => !(picks[l.subjectId]?.[l.type === "MODERATOR" ? "moderators" : "examiners"] ?? NONE).includes(l.staffId));
     if (cancelled.length > 0) {
-      const codes = new Map(data.subjects.map((s) => [s.subjectId, s.code]));
       const ok = await Swal.fire({
         icon: "warning",
         title: "Cancel letters?",
         html: `<p>${countWord(cancelled.length, "letter")} will be cancelled:</p><ul style="text-align:left;margin:8px 0 0 18px;list-style:disc">${cancelled
-          .map((l) => `<li><b>${escapeHtml(l.staffName)}</b>, ${l.type === "MODERATOR" ? "Moderator" : "Examiner"} for ${escapeHtml(codes.get(l.subjectId) ?? "")} (${escapeHtml(l.letterNo)})</li>`)
+          .map((l) => `<li><b>${escapeHtml(l.staffName)}</b>, ${l.type === "MODERATOR" ? "Moderator" : "Examiner"} for ${escapeHtml(subjectsById.get(l.subjectId)?.code ?? "")} (${escapeHtml(l.letterNo)})</li>`)
           .join("")}</ul><p style="font-size:13px;color:#6b7280;margin-top:10px">A cancelled letter number is not used again.</p>`,
         showCancelButton: true,
         confirmButtonText: "Save and cancel them",
@@ -231,6 +296,22 @@ export default function ExaminerLetters() {
     }
   };
 
+  const letterRows: LetterRow[] = useMemo(
+    () =>
+      (data?.letters ?? []).map((l) => {
+        const s = subjectsById.get(l.subjectId);
+        return {
+          letterId: l.letterId,
+          staffId: l.staffId,
+          letterNo: l.letterNo,
+          name: l.staffName,
+          role: l.type === "MODERATOR" ? "Moderator" : "Examiner",
+          detail: s ? `${s.code} ${s.name}` : "",
+        };
+      }),
+    [data, subjectsById],
+  );
+
   const exam = data?.exam ?? exams.find((e) => e.examId === examId);
   const info = data
     ? `${countWord(data.subjects.length, "subject")} · ${countWord(data.exam.appointmentCount, "letter")}`
@@ -240,74 +321,102 @@ export default function ExaminerLetters() {
         ? "No exam in this academic year has a timetable yet. Save its timetable in Generate Hall Ticket first."
         : exam
           ? "Loading the subjects…"
-          : "Choose an exam to see its subjects. Saving gives each person a numbered letter.";
+          : "Choose an exam, then a subject, and mark who is the examiner or moderator. Saving gives each person a numbered letter.";
+
+  const hasSubjects = !!data && data.subjects.length > 0;
 
   return (
     <>
       <PageMeta title="GradeSphere | Examiner Letters" description="Appoint examiners and moderators for the subjects of an exam" />
       <div className="min-w-0 space-y-4">
-        <LetterPageHeader title="Examiner Letters" info={info} exams={exams} examId={examId} onExam={chooseExam} letterDate={letterDate} onLetterDate={setLetterDate} />
+        <LetterPageHeader title="Examiner Letters" info={info} view={view} onView={setView} />
+
+        <ComponentCard title="Examiner and moderator - Filters">
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <ExamField exams={exams} examId={examId} onExam={chooseExam} />
+            {view === "assign" && hasSubjects && (
+              <>
+                <div className="lg:col-span-2">
+                  <GroupedSelect label="Subject" placeholder="Select Subject" groups={subjectGroups} value={subjectId} onChange={setSubjectId} />
+                </div>
+                <LetterDateField value={letterDate} onChange={setLetterDate} />
+              </>
+            )}
+          </div>
+          {view === "assign" && hasSubjects && (
+            <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <LetterSearch value={search} onChange={setSearch} placeholder="Name, ID, college or department" label="Search staff" />
+              <Select options={[{ value: "", label: "All departments" }, ...departments]} placeholder="All departments" value={departmentId} onChange={setDepartmentId} />
+              <Checkbox label="Show external only" checked={externalOnly} onChange={setExternalOnly} />
+            </div>
+          )}
+        </ComponentCard>
 
         {examId && loadingData && !data && <p className="text-sm text-gray-500 dark:text-gray-400">Loading the exam's subjects and staff…</p>}
 
-        {data && staff && data.subjects.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">This exam has no subjects yet.</p>}
+        {data && data.subjects.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">This exam has no subjects yet.</p>}
 
-        {data && staff && data.subjects.length > 0 && (
+        {view === "letters" && data && <LettersView examId={data.exam.examId} examTitle={data.exam.title} kind="appointment" rows={letterRows} dirty={dirty} loadedKey={data} />}
+
+        {view === "assign" && hasSubjects && staff && (
           <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-              <LetterSearch value={search} onChange={setSearch} placeholder="Subject code, name or branch" label="Search subjects" />
-              <LetterSummary text={`${countWord(examinerCount, "examiner")} · ${countWord(moderatorCount, "moderator")}`} />
+              <LetterSummary
+                text={`${countWord(here?.examiners.length ?? 0, "examiner")}, ${countWord(here?.moderators.length ?? 0, "moderator")} for this subject · ${countWord(examinerTotal + moderatorTotal, "letter")} in all`}
+              />
               <LetterActions dirty={dirty} saving={saving} onUndo={undo} onSave={save} />
             </div>
 
             <LetterNotice message={notice} onDismiss={() => setNotice("")} />
 
-            {rows.length === 0 ? (
-              <p className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">No subject matches your search.</p>
+            {shown.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">{staff.length === 0 ? "No staff yet. Add them in Staff Master first." : "No staff match your search."}</p>
             ) : (
               <div className="max-h-[70vh] overflow-auto overscroll-contain">
                 <table className="w-full min-w-[40rem] border-separate border-spacing-0 text-sm">
                   <thead>
                     <tr>
-                      <th scope="col" className={`${head} w-[35%] px-4`}>
-                        Subject
+                      <th scope="col" className={tableHead}>
+                        Name
                       </th>
-                      {COLUMNS.map((c) => (
-                        <th key={c.key} scope="col" className={`${head} px-3`}>
-                          {c.title}
-                        </th>
-                      ))}
+                      <th scope="col" className={tableHead}>
+                        Department
+                      </th>
+                      <th scope="col" className={tableHead}>
+                        For {subject?.code}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((r, i) =>
-                      "group" in r ? (
-                        <tr key={`g${i}`}>
-                          <th scope="colgroup" colSpan={3} className="border-b border-gray-100 bg-gray-50 px-4 py-1.5 text-left text-xs font-semibold text-gray-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
-                            {r.group}
-                          </th>
+                    {shown.map((p) => {
+                      const role = roleOf(subject!.subjectId, p.id);
+                      const letterNo =
+                        role === "none" ? "" : (savedLetters.get(letterKey(subject!.subjectId, role === "moderator" ? "MODERATOR" : "EXAMINER", p.id))?.letterNo ?? "");
+                      return (
+                        <tr key={p.id} className={role !== "none" ? "bg-brand-25/60 dark:bg-brand-500/[0.04]" : "hover:bg-gray-50 dark:hover:bg-white/[0.02]"}>
+                          <td className={tableCell}>
+                            <span className="block font-medium text-gray-800 dark:text-white/90">{p.name}</span>
+                            <span className={`block text-xs ${p.left ? "text-warning-600 dark:text-orange-300" : "text-gray-500 dark:text-gray-400"}`}>
+                              {p.detail || " "}
+                              {letterNo && <span className="ml-2 font-mono text-[11px] text-gray-400 dark:text-gray-500">{letterNo}</span>}
+                            </span>
+                          </td>
+                          <td className={`${tableCell} text-gray-700 dark:text-gray-300`}>{p.department || "—"}</td>
+                          <td className={tableCell}>
+                            <MiniChoice
+                              label={`${p.name} for ${subject!.code}`}
+                              value={role}
+                              onChange={(r) => setRole(subject!.subjectId, p.id, r)}
+                              options={[
+                                { value: "none", label: "—" },
+                                { value: "examiner", label: "Examiner" },
+                                { value: "moderator", label: "Moderator" },
+                              ]}
+                            />
+                          </td>
                         </tr>
-                      ) : (
-                        <tr key={r.subject.subjectId} className="align-middle">
-                          <th scope="row" className="border-b border-gray-100 px-4 py-1.5 text-left font-normal dark:border-gray-800">
-                            <span className="font-semibold text-gray-800 dark:text-white/90">{r.subject.code}</span>
-                            <span className="ml-2 text-gray-600 dark:text-gray-400">{r.subject.name}</span>
-                          </th>
-                          {COLUMNS.map((c, k) => (
-                            <td key={c.key} className="border-b border-gray-100 px-3 py-1.5 dark:border-gray-800">
-                              <StaffPicker
-                                label={`${c.title} for ${r.subject.code}`}
-                                staff={staff}
-                                chosen={chosenFor(r.subject.subjectId, c)}
-                                blocked={picks[r.subject.subjectId]?.[COLUMNS[1 - k].key] ?? NONE}
-                                onAdd={(id) => change(r.subject.subjectId, c.key, (ids) => [...ids, id])}
-                                onRemove={(id) => change(r.subject.subjectId, c.key, (ids) => ids.filter((x) => x !== id))}
-                              />
-                            </td>
-                          ))}
-                        </tr>
-                      ),
-                    )}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

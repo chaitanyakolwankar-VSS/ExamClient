@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, Save, Search, Settings2, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, FileText, Save, Search, Settings2, UserCheck, X } from "lucide-react";
 import Button from "../../../components/ui/button/Button";
 import Select from "../../../components/form/Select";
 import { Modal } from "../../../components/ui/modal";
@@ -8,40 +8,47 @@ import type { ExamGroup } from "../../../services/StaffLetterService";
 import LetterSettings from "./LetterSettings";
 import { apiReason, letterInputClass } from "./letterHelpers";
 
+export type LetterView = "assign" | "letters";
+
+/** Segmented-toggle button, as on Student Master. */
+const tabClass = (active: boolean) =>
+  `flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden focus-visible:ring-inset ${
+    active ? "bg-brand-500 text-white" : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/[0.03]"
+  }`;
+
 interface HeaderProps {
   title: string;
   /** One short grey line under the title (what is on the screen, or what to do next). */
   info: string;
-  exams: ExamGroup[];
-  examId: string;
-  onExam: (id: string) => void;
-  letterDate: string;
-  onLetterDate: (date: string) => void;
+  view: LetterView;
+  onView: (view: LetterView) => void;
 }
 
-/**
- * Title and one grey line on the left; the Exam, the Letter date and (for admins) a Letter settings button on the right.
- * Under a small screen the controls wrap below the title.
- */
-export function LetterPageHeader({ title, info, exams, examId, onExam, letterDate, onLetterDate }: HeaderProps) {
+/** Title and one grey line on the left; Assign | Letters (and, for admins, Letter settings) on the right, as on Student Master. */
+export function LetterPageHeader({ title, info, view, onView }: HeaderProps) {
   const { isAdmin } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">{title}</h2>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{info}</p>
         </div>
-        <div className="flex w-full flex-wrap items-center gap-3 pt-2 sm:w-auto">
-          {/* The floating labels sit on the page, not on a card, so they get the page colour. */}
-          <div className="w-full sm:w-72 [&_label]:bg-gray-50 dark:[&_label]:bg-gray-900">
-            <Select label="Exam" placeholder="Choose exam" options={exams.map((e) => ({ value: e.examId, label: e.title }))} value={examId} onChange={onExam} />
-          </div>
-          <div className="relative w-40" title="Letters already made keep their own date.">
-            <input type="date" value={letterDate} onChange={(e) => onLetterDate(e.target.value)} aria-label="Letter date" className={letterInputClass} />
-            <span className="pointer-events-none absolute left-2.5 top-0 -translate-y-1/2 bg-gray-50 px-1.5 text-xs text-brand-500 dark:bg-gray-900 dark:text-gray-400">Letter date</span>
+        <div className="flex items-center gap-2">
+          <div role="group" aria-label="Assign or see letters" className="flex overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
+            <button type="button" aria-pressed={view === "assign"} className={tabClass(view === "assign")} onClick={() => onView("assign")}>
+              <UserCheck className="size-4" aria-hidden="true" /> Assign
+            </button>
+            <button
+              type="button"
+              aria-pressed={view === "letters"}
+              className={`${tabClass(view === "letters")} border-l border-gray-300 dark:border-gray-700`}
+              onClick={() => onView("letters")}
+            >
+              <FileText className="size-4" aria-hidden="true" /> Letters
+            </button>
           </div>
           {isAdmin && (
             <button
@@ -49,7 +56,7 @@ export function LetterPageHeader({ title, info, exams, examId, onExam, letterDat
               onClick={() => setSettingsOpen(true)}
               title="Letter settings"
               aria-label="Letter settings"
-              className="flex size-11 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 hover:text-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden dark:border-gray-700 dark:bg-transparent dark:hover:bg-white/[0.05]"
+              className="flex size-[38px] items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 hover:text-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden dark:border-gray-700 dark:bg-transparent dark:hover:bg-white/[0.05]"
             >
               <Settings2 className="size-4" aria-hidden="true" />
             </button>
@@ -62,6 +69,57 @@ export function LetterPageHeader({ title, info, exams, examId, onExam, letterDat
         </div>
       </Modal>
     </>
+  );
+}
+
+/** The Exam drop-down of the filter card. */
+export function ExamField({ exams, examId, onExam }: { exams: ExamGroup[]; examId: string; onExam: (id: string) => void }) {
+  return <Select label="Exam" placeholder="Select Exam" options={exams.map((e) => ({ value: e.examId, label: e.title }))} value={examId} onChange={onExam} />;
+}
+
+/** The date printed on letters made by the next save. */
+export function LetterDateField({ value, onChange }: { value: string; onChange: (date: string) => void }) {
+  return (
+    <div className="relative w-full" title="Letters already made keep their own date.">
+      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} aria-label="Letter date" className={letterInputClass} />
+      <span className="pointer-events-none absolute left-2.5 top-0 -translate-y-1/2 bg-white px-1.5 text-xs text-brand-500 dark:bg-gray-900 dark:text-gray-400">Letter date</span>
+    </div>
+  );
+}
+
+export interface GroupedOption {
+  value: string;
+  label: string;
+}
+
+/** A drop-down like Select, with the options in titled groups. */
+export function GroupedSelect({ label, placeholder, groups, value, onChange }: { label: string; placeholder: string; groups: { title: string; options: GroupedOption[] }[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="relative h-fit w-full">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        className="h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pr-11 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+      >
+        <option value="" disabled>
+          {placeholder}
+        </option>
+        {groups.map((g) => (
+          <optgroup key={g.title} label={g.title}>
+            {g.options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      {value && (
+        <span className="pointer-events-none absolute left-2.5 top-0 -translate-y-1/2 bg-white px-1.5 text-xs text-brand-500 dark:bg-gray-900 dark:text-gray-400">{label}</span>
+      )}
+      <ChevronDown size={22} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+    </div>
   );
 }
 
@@ -79,18 +137,18 @@ export function LetterNotice({ message, onDismiss }: { message: string; onDismis
   );
 }
 
-/** One search box with a magnifier. */
+/** One search box with a magnifier, the same as Find staff. */
 export function LetterSearch({ value, onChange, placeholder, label }: { value: string; onChange: (v: string) => void; placeholder: string; label: string }) {
   return (
-    <div className="relative w-full sm:w-64">
-      <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+    <div className="relative">
+      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
       <input
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={label}
-        className="h-9 w-full rounded-lg border border-gray-300 bg-transparent pl-8 pr-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:text-white/90"
+        className="h-11 w-full rounded-lg border border-gray-300 bg-transparent pl-9 pr-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:text-white/90"
       />
     </div>
   );
@@ -102,6 +160,20 @@ export function LetterSummary({ text }: { text: string }) {
     <p className="text-sm text-gray-600 dark:text-gray-400" aria-live="polite">
       {text}
     </p>
+  );
+}
+
+/** A small text button of the table toolbar ("Tick all shown"). */
+export function TextButton({ children, onClick, title }: { children: React.ReactNode; onClick: () => void; title?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="rounded-md px-1.5 py-0.5 text-sm font-medium text-brand-500 hover:bg-brand-50 focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden dark:text-brand-400 dark:hover:bg-white/[0.05]"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -120,3 +192,31 @@ export function LetterActions({ dirty, saving, onUndo, onSave }: { dirty: boolea
     </div>
   );
 }
+
+/** Small pick-one buttons for a table row ("—", "Examiner", "Moderator"), looking like the Choice switch of the email screens. */
+export function MiniChoice<T extends string>({ value, options, onChange, label }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; label: string }) {
+  return (
+    <div className="inline-flex rounded-lg bg-gray-100 p-0.5 dark:bg-white/[0.05]" role="radiogroup" aria-label={label}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={`whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden ${
+            value === o.value ? "bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Table classes shared by the staff tables, so both screens look alike. */
+export const tableHead = "sticky top-0 z-10 border-b border-gray-200 bg-gray-50 px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400";
+export const tableCell = "border-b border-gray-100 px-4 py-2 align-middle dark:border-gray-800";
+export const rowSelectClass =
+  "h-9 w-full min-w-40 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 focus:outline-hidden disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:disabled:bg-white/[0.02]";
