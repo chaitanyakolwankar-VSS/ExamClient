@@ -9,13 +9,15 @@ interface Props {
   /** Only a college or platform admin can change the settings; everyone else sees them. */
   canEdit: boolean;
   reason: (err: unknown, fallback: string) => string;
+  /** Inside a window: no card border of its own, room by the title for the window's close button. */
+  embedded?: boolean;
 }
 
 // What a letter number may be made of: letters, digits, slash, dash and dot.
 const PREFIX = /^[A-Za-z0-9/.-]*$/;
 
 /** The college's letter number prefix and the CAP contact numbers printed on staff letters. */
-export default function LetterSettings({ canEdit, reason }: Props) {
+export default function LetterSettings({ canEdit, reason, embedded = false }: Props) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [prefix, setPrefix] = useState("");
   const [cap, setCap] = useState("");
@@ -62,8 +64,8 @@ export default function LetterSettings({ canEdit, reason }: Props) {
   };
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-      <h3 className="text-base font-semibold text-gray-800 dark:text-white/90">Letter settings</h3>
+    <div className={embedded ? "p-5 sm:p-6" : "rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-white/[0.03]"}>
+      <h3 className={`text-base font-semibold text-gray-800 dark:text-white/90 ${embedded ? "pr-10" : ""}`}>Letter settings</h3>
       <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">How letter numbers start, and the contact numbers printed on the letters.</p>
 
       {error && (

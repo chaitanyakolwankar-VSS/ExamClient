@@ -1,46 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Swal from "sweetalert2";
-import { AlertTriangle, CheckCircle2, ClipboardList, RotateCcw, Save, Search, Settings2, X } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import PageMeta from "../../../components/common/PageMeta";
 import Select from "../../../components/form/Select";
 import Checkbox from "../../../components/form/input/Checkbox";
-import Button from "../../../components/ui/button/Button";
 import { useAcademicYear } from "../../../context/AcademicYearContext";
-import { useAuth } from "../../../context/AuthContext";
 import { StaffService } from "../../../services/StaffService";
 import type { Staff } from "../../../services/StaffService";
 import { StaffLetterService } from "../../../services/StaffLetterService";
 import type { ExamGroup, SupervisionData } from "../../../services/StaffLetterService";
 import SupervisionGrid from "./SupervisionGrid";
 import type { DutyRow, GridPerson } from "./SupervisionGrid";
-import LetterSettings from "./LetterSettings";
-
-/** The API's reason from an axios error ({ message } or a plain string), else the fallback. */
-const apiReason = (err: unknown, fallback: string): string => {
-  const data = (err as { response?: { data?: unknown } })?.response?.data;
-  if (typeof data === "string" && data.trim()) return data;
-  return (data as { message?: string } | undefined)?.message || fallback;
-};
-
-const tabClass = (active: boolean) =>
-  `flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden focus-visible:ring-inset ${
-    active ? "bg-brand-500 text-white" : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/[0.03]"
-  }`;
-
-const inputClass =
-  "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:text-white/90";
+import { LetterActionBar, LetterNotice, LetterPageHeader, LetterSearch } from "./LetterPageParts";
+import { apiReason, confirmLeave, confirmUndo, countWord, escapeHtml, letterInputClass, today } from "./letterHelpers";
 
 /** Ticking a duty for someone with no role gives them this one (the most common). */
 const DEFAULT_ROLE = "Junior Supervisor";
-
-const escape = (s: string) => s.replace(/[<>&]/g, "");
-
-const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
-
-const countWord = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /** A fingerprint of who is down for what; two grids with the same fingerprint would save the same letters. */
 const fingerprint = (rows: Record<string, DutyRow>) =>
@@ -70,9 +45,7 @@ function rowsFromLetters(data: SupervisionData) {
 /** Supervision letters: assign staff to the dates and times of one exam; saving numbers and records one letter each. */
 export default function SupervisionLetters() {
   const { ayid } = useAcademicYear();
-  const { isAdmin } = useAuth();
 
-  const [tab, setTab] = useState<"assign" | "settings">("assign");
   const [exams, setExams] = useState<ExamGroup[]>([]);
   const [examId, setExamId] = useState("");
   const [staff, setStaff] = useState<Staff[] | null>(null);
@@ -85,8 +58,6 @@ export default function SupervisionLetters() {
   const [notice, setNotice] = useState("");
 
   const [search, setSearch] = useState("");
-  const [departmentId, setDepartmentId] = useState("");
-  const [designationId, setDesignationId] = useState("");
   const [onlyAssigned, setOnlyAssigned] = useState(false);
 
   const requestId = useRef(0);
@@ -166,47 +137,30 @@ export default function SupervisionLetters() {
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
-  const confirmLeave = async () => {
-    if (!dirty) return true;
-    const ok = await Swal.fire({
-      icon: "warning",
-      title: "Leave without saving?",
-      text: "The duties you ticked for this exam have not been saved.",
-      showCancelButton: true,
-      confirmButtonText: "Leave",
-      confirmButtonColor: "#d92d20",
-    });
-    return ok.isConfirmed;
-  };
-
   const chooseExam = async (id: string) => {
-    if (id === examId || !(await confirmLeave())) return;
+    if (id === examId || (dirty && !(await confirmLeave("The duties you ticked for this exam have not been saved.")))) return;
     setExamId(id);
   };
 
-  const discard = async () => {
-    const ok = await Swal.fire({ icon: "question", title: "Undo your changes?", text: "The grid goes back to what is saved.", showCancelButton: true, confirmButtonText: "Undo changes" });
-    if (ok.isConfirmed && data) setRows(rowsFromLetters(data).rows);
+  const undo = async () => {
+    if (data && (await confirmUndo("The grid goes back to what is saved."))) setRows(rowsFromLetters(data).rows);
   };
 
   // ---- who is shown ----
   const staffById = useMemo(() => new Map((staff ?? []).map((s) => [s.staffId, s])), [staff]);
   const letterByStaff = useMemo(() => new Map((data?.letters ?? []).map((l) => [l.staffId, l])), [data]);
 
-  const departments = useMemo(() => distinct(staff ?? [], (s) => s.departmentId, (s) => s.department), [staff]);
-  const designations = useMemo(() => distinct(staff ?? [], (s) => s.designationId, (s) => s.designation), [staff]);
-
   const people: GridPerson[] = useMemo(() => {
     if (!data || !staff) return [];
     const list: GridPerson[] = staff.map((s) => ({
       id: s.staffId,
       name: s.name,
-      detail: [s.employeeCode, s.designation].filter(Boolean).join(" · "),
+      designation: s.designation ?? "",
       letterNo: letterByStaff.get(s.staffId)?.letterNo ?? "",
       orphan: false,
     }));
     for (const l of data.letters) {
-      if (!staffById.has(l.staffId)) list.push({ id: l.staffId, name: l.staffName, detail: "", letterNo: l.letterNo, orphan: true });
+      if (!staffById.has(l.staffId)) list.push({ id: l.staffId, name: l.staffName, designation: "", letterNo: l.letterNo, orphan: true });
     }
     return list;
   }, [data, staff, letterByStaff, staffById]);
@@ -215,13 +169,11 @@ export default function SupervisionLetters() {
     const q = search.trim().toLowerCase();
     return people.filter((p) => {
       const s = staffById.get(p.id);
-      if (q && !`${p.name} ${p.detail} ${s?.email ?? ""}`.toLowerCase().includes(q)) return false;
-      if (departmentId && s?.departmentId !== departmentId) return false;
-      if (designationId && s?.designationId !== designationId) return false;
+      if (q && !`${p.name} ${s?.employeeCode ?? ""} ${s?.department ?? ""} ${p.designation}`.toLowerCase().includes(q)) return false;
       if (onlyAssigned && !(rows[p.id]?.role && rows[p.id].slots.size > 0)) return false;
       return true;
     });
-  }, [people, staffById, search, departmentId, designationId, onlyAssigned, rows]);
+  }, [people, staffById, search, onlyAssigned, rows]);
 
   // ---- counts over everyone who would get a letter (people who left are not counted) ----
   const slotCounts = useMemo(() => {
@@ -262,23 +214,6 @@ export default function SupervisionLetters() {
       else row.slots.delete(slot);
     });
 
-  const toggleColumn = (slot: number) =>
-    edit((d) => {
-      const withRole = shown.filter((p) => !p.orphan && d[p.id]?.role);
-      const turnOn = !withRole.every((p) => d[p.id].slots.has(slot));
-      for (const p of withRole) {
-        if (turnOn) d[p.id].slots.add(slot);
-        else d[p.id].slots.delete(slot);
-      }
-    });
-
-  const bulkRole = (role: string) => {
-    if (!role) return;
-    edit((d) => {
-      for (const p of shown) if (!p.orphan && !d[p.id]?.role) d[p.id] = { role, slots: d[p.id]?.slots ?? new Set() };
-    });
-  };
-
   // ---- save ----
   const save = async () => {
     if (!data) return;
@@ -298,7 +233,7 @@ export default function SupervisionLetters() {
       const ok = await Swal.fire({
         icon: "warning",
         title: "Cancel letters?",
-        html: `<p>${countWord(cancelled.length, "letter")} will be cancelled: ${cancelled.map((l) => `<b>${escape(l.staffName)}</b> (${escape(l.letterNo)})`).join(", ")}.</p><p style="font-size:13px;color:#6b7280">A cancelled letter number is not used again.</p>`,
+        html: `<p>${countWord(cancelled.length, "letter")} will be cancelled: ${cancelled.map((l) => `<b>${escapeHtml(l.staffName)}</b> (${escapeHtml(l.letterNo)})`).join(", ")}.</p><p style="font-size:13px;color:#6b7280">A cancelled letter number is not used again.</p>`,
         showCancelButton: true,
         confirmButtonText: "Save and cancel them",
         confirmButtonColor: "#d92d20",
@@ -318,142 +253,65 @@ export default function SupervisionLetters() {
   };
 
   const exam = data?.exam ?? exams.find((e) => e.examId === examId);
-  const filtering = !!(search || departmentId || designationId || onlyAssigned);
 
   return (
     <>
       <PageMeta title="GradeSphere | Supervision Letters" description="Assign staff to exam supervision duties" />
-      <div className="min-w-0 space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">Supervision Letters</h2>
-            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Choose a role and the dates and times each person supervises. Saving gives each person a numbered letter.</p>
+      <div className="min-w-0 space-y-5">
+        <LetterPageHeader title="Supervision Letters" intro="Choose a role and the dates each person supervises. Saving gives each person a numbered letter." />
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-start">
+            <Select label="Exam" placeholder="Choose exam" options={exams.map((e) => ({ value: e.examId, label: e.title }))} value={examId} onChange={chooseExam} />
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Letter date</span>
+              <input type="date" value={letterDate} onChange={(e) => setLetterDate(e.target.value)} className={letterInputClass} />
+              <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">Letters already made keep their own date.</span>
+            </label>
           </div>
-          <div className="flex overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
-            <button type="button" className={tabClass(tab === "assign")} onClick={() => setTab("assign")}>
-              <ClipboardList className="size-4" /> Assign duties
-            </button>
-            <button type="button" className={`${tabClass(tab === "settings")} border-l border-gray-300 dark:border-gray-700`} onClick={() => setTab("settings")}>
-              <Settings2 className="size-4" /> Letter settings
-            </button>
-          </div>
+          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+            {exam
+              ? [exam.half, countWord(exam.slotCount, "date"), countWord(exam.letterCount, "letter")].filter(Boolean).join(" · ")
+              : !ayid
+                ? "Loading…"
+                : exams.length === 0
+                  ? "No exam in this academic year has a timetable yet. Save its timetable in Generate Hall Ticket first."
+                  : "Choose an exam to see its dates."}
+          </p>
         </div>
 
-        {tab === "settings" && <LetterSettings canEdit={isAdmin} reason={apiReason} />}
+        <LetterNotice message={notice} onDismiss={() => setNotice("")} />
 
-        {tab === "assign" && (
-          <>
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-end">
-                <Select
-                  label="Exam *"
-                  placeholder="Choose exam"
-                  options={exams.map((e) => ({ value: e.examId, label: e.title }))}
-                  value={examId}
-                  onChange={chooseExam}
-                />
-                <label className="block">
-                  <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">Date on new letters</span>
-                  <input type="date" value={letterDate} onChange={(e) => setLetterDate(e.target.value)} className={inputClass} />
-                </label>
-              </div>
-              {exam ? (
-                <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                  {[exam.half, `${exam.branchCount} ${exam.branchCount === 1 ? "branch" : "branches"}`, `${exam.slotCount} ${exam.slotCount === 1 ? "date and time" : "dates and times"}`, countWord(exam.letterCount, "letter") + " so far"].filter(Boolean).join(" · ")}
-                  <span className="text-gray-400 dark:text-gray-500"> · Letters already made keep their own date.</span>
-                </p>
-              ) : (
-                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                  {!ayid ? "Loading…" : exams.length === 0 ? "No exam in this academic year has a timetable yet. Save its timetable in Generate Hall Ticket first." : "Choose an exam to see its dates and times."}
-                </p>
-              )}
+        {examId && loadingData && !data && <p className="text-sm text-gray-500 dark:text-gray-400">Loading the exam's dates and staff…</p>}
+
+        {data && staff && data.slots.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">This exam has no dates yet.</p>}
+
+        {data && staff && data.slots.length > 0 && (
+          <div className="min-w-0 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 dark:border-gray-800">
+              <LetterSearch value={search} onChange={setSearch} placeholder="Name, ID, department or designation" label="Search staff" />
+              <Checkbox label="Show assigned only" checked={onlyAssigned} onChange={setOnlyAssigned} />
             </div>
 
-            {notice && (
-              <p role="status" className="flex items-start gap-2 rounded-xl border border-success-200 bg-success-50 px-4 py-3 text-sm text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-400">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                <span className="flex-1">{notice}</span>
-                <button type="button" onClick={() => setNotice("")} aria-label="Dismiss" className="rounded p-0.5 hover:bg-success-100 dark:hover:bg-white/[0.05]">
-                  <X className="size-4" />
-                </button>
+            {dropped > 0 && (
+              <p className="flex items-start gap-2 border-b border-gray-100 px-4 py-3 text-sm text-warning-700 sm:px-5 dark:border-gray-800 dark:text-orange-300">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <span>
+                  {countWord(dropped, "duty")} on saved letters {dropped === 1 ? "is" : "are"} no longer a date of this exam. Saving drops {dropped === 1 ? "it" : "them"} from the letters.
+                </span>
               </p>
             )}
 
-            {examId && loadingData && !data && <p className="text-sm text-gray-500 dark:text-gray-400">Loading the exam's dates and staff…</p>}
-
-            {data && staff && data.slots.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">This exam has no dates and times yet.</p>}
-
-            {data && staff && data.slots.length > 0 && (
-              <div className="min-w-0 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                <div className="space-y-3 border-b border-gray-100 px-4 py-3 sm:px-5 dark:border-gray-800">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                    <div className="relative lg:w-72">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
-                      <input
-                        type="search"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Name, email or employee ID"
-                        aria-label="Search staff"
-                        className="h-11 w-full rounded-lg border border-gray-300 bg-transparent pl-9 pr-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:text-white/90"
-                      />
-                    </div>
-                    <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
-                      <Select options={[{ value: "", label: "All departments" }, ...departments]} placeholder="All departments" value={departmentId} onChange={setDepartmentId} />
-                      <Select options={[{ value: "", label: "All designations" }, ...designations]} placeholder="All designations" value={designationId} onChange={setDesignationId} />
-                    </div>
-                    <Checkbox label="Only assigned" checked={onlyAssigned} onChange={setOnlyAssigned} />
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <p className="text-sm text-gray-700 dark:text-gray-300" aria-live="polite">
-                      <b className="font-semibold text-gray-800 dark:text-white/90">{assignedCount}</b> staff assigned, <b className="font-semibold text-gray-800 dark:text-white/90">{dutyCount}</b> {dutyCount === 1 ? "duty" : "duties"}
-                      {filtering && <span className="text-gray-500 dark:text-gray-400"> · showing {shown.length} of {people.length}</span>}
-                    </p>
-                    <div className="ml-auto flex flex-wrap items-center gap-2">
-                      {dirty && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-50 px-2.5 py-1 text-xs font-medium text-warning-700 dark:bg-warning-500/15 dark:text-orange-300">
-                          <span className="size-1.5 rounded-full bg-warning-500" aria-hidden="true" /> Unsaved changes
-                        </span>
-                      )}
-                      <Button size="sm" variant="outline" onClick={discard} disabled={!dirty || saving} startIcon={<RotateCcw className="size-4" />}>
-                        Undo changes
-                      </Button>
-                      <Button size="sm" onClick={save} disabled={!dirty || saving} startIcon={<Save className="size-4" />}>
-                        {saving ? "Saving…" : "Save letters"}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {dropped > 0 && (
-                    <p className="flex items-start gap-2 text-sm text-warning-700 dark:text-orange-300">
-                      <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                      <span>{countWord(dropped, "duty")} on saved letters {dropped === 1 ? "is" : "are"} no longer a date and time of this exam. Saving drops {dropped === 1 ? "it" : "them"} from the letters.</span>
-                    </p>
-                  )}
-                </div>
-
-                {shown.length === 0 ? (
-                  <p className="px-4 py-6 text-sm text-gray-500 sm:px-5 dark:text-gray-400">{people.length === 0 ? "No staff yet. Add them in Staff Master first." : "No staff match these filters."}</p>
-                ) : (
-                  <SupervisionGrid people={shown} rows={rows} slots={data.slots} roles={roles} slotCounts={slotCounts} onRole={setRole} onToggle={toggle} onToggleColumn={toggleColumn} onBulkRole={bulkRole} />
-                )}
-              </div>
+            {shown.length === 0 ? (
+              <p className="px-4 py-6 text-sm text-gray-500 sm:px-5 dark:text-gray-400">{people.length === 0 ? "No staff yet. Add them in Staff Master first." : "No staff match your search."}</p>
+            ) : (
+              <SupervisionGrid people={shown} rows={rows} slots={data.slots} roles={roles} slotCounts={slotCounts} onRole={setRole} onToggle={toggle} />
             )}
-          </>
+
+            <LetterActionBar summary={`${assignedCount} staff · ${dutyCount} ${dutyCount === 1 ? "duty" : "duties"}`} dirty={dirty} saving={saving} onUndo={undo} onSave={save} />
+          </div>
         )}
       </div>
     </>
   );
-}
-
-/** The distinct (id, name) pairs of one staff field as sorted drop-down options. */
-function distinct(list: Staff[], id: (s: Staff) => string | null, name: (s: Staff) => string | null) {
-  const seen = new Map<string, string>();
-  for (const s of list) {
-    const key = id(s);
-    const label = name(s);
-    if (key && label) seen.set(key, label);
-  }
-  return [...seen].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
 }
