@@ -4,14 +4,16 @@ import Button from "../../../components/ui/button/Button";
 import { Modal } from "../../../components/ui/modal";
 import { Choice } from "../Students Admin/StudentLinks";
 import { StaffLetterService } from "../../../services/StaffLetterService";
-import type { LetterEmailPreview, LetterKind } from "../../../services/StaffLetterService";
+import type { LetterEmailPreview, LetterKind, LetterTarget } from "../../../services/StaffLetterService";
 import { apiReason, countWord } from "./letterHelpers";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  examId: string;
-  examTitle: string;
+  /** The exam (examiner and moderator letters) or the duty chart (supervision letters). */
+  target: LetterTarget;
+  /** The exam's or the chart's name, as the email calls it. */
+  title: string;
   kind: LetterKind;
   /** Called after a send, so the Email column is read again. */
   onSent: () => void;
@@ -23,7 +25,8 @@ const people = (n: number) => `${n} ${n === 1 ? "person" : "people"}`;
  * Email letters: each person with a letter gets one email with a link to check their details and download their
  * letters as PDF. Sending again replaces the person's earlier link.
  */
-export default function EmailLettersModal({ isOpen, onClose, examId, examTitle, kind, onSent }: Props) {
+export default function EmailLettersModal({ isOpen, onClose, target, title, kind, onSent }: Props) {
+  const { examId, dutyChartId } = target;
   const [who, setWho] = useState<"all" | "rest">("all");
   const [preview, setPreview] = useState<LetterEmailPreview | null>(null);
   const [error, setError] = useState("");
@@ -34,7 +37,7 @@ export default function EmailLettersModal({ isOpen, onClose, examId, examTitle, 
   const load = useCallback(async () => {
     setError("");
     try {
-      const p = await StaffLetterService.emailPreview({ examId, kind, onlyNotSent: who === "rest" });
+      const p = await StaffLetterService.emailPreview({ examId, dutyChartId, kind, onlyNotSent: who === "rest" });
       setPreview(p);
       // The first time, with some already emailed, offer the people still waiting.
       if (!chosen.current) {
@@ -45,7 +48,7 @@ export default function EmailLettersModal({ isOpen, onClose, examId, examTitle, 
       setPreview(null);
       setError(apiReason(err, "Could not check who the letters would go to."));
     }
-  }, [examId, kind, who]);
+  }, [examId, dutyChartId, kind, who]);
 
   // Each time the window opens it starts afresh and counts the people again.
   useEffect(() => {
@@ -63,7 +66,7 @@ export default function EmailLettersModal({ isOpen, onClose, examId, examTitle, 
     setSending(true);
     setError("");
     try {
-      const r = await StaffLetterService.emailSend({ examId, kind, onlyNotSent: who === "rest" });
+      const r = await StaffLetterService.emailSend({ examId, dutyChartId, kind, onlyNotSent: who === "rest" });
       setResult(r.message);
       onSent();
       await load();
@@ -83,7 +86,7 @@ export default function EmailLettersModal({ isOpen, onClose, examId, examTitle, 
         <div className="pr-10">
           <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">Email letters</h4>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Each person gets a link for <b className="font-medium text-gray-700 dark:text-gray-300">{examTitle}</b>. They confirm it is them with a code sent to their email, check their details and download their letters as PDF.
+            Each person gets a link for <b className="font-medium text-gray-700 dark:text-gray-300">{title}</b>. They confirm it is them with a code sent to their email, check their details and download their letters as PDF.
           </p>
         </div>
 

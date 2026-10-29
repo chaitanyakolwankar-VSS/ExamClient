@@ -15,6 +15,7 @@ export interface Staff {
   department: string | null;
   designationId: string | null;
   designation: string | null;
+  isTeaching: boolean;
   isExternal: boolean;
   externalCollege: string | null;
   externalCity: string | null;
@@ -30,6 +31,7 @@ export interface StaffSave {
   email: string;
   departmentId: string | null;
   designationId: string | null;
+  isTeaching: boolean;
   isExternal: boolean;
   externalCollege: string;
   externalCity: string;
@@ -42,6 +44,8 @@ export interface StaffFilter {
   designationId?: string;
   /** "internal", "external" or empty for both. */
   type?: string;
+  /** "teaching", "non-teaching" or empty for both. */
+  teaching?: string;
   includeInactive?: boolean;
 }
 

@@ -9,6 +9,7 @@ export const emptyStaff = (): StaffSave => ({
   email: "",
   departmentId: null,
   designationId: null,
+  isTeaching: true,
   isExternal: false,
   externalCollege: "",
   externalCity: "",

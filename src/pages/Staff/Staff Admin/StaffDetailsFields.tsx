@@ -66,7 +66,7 @@ export default function StaffDetailsFields({ value, onChange, departments, desig
           onChange={(v) => set({ departmentId: v || null })}
         />
       </div>
-      <div className="sm:col-span-2">
+      <div className="sm:col-span-1">
         <Select
           label="Designation"
           placeholder="Choose designation"
@@ -75,6 +75,15 @@ export default function StaffDetailsFields({ value, onChange, departments, desig
           onChange={(v) => set({ designationId: v || null })}
         />
       </div>
+      <Select
+        label="Staff type"
+        options={[
+          { value: "Teaching", label: "Teaching" },
+          { value: "Non-teaching", label: "Non-teaching" },
+        ]}
+        value={value.isTeaching ? "Teaching" : "Non-teaching"}
+        onChange={(v) => set({ isTeaching: v === "Teaching" })}
+      />
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 sm:col-span-4">
         <Checkbox label="External (professor of another college)" checked={value.isExternal} onChange={(checked) => set({ isExternal: checked })} />

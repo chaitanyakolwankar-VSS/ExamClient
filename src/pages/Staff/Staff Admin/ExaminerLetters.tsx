@@ -356,7 +356,7 @@ export default function ExaminerLetters() {
 
         {data && data.subjects.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">This exam has no subjects yet.</p>}
 
-        {view === "letters" && data && <LettersView examId={data.exam.examId} examTitle={data.exam.title} kind="appointment" rows={letterRows} dirty={dirty} loadedKey={data} />}
+        {view === "letters" && data && <LettersView target={{ examId: data.exam.examId }} title={data.exam.title} kind="appointment" rows={letterRows} dirty={dirty} loadedKey={data} emptyText="No letters yet for this exam. Choose Assign, pick the people and save." />}
 
         {view === "assign" && hasSubjects && staff && (
           <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">

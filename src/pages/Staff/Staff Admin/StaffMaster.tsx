@@ -38,6 +38,7 @@ const toForm = (s: Staff): StaffSave => ({
   email: s.email,
   departmentId: s.departmentId,
   designationId: s.designationId,
+  isTeaching: s.isTeaching,
   isExternal: s.isExternal,
   externalCollege: s.externalCollege ?? "",
   externalCity: s.externalCity ?? "",
@@ -104,18 +105,27 @@ export default function StaffMaster() {
   const [search, setSearch] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [designationId, setDesignationId] = useState("");
+  const [teaching, setTeaching] = useState("");
   const [includeInactive, setIncludeInactive] = useState(false);
 
   const loadStaff = useCallback(async () => {
     setLoading(true);
     try {
-      setStaff(await StaffService.list({ search, departmentId: departmentId || undefined, designationId: designationId || undefined, includeInactive }));
+      setStaff(
+        await StaffService.list({
+          search,
+          departmentId: departmentId || undefined,
+          designationId: designationId || undefined,
+          teaching: teaching || undefined,
+          includeInactive,
+        }),
+      );
     } catch (err) {
       Swal.fire("Find staff", apiReason(err, "The staff list could not be loaded."), "error");
     } finally {
       setLoading(false);
     }
-  }, [search, departmentId, designationId, includeInactive]);
+  }, [search, departmentId, designationId, teaching, includeInactive]);
 
   // The list loads when "Find staff" is open; search waits for typing to pause, the drop-downs reload at once.
   useEffect(() => {
@@ -183,6 +193,7 @@ export default function StaffMaster() {
         <span>
           {s.name}
           {!s.isActive && <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-white/[0.05] dark:text-gray-400">Left</span>}
+          {!s.isTeaching && <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-white/[0.05] dark:text-gray-400">Non-teaching</span>}
         </span>
       ),
     },
@@ -229,7 +240,7 @@ export default function StaffMaster() {
     },
   ];
 
-  const filtered = !!(search || departmentId || designationId);
+  const filtered = !!(search || departmentId || designationId || teaching);
 
   return (
     <>
@@ -293,7 +304,7 @@ export default function StaffMaster() {
                     title: "Fill it in",
                     text: (
                       <>
-                        Employee ID, title, name and email for each person. Department and designation are drop-downs; type a new one and it is added to the list.
+                        Employee ID, title, name and email for each person. The Teaching column is Yes or No (blank means Yes). Department and designation are drop-downs; type a new one and it is added to the list.
                         For a professor of another college, choose External = Yes and fill in their college.
                       </>
                     ),
@@ -316,8 +327,8 @@ export default function StaffMaster() {
         )}
 
         {tab === "find" && (
-          <ComponentCard title="Find staff" desc="Search by name, email or employee ID, or narrow the list by department and designation.">
-            <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-4">
+          <ComponentCard title="Find staff" desc="Search by name, email or employee ID, or narrow the list by department, designation or staff type.">
+            <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-3 xl:grid-cols-5">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
                 <input
@@ -331,6 +342,16 @@ export default function StaffMaster() {
               </div>
               <Select options={[{ value: "", label: "All departments" }, ...departments]} placeholder="All departments" value={departmentId} onChange={setDepartmentId} />
               <Select options={[{ value: "", label: "All designations" }, ...designations]} placeholder="All designations" value={designationId} onChange={setDesignationId} />
+              <Select
+                options={[
+                  { value: "", label: "All types" },
+                  { value: "teaching", label: "Teaching" },
+                  { value: "non-teaching", label: "Non-teaching" },
+                ]}
+                placeholder="All types"
+                value={teaching}
+                onChange={setTeaching}
+              />
               <Checkbox label="Show people who left" checked={includeInactive} onChange={setIncludeInactive} />
             </div>
 

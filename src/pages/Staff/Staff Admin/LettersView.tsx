@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FileText, Mail, Printer } from "lucide-react";
 import Button from "../../../components/ui/button/Button";
-import { StaffLetterService } from "../../../services/StaffLetterService";
-import type { LetterDuty, LetterEmailStatus, LetterKind } from "../../../services/StaffLetterService";
+import { DutyChartService, StaffLetterService } from "../../../services/StaffLetterService";
+import type { LetterEmailStatus, LetterKind, LetterTarget } from "../../../services/StaffLetterService";
 import EmailLettersModal from "./EmailLettersModal";
 import { LetterSearch, LetterSummary, tableCell, tableHead } from "./LetterPageParts";
+import { dayLabel } from "./dutyModel";
 import { countWord, emailProgress, openPdf } from "./letterHelpers";
+
+/** One line of a supervision letter: a date and what is done on it. */
+export interface LetterLine {
+  date: string;
+  time: string;
+  role?: string;
+}
 
 /** One saved letter as the Letters table shows it. */
 export interface LetterRow {
@@ -18,18 +26,22 @@ export interface LetterRow {
   /** A second line under the role (the subject of an appointment). */
   detail?: string;
   /** Supervision duties, in order. */
-  duties?: LetterDuty[];
+  duties?: LetterLine[];
 }
 
 interface Props {
-  examId: string;
-  examTitle: string;
+  /** The exam (examiner and moderator letters) or the duty chart (supervision letters) the letters belong to. */
+  target: LetterTarget;
+  /** What the email says the letters are for: the exam's or the chart's name. */
+  title: string;
   kind: LetterKind;
   rows: LetterRow[];
-  /** Unsaved changes on the Assign view: the letters below are not up to date, so printing and emailing wait. */
+  /** Unsaved changes on the other view: the letters below are not up to date, so printing and emailing wait. */
   dirty: boolean;
   /** Changes whenever the letters were loaded again, so the email status is read again. */
   loadedKey: unknown;
+  /** Shown when there are no letters yet. */
+  emptyText: string;
 }
 
 const TONE = {
@@ -40,29 +52,30 @@ const TONE = {
 };
 
 /** The dates of a supervision letter as a short line: the first few, all of them (with times) in the tooltip. */
-function DutyDates({ duties }: { duties: LetterDuty[] }) {
+function DutyDates({ duties }: { duties: LetterLine[] }) {
   const dates = [...new Set(duties.map((d) => d.date))];
   const more = dates.length - 3;
   return (
-    <span title={duties.map((d) => `${d.date} · ${d.time}`).join("\n")}>
-      {dates.slice(0, 3).join(", ")}
+    <span title={duties.map((d) => [dayLabel(d.date), d.time, d.role].filter(Boolean).join(" · ")).join("\n")}>
+      {dates.slice(0, 3).map(dayLabel).join(", ")}
       {more > 0 && <span className="text-gray-500 dark:text-gray-400"> +{more} more</span>}
     </span>
   );
 }
 
 /** The saved letters of an exam, one row each: open the PDF, see who has been emailed, print them all or email them. */
-export default function LettersView({ examId, examTitle, kind, rows, dirty, loadedKey }: Props) {
+export default function LettersView({ target, title, kind, rows, dirty, loadedKey, emptyText }: Props) {
+  const { examId, dutyChartId } = target;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<Map<string, LetterEmailStatus>>(new Map());
   const [emailing, setEmailing] = useState(false);
   const [printing, setPrinting] = useState(false);
 
   const loadStatus = useCallback(() => {
-    StaffLetterService.emailStatus(examId)
+    StaffLetterService.emailStatus({ examId, dutyChartId })
       .then((list) => setStatus(new Map(list.map((s) => [s.staffId, s]))))
       .catch(() => setStatus(new Map()));
-  }, [examId]);
+  }, [examId, dutyChartId]);
 
   useEffect(() => {
     loadStatus();
@@ -75,7 +88,7 @@ export default function LettersView({ examId, examTitle, kind, rows, dirty, load
 
   const printAll = async () => {
     setPrinting(true);
-    await openPdf("Print all letters", () => StaffLetterService.pdfAll(examId, kind));
+    await openPdf("Print all letters", () => (dutyChartId ? DutyChartService.pdf(dutyChartId) : StaffLetterService.pdfAll(examId ?? "", kind)));
     setPrinting(false);
   };
 
@@ -90,7 +103,7 @@ export default function LettersView({ examId, examTitle, kind, rows, dirty, load
         </div>
         <LetterSummary text={countWord(rows.length, "letter")} />
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          {dirty && <span className="text-sm text-warning-600 dark:text-orange-300">Save your changes on Assign first.</span>}
+          {dirty && <span className="text-sm text-warning-600 dark:text-orange-300">Save your changes first.</span>}
           <Button size="sm" variant="outline" onClick={printAll} disabled={none || dirty || printing} startIcon={<Printer className="size-4" />} title="One PDF with every letter, to print">
             {printing ? "Preparing…" : "Print all"}
           </Button>
@@ -101,7 +114,7 @@ export default function LettersView({ examId, examTitle, kind, rows, dirty, load
       </div>
 
       {none ? (
-        <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">No letters yet for this exam. Choose Assign, pick the people and save.</p>
+        <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">{emptyText}</p>
       ) : shown.length === 0 ? (
         <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">No letter matches your search.</p>
       ) : (
@@ -163,7 +176,7 @@ export default function LettersView({ examId, examTitle, kind, rows, dirty, load
         </div>
       )}
 
-      <EmailLettersModal isOpen={emailing} onClose={() => setEmailing(false)} examId={examId} examTitle={examTitle} kind={kind} onSent={loadStatus} />
+      <EmailLettersModal isOpen={emailing} onClose={() => setEmailing(false)} target={target} title={title} kind={kind} onSent={loadStatus} />
     </div>
   );
 }

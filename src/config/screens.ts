@@ -61,7 +61,7 @@ export const SCREENS: Screen[] = [
   { key: "studentMaster", label: "Student Master", module: "Students Admin", path: "/Staff/Student_Master", aliases: ["Student Masters", "Students"] },
 
   { key: "staffMaster", label: "Staff Master", module: "Staff Admin", path: "/Staff/StaffMaster", aliases: ["Staff Masters", "Staff"] },
-  { key: "supervisionLetters", label: "Supervision Letters", module: "Staff Admin", path: "/Staff/SupervisionLetters", aliases: ["Supervision Letter", "Supervisor Letters"] },
+  { key: "supervisionLetters", label: "Duty Chart", module: "Staff Admin", path: "/Staff/DutyChart", extraPaths: ["/Staff/SupervisionLetters"], aliases: ["Supervision Letters", "Supervision Letter", "Duty Charts"] },
   { key: "examinerLetters", label: "Examiner Letters", module: "Staff Admin", path: "/Staff/ExaminerLetters", aliases: ["Examiner Letter", "Appointment Letters", "Moderator Letters"] },
 
   { key: "regularExam", label: "Regular Exam", module: "Conduct Exam", path: "/Staff/RegularExam", aliases: ["Regular Exams"] },

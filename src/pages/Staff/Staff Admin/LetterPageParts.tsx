@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CheckCircle2, ChevronDown, FileText, Save, Search, Settings2, UserCheck, X } from "lucide-react";
+import type { ReactNode } from "react";
 import Button from "../../../components/ui/button/Button";
 import Select from "../../../components/form/Select";
 import { Modal } from "../../../components/ui/modal";
@@ -10,22 +11,37 @@ import { apiReason, letterInputClass } from "./letterHelpers";
 
 export type LetterView = "assign" | "letters";
 
+/** One button of the header's switch. */
+export interface ViewOption<V extends string> {
+  value: V;
+  label: string;
+  icon: ReactNode;
+}
+
+const ASSIGN_OR_LETTERS: ViewOption<LetterView>[] = [
+  { value: "assign", label: "Assign", icon: <UserCheck className="size-4" aria-hidden="true" /> },
+  { value: "letters", label: "Letters", icon: <FileText className="size-4" aria-hidden="true" /> },
+];
+
 /** Segmented-toggle button, as on Student Master. */
 const tabClass = (active: boolean) =>
   `flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden focus-visible:ring-inset ${
     active ? "bg-brand-500 text-white" : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/[0.03]"
   }`;
 
-interface HeaderProps {
+interface HeaderProps<V extends string> {
   title: string;
   /** One short grey line under the title (what is on the screen, or what to do next). */
   info: string;
-  view: LetterView;
-  onView: (view: LetterView) => void;
+  view: V;
+  onView: (view: V) => void;
+  /** The switch buttons; Assign | Letters when left out. */
+  views?: ViewOption<V>[];
 }
 
-/** Title and one grey line on the left; Assign | Letters (and, for admins, Letter settings) on the right, as on Student Master. */
-export function LetterPageHeader({ title, info, view, onView }: HeaderProps) {
+/** Title and one grey line on the left; the view switch (and, for admins, Letter settings) on the right, as on Student Master. */
+export function LetterPageHeader<V extends string = LetterView>({ title, info, view, onView, views }: HeaderProps<V>) {
+  const options = (views ?? ASSIGN_OR_LETTERS) as ViewOption<V>[];
   const { isAdmin } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -37,18 +53,18 @@ export function LetterPageHeader({ title, info, view, onView }: HeaderProps) {
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{info}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div role="group" aria-label="Assign or see letters" className="flex overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
-            <button type="button" aria-pressed={view === "assign"} className={tabClass(view === "assign")} onClick={() => onView("assign")}>
-              <UserCheck className="size-4" aria-hidden="true" /> Assign
-            </button>
-            <button
-              type="button"
-              aria-pressed={view === "letters"}
-              className={`${tabClass(view === "letters")} border-l border-gray-300 dark:border-gray-700`}
-              onClick={() => onView("letters")}
-            >
-              <FileText className="size-4" aria-hidden="true" /> Letters
-            </button>
+          <div role="group" aria-label="Choose the view" className="flex overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
+            {options.map((o, i) => (
+              <button
+                key={o.value}
+                type="button"
+                aria-pressed={view === o.value}
+                className={`${tabClass(view === o.value)} ${i > 0 ? "border-l border-gray-300 dark:border-gray-700" : ""}`}
+                onClick={() => onView(o.value)}
+              >
+                {o.icon} {o.label}
+              </button>
+            ))}
           </div>
           {isAdmin && (
             <button
@@ -77,12 +93,12 @@ export function ExamField({ exams, examId, onExam }: { exams: ExamGroup[]; examI
   return <Select label="Exam" placeholder="Select Exam" options={exams.map((e) => ({ value: e.examId, label: e.title }))} value={examId} onChange={onExam} />;
 }
 
-/** The date printed on letters made by the next save. */
-export function LetterDateField({ value, onChange }: { value: string; onChange: (date: string) => void }) {
+/** A date box with its label on the border, like the drop-downs. The default is the date printed on letters made by the next save. */
+export function LetterDateField({ value, onChange, label = "Letter date", title = "Letters already made keep their own date." }: { value: string; onChange: (date: string) => void; label?: string; title?: string }) {
   return (
-    <div className="relative w-full" title="Letters already made keep their own date.">
-      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} aria-label="Letter date" className={letterInputClass} />
-      <span className="pointer-events-none absolute left-2.5 top-0 -translate-y-1/2 bg-white px-1.5 text-xs text-brand-500 dark:bg-gray-900 dark:text-gray-400">Letter date</span>
+    <div className="relative w-full" title={title}>
+      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} className={letterInputClass} />
+      <span className="pointer-events-none absolute left-2.5 top-0 -translate-y-1/2 bg-white px-1.5 text-xs text-brand-500 dark:bg-gray-900 dark:text-gray-400">{label}</span>
     </div>
   );
 }
