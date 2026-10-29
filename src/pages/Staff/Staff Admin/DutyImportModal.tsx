@@ -40,16 +40,16 @@ const asSheetResult = (r: DutyImportResult): StudentImportResult => ({
 export default function DutyImportModal({ chartId, chartName, letterDate, onClose, onImported }: Props) {
   return (
     <Modal isOpen onClose={onClose} className="m-4 max-w-[1000px]">
-      <div role="dialog" aria-modal="true" aria-label="Import duty chart from Excel" className="@container">
+      <div role="dialog" aria-modal="true" aria-label="Import people and duties from Excel" className="@container">
         <div className="px-5 pb-0 pt-5 pr-14 sm:px-6 sm:pt-6">
           <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">Import Excel</h4>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            For <b className="font-medium text-gray-700 dark:text-gray-300">{chartName}</b>. The file becomes the chart: staff who are not in it lose their duties. New letters are dated {letterDate ? fullDate(letterDate) : "—"}.
+            For <b className="font-medium text-gray-700 dark:text-gray-300">{chartName}</b>. The people in the file become the people on duty, with the duties written in it; anyone not in the file is taken off. This is saved at once. New letters are dated {letterDate ? fullDate(letterDate) : "—"}.
           </p>
         </div>
         <SheetImportPanel
           steps={[
-            { title: "Download the sheet", text: "It lists every staff member and the days of this chart, with the duties saved so far. It is also the blank sheet to fill in." },
+            { title: "Download the sheet", text: "It lists the people already on this exam period and the days, with the duties saved so far. With nobody added yet it is a blank sheet: add rows with each person's Employee ID." },
             {
               title: "Fill it in",
               text: (
@@ -66,7 +66,7 @@ export default function DutyImportModal({ chartId, chartName, letterDate, onClos
               const { blob, fileName } = await DutyChartService.excel(chartId);
               saveAs(blob, fileName);
             } catch (err) {
-              Swal.fire("Duty chart", apiReason(err, "The sheet could not be made."), "error");
+              Swal.fire("Supervision letters", apiReason(err, "The sheet could not be made."), "error");
             }
           }}
           upload={async (file, preview) => {
@@ -74,10 +74,10 @@ export default function DutyImportModal({ chartId, chartName, letterDate, onClos
             if (result.saved) onImported();
             return result;
           }}
-          saveLabel="Save chart"
+          saveLabel="Save"
           ready={() => {
             if (letterDate) return true;
-            Swal.fire("Duty chart", "Choose the letter date first.", "info");
+            Swal.fire("Supervision letters", "Choose the letter date first.", "info");
             return false;
           }}
           reason={apiReason}

@@ -36,6 +36,14 @@ export const dayLabel = (iso: string) => {
 /** "11 May 2026" */
 export const fullDate = (iso: string) => `${dayLabel(iso)} ${parseDay(iso).getFullYear()}`;
 
+/** "11–22 May" within a month, "28 Apr – 5 May" across months. */
+export const rangeLabel = (from: string, to: string) => {
+  const a = parseDay(from);
+  const b = parseDay(to);
+  if (a.getFullYear() !== b.getFullYear() || a.getMonth() !== b.getMonth()) return `${dayLabel(from)} – ${dayLabel(to)}`;
+  return a.getDate() === b.getDate() ? dayLabel(from) : `${a.getDate()}–${dayLabel(to)}`;
+};
+
 /** "Mon" */
 export const weekdayShort = (iso: string) => WEEKDAYS[parseDay(iso).getDay()];
 
@@ -51,6 +59,12 @@ export function defaultRole(staff: Staff | undefined, roles: string[]): string {
 export function rolePrefix(role: string | null, roles: string[]): string {
   const i = role ? roles.indexOf(role) : -1;
   return i === 0 ? "CC" : i === 1 ? "SS" : "";
+}
+
+/** The first session of the first day, as the By date view's choice ("2026-05-11|M"). */
+export function firstSlot(days: DutyDay[]): string {
+  const day = days.find((x) => x.morning || x.afternoon);
+  return day ? `${day.date}|${day.morning ? "M" : "A"}` : "";
 }
 
 const SESSION_TEXT: Record<DutySession, string> = { M: "M", A: "A", MA: "M/A" };

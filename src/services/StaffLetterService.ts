@@ -86,9 +86,17 @@ export interface DutyChartLetter {
   lines: DutyLetterLine[];
 }
 
+/** One person on the chart (whether or not they have a duty yet). */
+export interface DutyChartMember {
+  staffId: string;
+  sortOrder: number;
+}
+
 export interface DutyChartDetail {
   chart: DutyChartSummary;
   days: DutyDay[];
+  /** The people on the chart, in order. A new chart has none. */
+  members: DutyChartMember[];
   entries: DutyEntry[];
   /** The supervision roles, highest first. */
   roles: string[];
@@ -359,13 +367,13 @@ export const DutyChartService = {
     return res.data;
   },
 
-  /** The whole chart: people left out lose their duties and letters. */
-  async saveEntries(id: string, letterDate: string, entries: DutyEntry[]): Promise<DutyChartSaveResult> {
-    const res = await apiClient.put<DutyChartSaveResult>(`/DutyCharts/${id}/entries`, { letterDate, entries });
+/** The whole chart: the ordered people on it and all their duties. People left out lose their duties and letters. */
+  async saveEntries(id: string, letterDate: string, entries: DutyEntry[], members: string[]): Promise<DutyChartSaveResult> {
+    const res = await apiClient.put<DutyChartSaveResult>(`/DutyCharts/${id}/entries`, { letterDate, entries, members });
     return res.data;
   },
 
-  /** The chart as an Excel sheet with every staff member listed, so it is also the blank sheet. */
+  /** The saved chart as an Excel sheet listing the people on it (a blank template when there are none). */
   async excel(id: string): Promise<{ blob: Blob; fileName: string }> {
     const { blob, fileName } = await getBlob(`/DutyCharts/${id}/excel`);
     return { blob, fileName: fileName || "Duty Chart.xlsx" };

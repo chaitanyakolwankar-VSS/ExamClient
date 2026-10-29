@@ -12,7 +12,7 @@ import { LetterDateField } from "./LetterPageParts";
 import { apiReason, countWord } from "./letterHelpers";
 
 interface Props {
-  /** The chart being changed; left out for a new one. */
+  /** The exam period being changed; left out for a new one. */
   chart?: DutyChartSummary;
   days?: DutyDay[];
   ayid: string;
@@ -48,7 +48,7 @@ const timeInput =
   "h-9 w-full min-w-36 rounded-lg border border-gray-300 bg-transparent px-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:text-white/90";
 
 /**
- * New chart (name, half, dates, note; the days come from the exam timetables) or Edit chart (the same, plus the days:
+ * New exam period (name, half, dates, note; the days come from the exam timetables) or Edit (the same, plus the days:
  * their session times, adding and removing days, reading the timetables again).
  */
 export default function DutyChartModal({ chart, days: savedDays = [], ayid, onClose, onSaved, onDeleted }: Props) {
@@ -108,8 +108,8 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
   };
 
   const save = async () => {
-    if (!name.trim()) return setError("Give the chart a name, e.g. May–June 2026 End-Semester.");
-    if (!from || !to) return setError("Choose the first and last date of the chart.");
+    if (!name.trim()) return setError("Give the exam period a name, e.g. May–June 2026 End-Semester.");
+    if (!from || !to) return setError("Choose the first and last date of the exam period.");
     if (from > to) return setError("The first date is after the last date.");
     setBusy(true);
     setError("");
@@ -132,7 +132,7 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
       if (detail) onSaved(detail, !chart);
       onClose();
     } catch (err) {
-      setError(apiReason(err, "The chart could not be saved."));
+      setError(apiReason(err, "The exam period could not be saved."));
     } finally {
       setBusy(false);
     }
@@ -142,10 +142,10 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
     if (!chart) return;
     const ok = await Swal.fire({
       icon: "warning",
-      title: "Delete this chart?",
+      title: "Delete this exam period?",
       text: `${chart.letterCount > 0 ? `${countWord(chart.letterCount, "letter")} will be cancelled and their numbers are not used again. ` : ""}This cannot be undone.`,
       showCancelButton: true,
-      confirmButtonText: "Delete chart",
+      confirmButtonText: "Delete exam period",
       confirmButtonColor: "#d92d20",
     });
     if (!ok.isConfirmed) return;
@@ -154,18 +154,18 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
       await DutyChartService.remove(chart.id);
       onDeleted();
     } catch (err) {
-      setError(apiReason(err, "The chart could not be deleted."));
+      setError(apiReason(err, "The exam period could not be deleted."));
       setBusy(false);
     }
   };
 
   return (
     <Modal isOpen onClose={() => !busy && onClose()} className="m-4 max-w-[760px]">
-      <div role="dialog" aria-modal="true" aria-label={editing ? "Edit duty chart" : "New duty chart"} className="flex flex-col gap-4 p-5 sm:p-6">
+      <div role="dialog" aria-modal="true" aria-label={editing ? "Edit exam period" : "New exam period"} className="flex flex-col gap-4 p-5 sm:p-6">
         <div className="pr-10">
-          <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">{editing ? "Edit chart" : "New chart"}</h4>
+          <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">{editing ? "Edit exam period" : "New exam period"}</h4>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {editing ? "Change the name or dates, and the exam days with their session times." : "One chart for the whole exam period. The days are filled in from the exam timetables between the two dates."}
+            {editing ? "Change the name or dates, and the exam days with their session times." : "One exam period for all semesters together. The days are filled in from the exam timetables between the two dates."}
           </p>
         </div>
 
@@ -175,13 +175,13 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
           </div>
           <Select label="Half" placeholder="Half" options={HALVES} value={half} onChange={setHalf} />
           <div className="sm:col-span-1">
-            <LetterDateField label="From" value={from} onChange={setFrom} title="First date of the chart" />
+            <LetterDateField label="From" value={from} onChange={setFrom} title="First date of the exam period" />
           </div>
           <div className="sm:col-span-1">
-            <LetterDateField label="To" value={to} onChange={setTo} title="Last date of the chart" />
+            <LetterDateField label="To" value={to} onChange={setTo} title="Last date of the exam period" />
           </div>
           <div className="sm:col-span-2">
-            <Input label="Note for staff" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} hint="Shown above the chart, for example the hours to be in campus." />
+            <Input label="Note for staff" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} hint="Shown above the duty grid, for example the hours to be in campus." />
           </div>
         </div>
 
@@ -289,7 +289,7 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
         <div className="flex flex-wrap items-center justify-between gap-3">
           {editing ? (
             <button type="button" onClick={remove} disabled={busy} className="rounded-md px-1.5 py-0.5 text-sm font-medium text-error-600 hover:bg-error-50 disabled:opacity-50 dark:text-error-400 dark:hover:bg-white/[0.05]">
-              Delete this chart
+              Delete this exam period
             </button>
           ) : (
             <span />
@@ -299,7 +299,7 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
               Cancel
             </Button>
             <Button onClick={save} disabled={busy || (editing && !detailsChanged && !daysChanged && outsideCount === 0)}>
-              {busy ? "Saving…" : editing ? "Save chart" : "Create chart"}
+              {busy ? "Saving…" : editing ? "Save" : "Create exam period"}
             </Button>
           </div>
         </div>

@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, ChevronDown, FileText, Save, Search, Settings2, UserCheck, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { CheckCircle2, ChevronDown, Save, Search, Settings2, X } from "lucide-react";
 import Button from "../../../components/ui/button/Button";
 import Select from "../../../components/form/Select";
 import { Modal } from "../../../components/ui/modal";
@@ -9,39 +8,8 @@ import type { ExamGroup } from "../../../services/StaffLetterService";
 import LetterSettings from "./LetterSettings";
 import { apiReason, letterInputClass } from "./letterHelpers";
 
-export type LetterView = "assign" | "letters";
-
-/** One button of the header's switch. */
-export interface ViewOption<V extends string> {
-  value: V;
-  label: string;
-  icon: ReactNode;
-}
-
-const ASSIGN_OR_LETTERS: ViewOption<LetterView>[] = [
-  { value: "assign", label: "Assign", icon: <UserCheck className="size-4" aria-hidden="true" /> },
-  { value: "letters", label: "Letters", icon: <FileText className="size-4" aria-hidden="true" /> },
-];
-
-/** Segmented-toggle button, as on Student Master. */
-const tabClass = (active: boolean) =>
-  `flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden focus-visible:ring-inset ${
-    active ? "bg-brand-500 text-white" : "bg-white text-gray-700 hover:bg-gray-50 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/[0.03]"
-  }`;
-
-interface HeaderProps<V extends string> {
-  title: string;
-  /** One short grey line under the title (what is on the screen, or what to do next). */
-  info: string;
-  view: V;
-  onView: (view: V) => void;
-  /** The switch buttons; Assign | Letters when left out. */
-  views?: ViewOption<V>[];
-}
-
-/** Title and one grey line on the left; the view switch (and, for admins, Letter settings) on the right, as on Student Master. */
-export function LetterPageHeader<V extends string = LetterView>({ title, info, view, onView, views }: HeaderProps<V>) {
-  const options = (views ?? ASSIGN_OR_LETTERS) as ViewOption<V>[];
+/** Title and one grey line on the left; for admins a small Letter settings button on the right. */
+export function LetterPageHeader({ title, info }: { title: string; info: string }) {
   const { isAdmin } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -52,32 +20,18 @@ export function LetterPageHeader<V extends string = LetterView>({ title, info, v
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">{title}</h2>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{info}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div role="group" aria-label="Choose the view" className="flex overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
-            {options.map((o, i) => (
-              <button
-                key={o.value}
-                type="button"
-                aria-pressed={view === o.value}
-                className={`${tabClass(view === o.value)} ${i > 0 ? "border-l border-gray-300 dark:border-gray-700" : ""}`}
-                onClick={() => onView(o.value)}
-              >
-                {o.icon} {o.label}
-              </button>
-            ))}
-          </div>
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              title="Letter settings"
-              aria-label="Letter settings"
-              className="flex size-[38px] items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 hover:text-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden dark:border-gray-700 dark:bg-transparent dark:hover:bg-white/[0.05]"
-            >
-              <Settings2 className="size-4" aria-hidden="true" />
-            </button>
-          )}
-        </div>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            title="Letter settings"
+            aria-label="Letter settings"
+            className="flex h-9 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/[0.05]"
+          >
+            <Settings2 className="size-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Letter settings</span>
+          </button>
+        )}
       </div>
       <Modal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} className="m-4 max-w-[640px]">
         <div role="dialog" aria-modal="true" aria-label="Letter settings">

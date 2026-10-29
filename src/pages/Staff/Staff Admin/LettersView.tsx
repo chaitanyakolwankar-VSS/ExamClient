@@ -42,6 +42,8 @@ interface Props {
   loadedKey: unknown;
   /** Shown when there are no letters yet. */
   emptyText: string;
+  /** Inside a step card: no border or corners of its own, only a line above. */
+  embedded?: boolean;
 }
 
 const TONE = {
@@ -64,7 +66,7 @@ function DutyDates({ duties }: { duties: LetterLine[] }) {
 }
 
 /** The saved letters of an exam, one row each: open the PDF, see who has been emailed, print them all or email them. */
-export default function LettersView({ target, title, kind, rows, dirty, loadedKey, emptyText }: Props) {
+export default function LettersView({ target, title, kind, rows, dirty, loadedKey, emptyText, embedded }: Props) {
   const { examId, dutyChartId } = target;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<Map<string, LetterEmailStatus>>(new Map());
@@ -96,7 +98,7 @@ export default function LettersView({ target, title, kind, rows, dirty, loadedKe
   const none = rows.length === 0;
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    <div className={`min-w-0 overflow-hidden ${embedded ? "border-t border-gray-100 dark:border-gray-800" : "rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"}`}>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
         <div className="w-full sm:w-72">
           <LetterSearch value={search} onChange={setSearch} placeholder="Letter no, name or role" label="Search letters" />
