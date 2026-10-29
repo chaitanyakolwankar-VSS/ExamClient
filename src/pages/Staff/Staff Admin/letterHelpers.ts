@@ -41,16 +41,27 @@ export async function confirmUndo(text: string): Promise<boolean> {
   return ok.isConfirmed;
 }
 
-const two = (n: number) => String(n).padStart(2, "0");
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** dd-MM of a date from the API ("05-12"), for the small status labels. */
+/** dd MMM of a date from the API ("05 Dec"), for the small status labels. */
 export const shortDay = (iso: string) => {
   const d = new Date(iso);
-  return `${two(d.getDate())}-${two(d.getMonth() + 1)}`;
+  return `${String(d.getDate()).padStart(2, "0")} ${MONTHS[d.getMonth()]}`;
 };
 
-/** Where a person got to with the emailed link: the furthest step they reached. */
-export function emailProgress(s: { sentAt: string | null; openedAt: string | null; downloadedAt: string | null } | undefined): { text: string; tone: "none" | "sent" | "opened" | "done" } {
+type EmailTimes = { sentAt: string | null; openedAt: string | null; downloadedAt: string | null; stoppedAt?: string | null };
+
+/** True when the link was stopped and not emailed again since. */
+export const isStopped = (s: EmailTimes | undefined) => !!s?.stoppedAt && (!s.sentAt || new Date(s.stoppedAt) >= new Date(s.sentAt));
+
+/** True when the person has a link that works: emailed (opened, downloaded) and not stopped. */
+export const hasActiveLink = (s: EmailTimes | undefined) => !!s?.sentAt && !isStopped(s);
+
+export type EmailTone = "none" | "sent" | "opened" | "done" | "stopped";
+
+/** Where a person got to with the emailed link: the furthest step they reached, or that the link was stopped. */
+export function emailProgress(s: EmailTimes | undefined): { text: string; tone: EmailTone } {
+  if (isStopped(s)) return { text: `Stopped ${shortDay(s!.stoppedAt!)}`, tone: "stopped" };
   if (s?.downloadedAt) return { text: `Downloaded ${shortDay(s.downloadedAt)}`, tone: "done" };
   if (s?.openedAt) return { text: `Opened ${shortDay(s.openedAt)}`, tone: "opened" };
   if (s?.sentAt) return { text: `Sent ${shortDay(s.sentAt)}`, tone: "sent" };

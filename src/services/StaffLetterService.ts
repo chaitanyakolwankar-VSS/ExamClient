@@ -244,6 +244,18 @@ export interface LetterEmailStatus {
   sentAt: string | null;
   openedAt: string | null;
   downloadedAt: string | null;
+  /** When the link was stopped; the link is dead while this is newer than sentAt. */
+  stoppedAt: string | null;
+}
+
+/** Which links to stop: the same target as the email calls; staffIds left out means everyone with an active link. */
+export interface LetterEmailStopRequest extends LetterTarget {
+  staffIds?: string[];
+}
+
+export interface LetterEmailStopResult {
+  stopped: number;
+  message: string;
 }
 
 /** The address of this app, so the emailed link points back to it. */
@@ -316,6 +328,12 @@ export const StaffLetterService = {
 
   async emailStatus(target: LetterTarget): Promise<LetterEmailStatus[]> {
     const res = await apiClient.get<LetterEmailStatus[]>("/StaffLetters/email/status", { params: { examId: target.examId, dutyChartId: target.dutyChartId } });
+    return res.data;
+  },
+
+  /** Stops emailed links, so they no longer open until the letters are emailed again. */
+  async emailStop(dto: LetterEmailStopRequest): Promise<LetterEmailStopResult> {
+    const res = await apiClient.post<LetterEmailStopResult>("/StaffLetters/email/stop", dto);
     return res.data;
   },
 
