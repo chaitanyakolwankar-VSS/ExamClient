@@ -83,6 +83,12 @@ export interface StudentDetails {
   studentPRN: string | null;
   /** ABC ID, 12 digits; null when not given. */
   abcId?: string | null;
+  /** Date of birth (date only, e.g. "2005-03-25T00:00:00"); null when not given. */
+  dateOfBirth?: string | null;
+  /** 10-digit mobile number; null when not given. */
+  phone?: string | null;
+  /** Null when not given. */
+  address?: string | null;
   photoUrl: string | null;
   signUrl: string | null;
   dyslexia: boolean;

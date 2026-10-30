@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import ComponentCard from "../../../components/common/ComponentCard";
-import Input from "../../../components/form/input/InputField";
 import Select from "../../../components/form/Select";
 import Button from "../../../components/ui/button/Button";
 import Alert from "../../../components/ui/alert/Alert";
@@ -23,6 +22,8 @@ import ResolutionCertificatePdf from "./ResolutionCertificatePdf";
 import apiClient from "../../../api/Client";
 import collegedetailService from "../../../services/collegedetailService";
 import DatePicker from "../../../components/form/date-picker";
+import { StaffService, type Staff } from "../../../services/StaffService";
+import StaffSelect from "./StaffSelect";
 
 // Convert any image blob (jpg/png/webp) to a PNG data URL that react-pdf accepts
 const blobToPngDataUrl = async (blob: Blob) => {
@@ -103,6 +104,10 @@ export default function ResolutionReport() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [examinerName, setExaminerName] = useState("");
+  // Staff Master (active staff) for the examiner / professor pickers, and this college's name for own-staff certificates
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [staffLoading, setStaffLoading] = useState(true);
+  const [ownCollege, setOwnCollege] = useState("");
   // 2. Lookup data from the shared cached hooks (src/data)
   const courses = useCourses();
   const patterns = usePatterns();
@@ -133,6 +138,29 @@ export default function ResolutionReport() {
       (subjects.data ?? []).map((s) => ({ value: s.subjectId, label: s.name })),
     [subjects.data],
   );
+
+  useEffect(() => {
+    StaffService.list({})
+      .then((list) => setStaff(list.filter((s) => s.isActive)))
+      .catch((e) => console.error("Staff load failed", e))
+      .finally(() => setStaffLoading(false));
+    collegedetailService
+      .getCollege()
+      .then((c) => setOwnCollege(c?.name ?? ""))
+      .catch((e) => console.error("College load failed", e));
+  }, []);
+
+  const handleProfessorChange = (name: string, person: Staff | null) => {
+    setProfessorName(name);
+    // External staff -> their college (and city); own staff -> this college. Still editable afterwards.
+    if (person) {
+      setCollegeName(
+        person.isExternal
+          ? [person.externalCollege, person.externalCity].filter(Boolean).join(", ")
+          : ownCollege,
+      );
+    }
+  };
 
   // Auto-dismiss alert
   useEffect(() => {
@@ -226,8 +254,8 @@ export default function ResolutionReport() {
     if (!examinerName.trim()) {
       setPageAlert({
         variant: "error",
-        title: "Missing Examiner Name",
-        message: "Please enter the examiner name before printing.",
+        title: "Missing Examiner",
+        message: "Please pick the examiner before printing.",
       });
       return;
     }
@@ -482,13 +510,12 @@ export default function ResolutionReport() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <Input
-                type="text"
+              <StaffSelect
                 label="Examiner Name"
                 value={examinerName}
-                onChange={(e) => setExaminerName(e.target.value)}
-                placeholder="Enter Examiner name"
-                className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 dark:border-gray-700"
+                onChange={(name) => setExaminerName(name)}
+                staff={staff}
+                loading={staffLoading}
               />
             </motion.div>
           )}
@@ -573,18 +600,13 @@ export default function ResolutionReport() {
 
               {/* Professor and College */}
               <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium">
-                    Professor Name
-                  </label>
-                  <input
-                    type="text"
-                    value={professorName}
-                    onChange={(e) => setProfessorName(e.target.value)}
-                    placeholder="Enter professor name"
-                    className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 dark:border-gray-700"
-                  />
-                </div>
+                <StaffSelect
+                  label="Professor Name"
+                  value={professorName}
+                  onChange={handleProfessorChange}
+                  staff={staff}
+                  loading={staffLoading}
+                />
 
                 <div>
                   <label className="mb-2 block text-sm font-medium">

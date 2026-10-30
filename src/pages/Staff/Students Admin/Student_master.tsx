@@ -37,6 +37,7 @@ interface StudentRow {
   studentName?: string;
   semesterId: string;
   studentPRN: string;
+  abcId?: string | null;
   photoUrl?: string | null;
   signUrl?: string | null;
 }
@@ -132,6 +133,9 @@ export default function StudentMaster() {
         category: fields.category,
         studentPRN: fields.prn.trim() || null,
         abcId: fields.abcId.trim() || null,
+        dateOfBirth: fields.dateOfBirth || null,
+        phone: fields.phone.trim() || null,
+        address: fields.address.trim() || null,
         gender: fields.gender,
         studentType: fields.studentType,
         dyslexia: fields.dyslexia,
@@ -270,6 +274,9 @@ export default function StudentMaster() {
         category: s.category ?? "",
         prn: s.studentPRN ?? "",
         abcId: s.abcId ?? "",
+        dateOfBirth: (s.dateOfBirth ?? "").slice(0, 10), // "2005-03-25T00:00:00" -> the date input's "2005-03-25"
+        phone: s.phone ?? "",
+        address: s.address ?? "",
         gender: s.gender === "Male" || s.gender === "Female" ? s.gender : "",
         studentType: s.studentType ?? "",
         dyslexia: !!s.dyslexia,
@@ -311,6 +318,9 @@ export default function StudentMaster() {
         category: editFields.category,
         studentPRN: editFields.prn.trim() || null,
         abcId: editFields.abcId.trim() || null,
+        dateOfBirth: editFields.dateOfBirth || null,
+        phone: editFields.phone.trim() || null,
+        address: editFields.address.trim() || null,
         gender: editFields.gender,
         studentType: editFields.studentType,
         dyslexia: editFields.dyslexia,
@@ -347,6 +357,7 @@ export default function StudentMaster() {
     { key: "name", label: "Branch", sortable: true },
     { key: "semesterId", label: "Semester", sortable: true },
     { key: "studentPRN", label: "ERN" },
+    { key: "abcId", label: "ABC ID" },
     {
       key: "actions",
       label: "",
@@ -486,7 +497,7 @@ export default function StudentMaster() {
                   { title: "Download the template", text: "Made for the branch, semester and pattern above." },
                   {
                     title: "Fill one row per student",
-                    text: "First name, mother's name, gender, student type (E, D or M) and email are required; middle name, last name, category and ERN are optional. Photos are added later per student.",
+                    text: "First name, mother's name, gender, student type (E, D or M) and email are required; middle name, last name, category, ERN, ABC ID, date of birth (dd-MM-yyyy), phone and address are optional. Photos are added later per student.",
                   },
                   {
                     title: "Upload, check, save",
@@ -539,7 +550,7 @@ export default function StudentMaster() {
                 key={`${rows.length}-${findCourse}`}
                 data={rows}
                 columns={columns}
-                searchKeys={["studentId", "studentName", "studentPRN"]}
+                searchKeys={["studentId", "studentName", "studentPRN", "abcId"]}
                 pageSizeOptions={[10, 20, 50, 100]}
               />
             )}
