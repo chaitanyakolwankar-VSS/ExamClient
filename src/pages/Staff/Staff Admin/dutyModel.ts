@@ -61,17 +61,13 @@ export function rolePrefix(role: string | null, roles: string[]): string {
   return i === 0 ? "CC" : i === 1 ? "SS" : "";
 }
 
-/** The first session of the first day, as the By date view's choice ("2026-05-11|M"). */
-export function firstSlot(days: DutyDay[]): string {
-  const day = days.find((x) => x.morning || x.afternoon);
-  return day ? `${day.date}|${day.morning ? "M" : "A"}` : "";
-}
+/** The morning of the first day, as the By date view's choice ("2026-05-11|M"). */
+export const firstSlot = (days: DutyDay[]): string => (days.length > 0 ? `${days[0].date}|M` : "");
 
 const SESSION_TEXT: Record<DutySession, string> = { M: "M", A: "A", MA: "M/A" };
 
-/** What the cell shows: M, A, M/A (with CC· or SS· before it), V, or O. */
+/** What the cell shows: M, A, M/A (with CC· or SS· before it), or O. */
 export function cellCode(c: Cell, roles: string[]): string {
-  if (c.kind === "valuation") return "V";
   if (c.kind === "other") return "O";
   const prefix = rolePrefix(c.role, roles);
   const session = SESSION_TEXT[c.session ?? "M"];
@@ -80,23 +76,28 @@ export function cellCode(c: Cell, roles: string[]): string {
 
 /** The cell in words, for a tooltip. */
 export function cellWords(c: Cell): string {
-  if (c.kind === "valuation") return "Valuation";
   if (c.kind === "other") return c.note ? `Other: ${c.note}` : "Other work";
   const session = c.session === "MA" ? "Morning and afternoon" : c.session === "A" ? "Afternoon" : "Morning";
   return c.role ? `${session} · ${c.role}` : session;
 }
 
-/** How many sessions a cell counts for (valuation and other work are not sessions). */
+/** How many sessions a cell counts for (other work is not a session). */
 export const sessionCount = (c: Cell) => (c.kind !== "duty" ? 0 : c.session === "MA" ? 2 : 1);
 
-export const hasSession = (day: DutyDay | undefined, session: DutySession) =>
-  !!day && (session === "M" ? !!day.morning : session === "A" ? !!day.afternoon : !!day.morning && !!day.afternoon);
+/** Any session can be given on any day of the chart; the times are only labels. */
+export const hasSession = (day: DutyDay | undefined) => !!day;
 
-export const sessionName = (session: DutySession) => (session === "M" ? "morning" : session === "A" ? "afternoon" : "morning and afternoon");
+/** "Morning 10:30 AM - 1:30 PM", or "Morning (no time set)". */
+export const sessionText = (name: "Morning" | "Afternoon", time: string | null) => (time ? `${name} ${time}` : `${name} (no time set)`);
 
+/** Entries of any other kind (an old saved valuation) are left out; the next save drops them. */
 export function cellsFromEntries(entries: DutyEntry[]): Cells {
   const cells: Cells = {};
-  for (const e of entries) (cells[e.staffId] ??= {})[e.date] = { kind: e.kind, session: e.kind === "duty" ? e.session : null, role: e.kind === "duty" ? e.role : null, note: e.kind === "other" ? e.note : null };
+  for (const e of entries) {
+    const kind: string = e.kind;
+    if (kind !== "duty" && kind !== "other") continue;
+    (cells[e.staffId] ??= {})[e.date] = { kind: e.kind, session: e.kind === "duty" ? e.session : null, role: e.kind === "duty" ? e.role : null, note: e.kind === "other" ? e.note : null };
+  }
   return cells;
 }
 
@@ -156,16 +157,12 @@ export function usualRole(cells: Cells, ctx: Ctx, staffId: string, date: string)
   return (pick && row[pick].role) || defaultRole(ctx.staffById.get(staffId), ctx.roles);
 }
 
-/** A duty on the day: morning, afternoon or both. Nothing changes when the day has no such session. */
+/** A duty on the day: morning, afternoon or both. Nothing changes when the date is not a day of the chart. */
 export function setDuty(cells: Cells, ctx: Ctx, staffId: string, date: string, session: DutySession): Cells {
-  if (!hasSession(ctx.dayByDate.get(date), session)) return cells;
+  if (!hasSession(ctx.dayByDate.get(date))) return cells;
   const old = cells[staffId]?.[date];
   const role = old?.kind === "duty" && old.role ? old.role : usualRole(cells, ctx, staffId, date);
   return putCell(cells, staffId, date, { kind: "duty", session, role, note: null });
-}
-
-export function setValuation(cells: Cells, staffId: string, date: string): Cells {
-  return putCell(cells, staffId, date, { kind: "valuation", session: null, role: null, note: null });
 }
 
 export function setOther(cells: Cells, staffId: string, date: string, note: string): Cells {

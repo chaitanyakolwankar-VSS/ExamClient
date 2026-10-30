@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { DutyDay, DutySession } from "../../../services/StaffLetterService";
-import { hasSession, weekdayShort, dayLabel } from "./dutyModel";
+import { weekdayShort, dayLabel } from "./dutyModel";
 import type { Cell } from "./dutyModel";
 import { rowSelectClass } from "./LetterPageParts";
 
@@ -14,7 +15,6 @@ interface Props {
   /** The role a new duty would get. */
   defaultRole: string;
   onSession: (session: DutySession) => void;
-  onValuation: () => void;
   onOther: (note: string) => void;
   onRole: (role: string) => void;
   onClear: () => void;
@@ -29,8 +29,8 @@ const choice = (active: boolean) =>
     active ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-white/[0.06] dark:text-gray-300 dark:hover:bg-white/[0.1]"
   }`;
 
-/** The small panel of one chart cell: morning / afternoon / both, valuation, other work, the role. Every click changes the chart at once. */
-export default function DutyCellPopover({ name, day, cell, roles, rect, defaultRole, onSession, onValuation, onOther, onRole, onClear, onClose }: Props) {
+/** The small panel of one chart cell: morning / afternoon / both, other work, the role. Every click changes the chart at once. */
+export default function DutyCellPopover({ name, day, cell, roles, rect, defaultRole, onSession, onOther, onRole, onClear, onClose }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [note, setNote] = useState(cell?.note ?? "");
   const kind = cell?.kind;
@@ -45,10 +45,11 @@ export default function DutyCellPopover({ name, day, cell, roles, rect, defaultR
   }, [onClose]);
 
   useEffect(() => {
-    box.current?.querySelector<HTMLElement>("button:not(:disabled)")?.focus();
+    box.current?.querySelector<HTMLElement>("button:not(:disabled)")?.focus({ preventScroll: true });
   }, []);
 
-  const left = Math.min(Math.max(8, rect.left), window.innerWidth - WIDTH - 8);
+  // The page's visible width, without the scroll bar, so the panel of the last day stays on screen.
+  const left = Math.min(Math.max(8, rect.left), document.documentElement.clientWidth - WIDTH - 8);
   const below = rect.bottom + 6;
   const top = below + HEIGHT > window.innerHeight ? Math.max(8, rect.top - HEIGHT - 6) : below;
 
@@ -56,13 +57,14 @@ export default function DutyCellPopover({ name, day, cell, roles, rect, defaultR
     if (kind === "other" && note !== (cell?.note ?? "")) onOther(note);
   };
 
-  const session = (s: DutySession, label: string, time: string | null) => (
-    <button key={s} type="button" disabled={!hasSession(day, s)} aria-pressed={kind === "duty" && cell?.session === s} onClick={() => onSession(s)} className={choice(kind === "duty" && cell?.session === s)} title={time ?? undefined}>
+  const session = (s: DutySession, label: string, time?: string | null) => (
+    <button key={s} type="button" aria-pressed={kind === "duty" && cell?.session === s} onClick={() => onSession(s)} className={choice(kind === "duty" && cell?.session === s)} title={time === undefined ? undefined : (time ?? "No time set")}>
       {label}
     </button>
   );
 
-  return (
+  // On the page itself: a parent of the grid may move fixed elements, and the panel is placed by screen position.
+  return createPortal(
     <div
       ref={box}
       role="dialog"
@@ -87,14 +89,11 @@ export default function DutyCellPopover({ name, day, cell, roles, rect, defaultR
       <div className="grid grid-cols-3 gap-1">
         {session("M", "Morning", day.morning)}
         {session("A", "Afternoon", day.afternoon)}
-        {session("MA", "Both", null)}
+        {session("MA", "Both")}
       </div>
-      <div className="mt-1 grid grid-cols-2 gap-1">
-        <button type="button" aria-pressed={kind === "valuation"} onClick={onValuation} className={choice(kind === "valuation")} title="A valuation (CAP assessment) day">
-          Valuation
-        </button>
-        <button type="button" aria-pressed={kind === "other"} onClick={() => onOther(note)} className={choice(kind === "other")} title="Other work that day, written on the letter">
-          Other
+      <div className="mt-1">
+        <button type="button" aria-pressed={kind === "other"} onClick={() => onOther(note)} className={`w-full ${choice(kind === "other")}`} title="Other work that day, written on the letter">
+          Other work
         </button>
       </div>
 
@@ -157,6 +156,7 @@ export default function DutyCellPopover({ name, day, cell, roles, rect, defaultR
           Done
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

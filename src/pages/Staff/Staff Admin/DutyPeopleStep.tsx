@@ -93,7 +93,7 @@ export default function DutyPeopleStep({ members, availableTeaching, availableNo
       {members.length === 0 ? (
         <p className="rounded-xl border border-dashed border-gray-300 px-4 py-5 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">Nobody is on this exam period yet. Use Add staff, add a whole group, or import an Excel sheet.</p>
       ) : (
-        <div className="max-h-96 space-y-3 overflow-y-auto overscroll-contain pr-1">
+        <div className="max-h-96 space-y-3 overflow-y-auto pr-1">
           <Group title="Teaching staff" people={teaching} onRemove={onRemove} />
           <Group title="Non-teaching staff" people={nonTeaching} onRemove={onRemove} />
           <Group title="Not in the staff list any more" people={left} tone="warning" onRemove={onRemove} />

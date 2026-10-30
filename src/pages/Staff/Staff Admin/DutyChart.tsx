@@ -42,7 +42,7 @@ const NO_DAYS: DutyDay[] = [];
 const NO_ROLES: string[] = [];
 const NO_STAFF: Staff[] = [];
 
-const warningStrip = "flex items-center gap-2 border-b border-warning-200 bg-warning-50 px-4 py-1.5 text-xs text-warning-700 sm:px-5 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-orange-300";
+const warningStrip = "flex items-center gap-2 border-b border-warning-200 bg-warning-50 px-4 py-2 text-sm text-warning-700 sm:px-5 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-orange-300";
 
 /** A fingerprint of the people and duties; two screens with the same fingerprint would save the same thing. */
 const docKey = (members: string[], cells: Cells) => `${[...members].sort().join(",")}#${fingerprint(cells)}`;
@@ -284,11 +284,12 @@ export default function DutyChart() {
   }, [cells, memberSet, staffById]);
 
   // ---- save ----
-  const save = async () => {
-    if (!detail) return;
+  /** Saves the people and duties and makes the letters. True when it was saved. */
+  const save = async (): Promise<boolean> => {
+    if (!detail) return false;
     if (!letterDate) {
       Swal.fire("Supervision letters", "Choose the date to print on the new letters.", "info");
-      return;
+      return false;
     }
     // The people still at the college, in the chart's order.
     const memberIds = memberRows.filter((m) => m.person).map((m) => m.id);
@@ -305,18 +306,25 @@ export default function DutyChart() {
         confirmButtonText: "Save and cancel them",
         confirmButtonColor: "#d92d20",
       });
-      if (!ok.isConfirmed) return;
+      if (!ok.isConfirmed) return false;
     }
     setSaving(true);
     try {
       const result = await DutyChartService.saveEntries(detail.chart.id, letterDate, entries, memberIds);
       setNotice(result.message);
       await Promise.all([loadDetail(detail.chart.id), refreshCharts().catch(() => [])]);
+      return true;
     } catch (err) {
       Swal.fire("Letters not saved", apiReason(err, "The letters could not be saved. Nothing was changed."), "error");
+      return false;
     } finally {
       setSaving(false);
     }
+  };
+
+  /** Step 3: Save and next. Goes on to the letters only when the save worked. */
+  const saveAndNext = async () => {
+    if (await save()) setStep(4);
   };
 
   const downloadExcel = async () => {
@@ -414,8 +422,12 @@ export default function DutyChart() {
           <UnsavedStrip>
             <span>The people and duties you entered are not saved yet.</span>
             <span className="flex items-center gap-1">
-              {reach[3] && <TextButton onClick={() => setStep(4)}>Go to step 4 to save</TextButton>}
-              <TextButton onClick={discard}>Discard changes</TextButton>
+              <TextButton onClick={save} disabled={saving} title="Save the people and duties and make the letters">
+                {saving ? "Saving…" : "Save"}
+              </TextButton>
+              <TextButton onClick={discard} disabled={saving}>
+                Discard changes
+              </TextButton>
             </span>
           </UnsavedStrip>
         )}
@@ -476,6 +488,7 @@ export default function DutyChart() {
 
         {current === 3 && detail && hasDays && (
           <DutyMarkStep
+            chartId={detail.chart.id}
             days={days}
             members={onChart}
             cells={cells}
@@ -488,7 +501,28 @@ export default function DutyChart() {
             note={detail.chart.note}
             downloading={downloading}
             onDownload={downloadExcel}
-            footer={<StepFooter onBack={back(2)} onNext={() => go(4)} nextLabel="Next: Letters" nextDisabled={!reach[3]} nextTitle={reach[3] ? undefined : "Give at least one duty first"} />}
+            onDaysSaved={(d) => onChartSaved(d, false)}
+            footer={
+              <StepFooter
+                onBack={back(2)}
+                onNext={() => go(4)}
+                nextLabel="Next: Letters"
+                nextDisabled={!reach[3]}
+                nextTitle={reach[3] ? undefined : "Give at least one duty first"}
+                right={
+                  dirty ? (
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="w-40">
+                        <LetterDateField value={letterDate} onChange={setLetterDate} title="The date printed on the new letters. Letters already made keep their own date." />
+                      </div>
+                      <Button size="sm" onClick={saveAndNext} disabled={saving} title="Save the people and duties, make the letters and go to the letters">
+                        {saving ? "Saving…" : "Save and next →"}
+                      </Button>
+                    </div>
+                  ) : undefined
+                }
+              />
+            }
           />
         )}
 
@@ -496,7 +530,7 @@ export default function DutyChart() {
           <StepCard
             number={4}
             title="Letters"
-            hint="Save letters makes one numbered letter for each person who has a duty. The people and duties above are saved at the same time."
+            hint={dirty ? "Save letters makes one numbered letter for each person who has a duty. The people and duties are saved at the same time." : "One numbered letter for each person who has a duty. Open the PDF or email it."}
             footer={<StepFooter onBack={back(3)} />}
             flush={
               <>
@@ -517,24 +551,24 @@ export default function DutyChart() {
                   rows={letterRows}
                   dirty={dirty}
                   loadedKey={detail}
-                  emptyText="No letters yet. Press Save letters above."
+                  emptyText={dirty ? "No letters yet. Press Save letters above." : "No letters yet. Give duties in step 3 and press Save and next."}
                 />
               </>
             }
           >
-            <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
-              <div className="w-44">
-                <LetterDateField value={letterDate} onChange={setLetterDate} title="The date printed on the new letters. Letters already made keep their own date." />
-              </div>
-              <Button size="sm" onClick={save} disabled={!dirty || saving} startIcon={<Save className="size-4" />}>
-                {saving ? "Saving…" : "Save letters"}
-              </Button>
-              {dirty && (
-                <TextButton onClick={discard} title="Go back to what is saved">
+            {dirty && (
+              <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
+                <div className="w-44">
+                  <LetterDateField value={letterDate} onChange={setLetterDate} title="The date printed on the new letters. Letters already made keep their own date." />
+                </div>
+                <Button size="sm" onClick={save} disabled={saving} startIcon={<Save className="size-4" />}>
+                  {saving ? "Saving…" : "Save letters"}
+                </Button>
+                <TextButton onClick={discard} title="Go back to what is saved" disabled={saving}>
                   Discard changes
                 </TextButton>
-              )}
-            </div>
+              </div>
+            )}
             <LetterSummary
               text={
                 `${peopleWord(onChart.length)} on duty · ${dutyWord(duties)} · ` +

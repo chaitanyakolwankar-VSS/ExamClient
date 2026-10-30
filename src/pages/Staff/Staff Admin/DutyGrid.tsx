@@ -8,15 +8,12 @@ import {
   dayLabel,
   defaultRole,
   fullDate,
-  hasSession,
   isTeaching,
   putCell,
   sessionCount,
-  sessionName,
   setDuty,
   setOther,
   setRole,
-  setValuation,
   weekdayShort,
   rolePrefix,
 } from "./dutyModel";
@@ -31,18 +28,19 @@ interface Props {
   onlyDuty: boolean;
   edit: (fn: (cells: Cells) => Cells) => void;
   undo: () => void;
-  /** A short word for the toolbar ("There is no morning session on 11 May."). */
+  /** Opens the day's times (a click on its column heading). */
+  onDay: (date: string) => void;
+  /** A short word for the toolbar ("Copied. Press Ctrl+V on another day to paste."). */
   onHint: (text: string) => void;
 }
 
 const PILL = {
   duty: "bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300",
   lead: "bg-warning-50 text-warning-700 ring-1 ring-inset ring-warning-200 dark:bg-warning-500/15 dark:text-orange-300 dark:ring-warning-500/30",
-  valuation: "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400",
   other: "bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-gray-300",
 };
 
-const pillClass = (c: Cell, roles: string[]) => (c.kind === "valuation" ? PILL.valuation : c.kind === "other" ? PILL.other : rolePrefix(c.role, roles) ? PILL.lead : PILL.duty);
+const pillClass = (c: Cell, roles: string[]) => (c.kind === "other" ? PILL.other : rolePrefix(c.role, roles) ? PILL.lead : PILL.duty);
 
 const NAME_COL = "w-60 min-w-60 max-w-60";
 const DAY_COL = "w-[3.25rem] min-w-[3.25rem]";
@@ -97,10 +95,12 @@ const GridRow = memo(function GridRow({ person, row, days, roles, activeDate, en
   );
 });
 
-/** The chart as a sheet: people down the side, exam days across, a small code in each cell. Arrow keys move, M A B V set a cell, Enter opens it. */
-export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo, onHint }: Props) {
+/** The chart as a sheet: people down the side, exam days across, a small code in each cell. Arrow keys move, M A B set a cell, Enter opens it. */
+export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo, onDay, onHint }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const clipboard = useRef<Cell | null>(null);
+  // True after an arrow-key move: only then does the grid scroll to the active cell. A click or closing the panel never scrolls.
+  const scrollToActive = useRef(false);
   const [active, setActive] = useState<{ staffId: string; date: string } | null>(null);
   const [pop, setPop] = useState<{ staffId: string; date: string; rect: DOMRect } | null>(null);
 
@@ -132,10 +132,14 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
   }, [cells, ctx.staffById]);
   const total = days.reduce((n, d) => n + (perDay[d.date]?.morning ?? 0) + (perDay[d.date]?.afternoon ?? 0), 0);
 
-  // The active cell keeps the keyboard focus, unless its panel is open.
+  // The active cell keeps the keyboard focus, unless its panel is open. Focus itself never scrolls (it would jump the grid or the page).
   useEffect(() => {
+    const scroll = scrollToActive.current;
+    scrollToActive.current = false;
     if (!active || pop) return;
-    scroller.current?.querySelector<HTMLElement>(`td[data-staff="${active.staffId}"][data-date="${active.date}"]`)?.focus();
+    const td = scroller.current?.querySelector<HTMLElement>(`td[data-staff="${active.staffId}"][data-date="${active.date}"]`);
+    td?.focus({ preventScroll: true });
+    if (scroll) td?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [active, pop]);
 
   const closePop = useCallback(() => setPop(null), []);
@@ -143,7 +147,9 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
   const move = (staffId: string, date: string, dRow: number, dCol: number) => {
     const r = Math.min(Math.max(rowIds.indexOf(staffId) + dRow, 0), rowIds.length - 1);
     const c = Math.min(Math.max(days.findIndex((d) => d.date === date) + dCol, 0), days.length - 1);
-    if (rowIds[r] && days[c]) setActive({ staffId: rowIds[r], date: days[c].date });
+    if (!rowIds[r] || !days[c]) return;
+    scrollToActive.current = true;
+    setActive({ staffId: rowIds[r], date: days[c].date });
   };
 
   const open = (td: HTMLElement) => {
@@ -154,10 +160,6 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
   };
 
   const apply = (staffId: string, date: string, session: DutySession) => {
-    if (!hasSession(ctx.dayByDate.get(date), session)) {
-      onHint(`There is no ${sessionName(session)} session on ${dayLabel(date)}.`);
-      return;
-    }
     edit((c) => setDuty(c, ctx, staffId, date, session));
   };
 
@@ -181,7 +183,6 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
         handled();
         const c = clipboard.current;
         if (!c) return onHint("Copy a cell first (Ctrl+C).");
-        if (c.kind === "duty" && c.session && !hasSession(ctx.dayByDate.get(date), c.session)) return onHint(`There is no ${sessionName(c.session)} session on ${dayLabel(date)}.`);
         edit((cs) => putCell(cs, staffId, date, c));
       }
       return;
@@ -228,9 +229,6 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
     if (key === "m" || key === "a" || key === "b") {
       handled();
       apply(staffId, date, key === "m" ? "M" : key === "a" ? "A" : "MA");
-    } else if (key === "v") {
-      handled();
-      edit((c) => setValuation(c, staffId, date));
     } else if (key === "o") {
       handled();
       edit((c) => setOther(c, staffId, date, cells[staffId]?.[date]?.note ?? ""));
@@ -259,7 +257,7 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
         }}
         onScroll={() => pop && setPop(null)}
         style={{ scrollPaddingLeft: "15.5rem", scrollPaddingTop: "4.5rem", scrollPaddingBottom: "2.5rem", scrollPaddingRight: "4rem" }}
-        className="max-h-[70vh] overflow-auto overscroll-contain"
+        className="max-h-[70vh] overflow-auto"
       >
         <table className="w-max border-separate border-spacing-0 text-sm" aria-label="Duty chart">
           <thead>
@@ -271,14 +269,19 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
                 <th
                   key={d.date}
                   scope="col"
-                  title={`${d.weekday} ${fullDate(d.date)}\nMorning: ${d.morning ?? "no session"}\nAfternoon: ${d.afternoon ?? "no session"}${d.papers ? `\n${d.papers} ${d.papers === 1 ? "paper" : "papers"}` : ""}`}
-                  className={`sticky top-0 z-20 ${DAY_COL} border-b border-gray-200 bg-gray-50 px-0 py-1.5 text-center font-normal dark:border-gray-800 dark:bg-gray-900`}
+                  title={`${d.weekday} ${fullDate(d.date)}\nMorning: ${d.morning ?? "no time set"}\nAfternoon: ${d.afternoon ?? "no time set"}${d.papers ? `\n${d.papers} ${d.papers === 1 ? "paper" : "papers"}` : ""}`}
+                  className={`sticky top-0 z-20 ${DAY_COL} border-b border-gray-200 bg-gray-50 px-0 py-0 text-center font-normal dark:border-gray-800 dark:bg-gray-900`}
                 >
-                  <span className="block text-xs font-medium leading-tight text-gray-700 dark:text-gray-300">{dayLabel(d.date)}</span>
-                  <span className="block text-[11px] leading-tight text-gray-500 dark:text-gray-400">{weekdayShort(d.date)}</span>
-                  <span className="block text-[10px] leading-tight tracking-wider text-gray-400 dark:text-gray-500">
-                    <span className={d.morning ? "" : "line-through opacity-50"}>M</span> <span className={d.afternoon ? "" : "line-through opacity-50"}>A</span>
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onDay(d.date)}
+                    aria-label={`Times of ${dayLabel(d.date)}`}
+                    className="block w-full cursor-pointer py-1.5 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/50 focus-visible:outline-hidden dark:hover:bg-white/[0.05]"
+                  >
+                    <span className="block text-xs font-medium leading-tight text-gray-700 dark:text-gray-300">{dayLabel(d.date)}</span>
+                    <span className="block text-[11px] leading-tight text-gray-500 dark:text-gray-400">{weekdayShort(d.date)}</span>
+                    <span className="block text-[10px] leading-tight tracking-wider text-gray-400 dark:text-gray-500">M A</span>
+                  </button>
                 </th>
               ))}
               <th scope="col" className={`sticky top-0 z-20 ${DUTIES_COL} border-b border-gray-200 bg-gray-50 px-2 text-center text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400`} title="Sessions of duty (morning and afternoon each count one)">
@@ -324,7 +327,6 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
           rect={pop.rect}
           defaultRole={defaultRole(popPerson, roles)}
           onSession={(s) => edit((c) => setDuty(c, ctx, pop.staffId, pop.date, s))}
-          onValuation={() => edit((c) => setValuation(c, pop.staffId, pop.date))}
           onOther={(note) => edit((c) => setOther(c, pop.staffId, pop.date, note))}
           onRole={(r) => edit((c) => setRole(c, pop.staffId, pop.date, r))}
           onClear={() => edit((c) => putCell(c, pop.staffId, pop.date, null))}

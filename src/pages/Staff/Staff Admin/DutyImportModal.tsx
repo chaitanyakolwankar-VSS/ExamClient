@@ -44,7 +44,7 @@ export default function DutyImportModal({ chartId, chartName, letterDate, onClos
         <div className="px-5 pb-0 pt-5 pr-14 sm:px-6 sm:pt-6">
           <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">Import Excel</h4>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            For <b className="font-medium text-gray-700 dark:text-gray-300">{chartName}</b>. The people in the file become the people on duty, with the duties written in it; anyone not in the file is taken off. This is saved at once. New letters are dated {letterDate ? fullDate(letterDate) : "—"}.
+            For <b className="font-medium text-gray-700 dark:text-gray-300">{chartName}</b>. The people in the file become the people on duty, with the duties written in it; anyone not in the file is taken off. Dates in the sheet that are not days of this exam period are added as days. This is saved at once. New letters are dated {letterDate ? fullDate(letterDate) : "—"}.
           </p>
         </div>
         <SheetImportPanel
@@ -54,7 +54,7 @@ export default function DutyImportModal({ chartId, chartName, letterDate, onClos
               title: "Fill it in",
               text: (
                 <>
-                  Under each day write <b>M</b> (morning), <b>A</b> (afternoon) or <b>M/A</b> (both). Put <b>CC</b> (Chief Conductor) or <b>SS</b> (Senior Supervisor) in front, for example CC M/A. <b>V</b> is a valuation day; any other text is other work.
+                  Under each day write <b>M</b> (morning), <b>A</b> (afternoon) or <b>M/A</b> (both). Put <b>CC</b> (Chief Conductor) or <b>SS</b> (Senior Supervisor) in front, for example CC M/A. A <b>V</b> (vacation) cell is read as empty; any other text is other work.
                 </>
               ),
             },

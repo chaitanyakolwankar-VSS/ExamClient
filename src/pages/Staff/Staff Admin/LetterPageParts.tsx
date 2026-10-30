@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ChevronDown, Save, Search, Settings2, X } from "lucide-react";
 import Button from "../../../components/ui/button/Button";
 import Select from "../../../components/form/Select";
@@ -93,15 +93,29 @@ export function GroupedSelect({ label, placeholder, groups, value, onChange }: {
   );
 }
 
-/** A thin green strip with the result of the last save, under the toolbar. */
+/** How long the green strip stays before it closes itself. */
+const NOTICE_SECONDS = 6;
+
+/** A green strip with the result of the last save, under the toolbar. It closes itself after a few seconds. */
 export function LetterNotice({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  // The latest onDismiss, so a new function on every render does not restart the timer.
+  const dismiss = useRef(onDismiss);
+  useEffect(() => {
+    dismiss.current = onDismiss;
+  });
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => dismiss.current(), NOTICE_SECONDS * 1000);
+    return () => clearTimeout(timer);
+  }, [message]);
+
   if (!message) return null;
   return (
-    <p role="status" className="flex items-center gap-2 border-b border-success-200 bg-success-50 px-4 py-1.5 text-xs text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-400">
-      <CheckCircle2 className="size-3.5 shrink-0" aria-hidden="true" />
+    <p role="status" className="flex items-center gap-2 border-b border-success-200 bg-success-50 px-4 py-2 text-sm text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-400">
+      <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
       <span className="flex-1">{message}</span>
       <button type="button" onClick={onDismiss} aria-label="Dismiss" className="rounded p-0.5 hover:bg-success-100 dark:hover:bg-white/[0.05]">
-        <X className="size-3.5" />
+        <X className="size-4" />
       </button>
     </p>
   );
@@ -134,13 +148,14 @@ export function LetterSummary({ text }: { text: string }) {
 }
 
 /** A small text button of the table toolbar ("Tick all shown"). */
-export function TextButton({ children, onClick, title }: { children: React.ReactNode; onClick: () => void; title?: string }) {
+export function TextButton({ children, onClick, title, disabled }: { children: React.ReactNode; onClick: () => void; title?: string; disabled?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={title}
-      className="rounded-md px-1.5 py-0.5 text-sm font-medium text-brand-500 hover:bg-brand-50 focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden dark:text-brand-400 dark:hover:bg-white/[0.05]"
+      disabled={disabled}
+      className="rounded-md px-1.5 py-0.5 text-sm font-medium text-brand-500 hover:bg-brand-50 focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 dark:text-brand-400 dark:hover:bg-white/[0.05]"
     >
       {children}
     </button>

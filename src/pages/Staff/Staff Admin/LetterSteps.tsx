@@ -89,11 +89,12 @@ export function StepCard({ number, title, hint, children, flush, footer }: CardP
 }
 
 /** Back to the step before, Next to the step after. */
-export function StepFooter({ onBack, onNext, nextLabel, nextDisabled, nextTitle }: { onBack?: () => void; onNext?: () => void; nextLabel?: string; nextDisabled?: boolean; nextTitle?: string }) {
+export function StepFooter({ onBack, onNext, nextLabel, nextDisabled, nextTitle, right }: { onBack?: () => void; onNext?: () => void; nextLabel?: string; nextDisabled?: boolean; nextTitle?: string; right?: ReactNode }) {
   return (
     <>
       {onBack ? <TextButton onClick={onBack}>← Back</TextButton> : <span />}
-      {onNext && (
+      {right}
+      {!right && onNext && (
         <Button size="sm" onClick={onNext} disabled={nextDisabled} title={nextTitle}>
           {nextLabel ?? "Next"} →
         </Button>

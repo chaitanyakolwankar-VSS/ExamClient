@@ -61,6 +61,8 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
   const [rows, setRows] = useState<DayRow[]>(() => toRows(savedDays));
   const [original, setOriginal] = useState(() => rowKey(toRows(savedDays)));
   const [newDay, setNewDay] = useState("");
+  /** Told after a new day made the From and To dates wider. */
+  const [widened, setWidened] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -77,11 +79,13 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
       setError(`${fullDate(newDay)} is already in the list.`);
       return;
     }
-    if (outside(newDay)) {
-      setError(`${fullDate(newDay)} is outside the From and To dates. Change them first.`);
-      return;
-    }
     setError("");
+    // A day outside the dates is fine: the dates grow to hold it.
+    if (outside(newDay)) {
+      if (newDay < from) setFrom(newDay);
+      else setTo(newDay);
+      setWidened(`From/To widened to include ${fullDate(newDay)}.`);
+    } else setWidened("");
     setRows((current) => [...current, { date: newDay, morning: "", afternoon: "", fromTimetable: false }].sort((a, b) => a.date.localeCompare(b.date)));
     setNewDay("");
   };
@@ -175,10 +179,10 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
           </div>
           <Select label="Half" placeholder="Half" options={HALVES} value={half} onChange={setHalf} />
           <div className="sm:col-span-1">
-            <LetterDateField label="From" value={from} onChange={setFrom} title="First date of the exam period" />
+            <LetterDateField label="From" value={from} onChange={(v) => { setFrom(v); setWidened(""); }} title="First date of the exam period" />
           </div>
           <div className="sm:col-span-1">
-            <LetterDateField label="To" value={to} onChange={setTo} title="Last date of the exam period" />
+            <LetterDateField label="To" value={to} onChange={(v) => { setTo(v); setWidened(""); }} title="Last date of the exam period" />
           </div>
           <div className="sm:col-span-2">
             <Input label="Note for staff" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} hint="Shown above the duty grid, for example the hours to be in campus." />
@@ -189,7 +193,7 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
           <div>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Days <span className="font-normal text-gray-500 dark:text-gray-400">· leave a session time empty when there is no such session</span>
+                Days <span className="font-normal text-gray-500 dark:text-gray-400">· session times are optional</span>
               </p>
               <button
                 type="button"
@@ -271,11 +275,12 @@ export default function DutyChartModal({ chart, days: savedDays = [], ayid, onCl
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <div className="w-44">
-                <LetterDateField label="Add a day" value={newDay} onChange={setNewDay} title="A day with no timetable, for example a valuation day" />
+                <LetterDateField label="Add a day" value={newDay} onChange={setNewDay} title="Any date, for example an extra exam day with no timetable" />
               </div>
               <Button size="sm" variant="outline" onClick={addDay} disabled={!newDay || busy}>
                 Add day
               </Button>
+              {widened && <p className="text-xs text-gray-600 dark:text-gray-400">{widened}</p>}
             </div>
           </div>
         )}

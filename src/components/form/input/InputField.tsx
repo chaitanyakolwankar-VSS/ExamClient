@@ -65,7 +65,9 @@ const Input: FC<InputProps> = ({
   inputClasses += ` ${className}`;
 
   return (
-    <div className="relative w-full h-fit">
+    <div className="w-full h-fit">
+      {/* The label floats on the input alone, so a hint below does not pull it down. */}
+      <div className="relative">
       <input
         type={type}
         id={id}
@@ -104,6 +106,7 @@ const Input: FC<InputProps> = ({
           {label}
         </label>
       )}
+      </div>
 
       {hint && (
         <p

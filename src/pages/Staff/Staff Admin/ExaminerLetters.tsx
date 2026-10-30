@@ -409,7 +409,7 @@ export default function ExaminerLetters() {
                 {shown.length === 0 ? (
                   <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">{staff.length === 0 ? "No staff yet. Add them in Staff Master first." : "No staff match your search."}</p>
                 ) : (
-                  <div className="max-h-[70vh] overflow-auto overscroll-contain">
+                  <div className="max-h-[70vh] overflow-auto">
                     <table className="w-full min-w-[40rem] border-separate border-spacing-0 text-sm">
                       <thead>
                         <tr>

@@ -19,6 +19,9 @@ export const countWord = (n: number, word: string) => `${n} ${word}${n === 1 ? "
 /** Names go into SweetAlert's html, so strip anything that could be read as a tag. */
 export const escapeHtml = (s: string) => s.replace(/[<>&]/g, "");
 
+/** Text that goes into SweetAlert's html: markup characters shown as they are. */
+export const escapeText = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 export const letterInputClass =
   "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:text-white/90";
 
@@ -49,19 +52,28 @@ export const shortDay = (iso: string) => {
   return `${String(d.getDate()).padStart(2, "0")} ${MONTHS[d.getMonth()]}`;
 };
 
-type EmailTimes = { sentAt: string | null; openedAt: string | null; downloadedAt: string | null; stoppedAt?: string | null };
+type EmailTimes = { sentAt: string | null; openedAt: string | null; downloadedAt: string | null; stoppedAt?: string | null; expiredAt?: string | null; queuedAt?: string | null; failed?: boolean };
 
 /** True when the link was stopped and not emailed again since. */
 export const isStopped = (s: EmailTimes | undefined) => !!s?.stoppedAt && (!s.sentAt || new Date(s.stoppedAt) >= new Date(s.sentAt));
 
-/** True when the person has a link that works: emailed (opened, downloaded) and not stopped. */
-export const hasActiveLink = (s: EmailTimes | undefined) => !!s?.sentAt && !isStopped(s);
+/** True when the email is in the queue and has not left yet. */
+export const isQueued = (s: EmailTimes | undefined) => !!s?.queuedAt && !s.failed && !isStopped(s);
 
-export type EmailTone = "none" | "sent" | "opened" | "done" | "stopped";
+/** True when the person has a link that works: waiting to be sent, or emailed (opened, downloaded), and not stopped. */
+export const hasActiveLink = (s: EmailTimes | undefined) => isQueued(s) || (!!s?.sentAt && !isStopped(s) && !s.expiredAt && !s.failed);
+
+/** True when the emailed link ran out, was stopped or could not be sent: a new link has to be sent. */
+export const needsNewLink = (s: EmailTimes | undefined) => !!s?.failed || isStopped(s) || (!!s?.sentAt && !!s.expiredAt);
+
+export type EmailTone = "none" | "queued" | "sent" | "opened" | "done" | "stopped" | "error";
 
 /** Where a person got to with the emailed link: the furthest step they reached, or that the link was stopped. */
 export function emailProgress(s: EmailTimes | undefined): { text: string; tone: EmailTone } {
   if (isStopped(s)) return { text: `Stopped ${shortDay(s!.stoppedAt!)}`, tone: "stopped" };
+  if (s?.sentAt && s.expiredAt) return { text: `Link ran out ${shortDay(s.expiredAt)}`, tone: "stopped" };
+  if (s?.failed) return { text: "Email failed", tone: "error" };
+  if (s?.queuedAt) return { text: "Waiting to send", tone: "queued" };
   if (s?.downloadedAt) return { text: `Downloaded ${shortDay(s.downloadedAt)}`, tone: "done" };
   if (s?.openedAt) return { text: `Opened ${shortDay(s.openedAt)}`, tone: "opened" };
   if (s?.sentAt) return { text: `Sent ${shortDay(s.sentAt)}`, tone: "sent" };

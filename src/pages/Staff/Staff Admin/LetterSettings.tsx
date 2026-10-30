@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import Swal from "sweetalert2";
-import Input from "../../../components/form/input/InputField";
 import Button from "../../../components/ui/button/Button";
 import { StaffLetterService } from "../../../services/StaffLetterService";
 import type { LetterSettings as Settings } from "../../../services/StaffLetterService";
@@ -18,6 +17,7 @@ const PREFIX = /^[A-Za-z0-9/.-]*$/;
 
 const MAX_GUIDELINES = 10;
 const MAX_GUIDELINE_LENGTH = 300;
+const MAX_SIGNATURE_LENGTH = 1000;
 
 /** The saved guidelines as text, one per line (the API may send them as one text or as a list). */
 const guidelineText = (g: string | string[] | null | undefined) => (Array.isArray(g) ? g.join("\n") : (g ?? ""));
@@ -29,13 +29,40 @@ const guidelineLines = (text: string) =>
     .map((l) => l.trim())
     .filter(Boolean);
 
+/** The signature as the API keeps it: line ends trimmed, no empty lines at the start or the end. */
+const tidySignature = (text: string) =>
+  text
+    .split(/\r?\n/)
+    .map((l) => l.trimEnd())
+    .join("\n")
+    .replace(/^\n+|\n+$/g, "");
+
 /** The college's letter number prefix, the CAP contact numbers, the reporting place and the guidelines printed on staff letters. */
+const fieldLabel = "mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400";
+const fieldHint = "mt-1 text-xs text-gray-500 dark:text-gray-400";
+const fieldBox =
+  "w-full rounded-lg border border-gray-300 bg-transparent px-3.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30";
+
+/** One line of text with its label above and a short hint below. */
+function Field({ id, label, value, maxLength, placeholder, hint, onChange }: { id: string; label: string; value: string; maxLength: number; placeholder?: string; hint: string; onChange: (value: string) => void }) {
+  return (
+    <div>
+      <label htmlFor={id} className={fieldLabel}>
+        {label}
+      </label>
+      <input id={id} value={value} maxLength={maxLength} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className={`${fieldBox} h-10`} />
+      <p className={fieldHint}>{hint}</p>
+    </div>
+  );
+}
+
 export default function LetterSettings({ canEdit, reason, embedded = false }: Props) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [prefix, setPrefix] = useState("");
   const [cap, setCap] = useState("");
   const [place, setPlace] = useState("");
   const [guidelines, setGuidelines] = useState("");
+  const [signature, setSignature] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -48,6 +75,7 @@ export default function LetterSettings({ canEdit, reason, embedded = false }: Pr
       setCap(s.capContact ?? "");
       setPlace(s.reportingPlace ?? "");
       setGuidelines(guidelineText(s.dutyGuidelines));
+      setSignature(s.letterEmailSignature ?? "");
       setError("");
     } catch (err) {
       setError(reason(err, "The letter settings could not be loaded."));
@@ -66,7 +94,8 @@ export default function LetterSettings({ canEdit, reason, embedded = false }: Pr
     (prefix.trim() !== (settings.letterPrefix ?? "") ||
       cap.trim() !== (settings.capContact ?? "") ||
       place.trim() !== (settings.reportingPlace ?? "") ||
-      lines.join("\n") !== guidelineLines(guidelineText(settings.dutyGuidelines)).join("\n"));
+      lines.join("\n") !== guidelineLines(guidelineText(settings.dutyGuidelines)).join("\n") ||
+      tidySignature(signature) !== tidySignature(settings.letterEmailSignature ?? ""));
   const shownPrefix = (settings?.letterPrefix || settings?.defaultPrefix || "").trim();
 
   const edit = (set: (v: string) => void, value: string) => {
@@ -78,7 +107,7 @@ export default function LetterSettings({ canEdit, reason, embedded = false }: Pr
     setSaving(true);
     setSaved(false);
     try {
-      await StaffLetterService.saveSettings({ letterPrefix: prefix.trim(), capContact: cap.trim(), reportingPlace: place.trim(), dutyGuidelines: lines.join("\n") });
+      await StaffLetterService.saveSettings({ letterPrefix: prefix.trim(), capContact: cap.trim(), reportingPlace: place.trim(), dutyGuidelines: lines.join("\n"), letterEmailSignature: tidySignature(signature) });
       await load();
       setSaved(true);
     } catch (err) {
@@ -101,37 +130,41 @@ export default function LetterSettings({ canEdit, reason, embedded = false }: Pr
 
       {settings && canEdit && (
         <>
-          <div className="mt-5 grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
-            <Input
+          <div className="mt-5 grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+            <Field
+              id="letter-prefix"
               label="Letter number prefix"
               value={prefix}
               maxLength={40}
-              onChange={(e) => PREFIX.test(e.target.value) && edit(setPrefix, e.target.value.toUpperCase())}
-              hint={`Leave empty to use ${settings.defaultPrefix}. Letters, digits, / - . only.`}
+              placeholder={settings.defaultPrefix}
+              onChange={(v) => PREFIX.test(v) && edit(setPrefix, v.toUpperCase())}
+              hint="Left empty, the text in grey is used."
             />
-            <Input label="CAP contact numbers" value={cap} maxLength={100} onChange={(e) => edit(setCap, e.target.value)} hint="Printed at the end of each letter." />
+            <Field id="cap-contact" label="CAP contact numbers" value={cap} maxLength={100} onChange={(v) => edit(setCap, v)} hint="Printed at the end of each letter." />
             <div className="sm:col-span-2">
-              <Input
+              <Field
+                id="reporting-place"
                 label="Reporting place"
                 value={place}
                 maxLength={200}
-                onChange={(e) => edit(setPlace, e.target.value)}
-                hint={`Where staff report before a session. Leave empty to print "${settings.defaultReportingPlace}".`}
+                placeholder={settings.defaultReportingPlace}
+                onChange={(v) => edit(setPlace, v)}
+                hint="Where staff report before a session. Left empty, the text in grey is printed."
               />
             </div>
             <div className="sm:col-span-2">
-              <label htmlFor="duty-guidelines" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+              <label htmlFor="duty-guidelines" className={fieldLabel}>
                 Duty guidelines
               </label>
               <textarea
                 id="duty-guidelines"
                 value={guidelines}
-                rows={6}
+                rows={5}
                 onChange={(e) => edit(setGuidelines, e.target.value)}
                 placeholder={settings.defaultGuidelines.join("\n")}
-                className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                className={`${fieldBox} resize-y py-2`}
               />
-              <p className={`mt-1.5 text-xs ${tooMany || tooLong ? "text-error-600 dark:text-error-400" : "text-gray-500 dark:text-gray-400"}`}>
+              <p className={`mt-1 text-xs ${tooMany || tooLong ? "text-error-600 dark:text-error-400" : "text-gray-500 dark:text-gray-400"}`}>
                 {tooMany
                   ? `Up to ${MAX_GUIDELINES} guidelines; you have ${lines.length}.`
                   : tooLong
@@ -139,9 +172,24 @@ export default function LetterSettings({ canEdit, reason, embedded = false }: Pr
                     : "One guideline per line, printed as bullets on the duty letter. Leave empty to print the lines shown in grey."}
               </p>
             </div>
+            <div className="sm:col-span-2">
+              <label htmlFor="email-signature" className={fieldLabel}>
+                Email signature
+              </label>
+              <textarea
+                id="email-signature"
+                value={signature}
+                rows={4}
+                maxLength={MAX_SIGNATURE_LENGTH}
+                onChange={(e) => edit(setSignature, e.target.value)}
+                placeholder={"Thanks & Regards,\nName\nDesignation\nCollege"}
+                className={`${fieldBox} resize-y py-2`}
+              />
+              <p className={fieldHint}>Added at the end of the letter emails. Leave empty for "Exam Office" and the college name.</p>
+            </div>
           </div>
-          <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-            A duty letter number looks like <span className="font-mono text-gray-800 dark:text-white/90">{(prefix.trim() || settings.defaultPrefix) + "/2026-27/DUTY-001"}</span>. Numbers are never reused.
+          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            A duty letter number looks like <span className="font-mono text-gray-700 dark:text-gray-300">{(prefix.trim() || settings.defaultPrefix) + "/2026-27/DUTY-001"}</span>. Numbers are never reused.
           </p>
           <div className="mt-5 flex items-center justify-end gap-3">
             {saved && !changed && (
@@ -179,6 +227,10 @@ export default function LetterSettings({ canEdit, reason, embedded = false }: Pr
                 ))}
               </ul>
             </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-gray-500 dark:text-gray-400">Email signature</dt>
+            <dd className="mt-0.5 whitespace-pre-line text-gray-800 dark:text-white/90">{settings.letterEmailSignature || "Exam Office and the college name"}</dd>
           </div>
           <p className="text-gray-500 sm:col-span-2 dark:text-gray-400">Only a college admin can change these.</p>
         </dl>

@@ -54,7 +54,7 @@ export interface DutyDay {
   papers: number;
 }
 
-export type DutyKind = "duty" | "valuation" | "other";
+export type DutyKind = "duty" | "other";
 /** M = morning, A = afternoon, MA = both. */
 export type DutySession = "M" | "A" | "MA";
 
@@ -191,6 +191,8 @@ export interface LetterSettings {
   reportingPlace: string | null;
   /** The guidelines printed on duty letters, one per line; null = the defaults below. */
   dutyGuidelines: string | string[] | null;
+  /** Ends the letter emails, one line per line; null = "Exam Office" and the college name. */
+  letterEmailSignature: string | null;
   defaultReportingPlace: string;
   defaultGuidelines: string[];
 }
@@ -201,6 +203,8 @@ export interface LetterSettingsSave {
   reportingPlace: string;
   /** One guideline per line. */
   dutyGuidelines: string;
+  /** Empty = the default signature. */
+  letterEmailSignature: string;
 }
 
 /** Which letters an email or a merged PDF is about. */
@@ -230,6 +234,8 @@ export interface LetterEmailPreview {
   noEmail: string[];
   /** False when no email account is set up, so nothing can be sent. */
   senderReady: boolean;
+  /** How the email is signed (plain text, new lines kept), after the default is filled in. */
+  signature: string;
 }
 
 export interface LetterEmailResult {
@@ -246,6 +252,12 @@ export interface LetterEmailStatus {
   downloadedAt: string | null;
   /** When the link was stopped; the link is dead while this is newer than sentAt. */
   stoppedAt: string | null;
+  /** When the link ran out (past its last day, not stopped). */
+  expiredAt: string | null;
+  /** When the email was put in the queue; set while it is waiting to leave. */
+  queuedAt: string | null;
+  /** True when the sending account refused the email. */
+  failed: boolean;
 }
 
 /** Which links to stop: the same target as the email calls; staffIds left out means everyone with an active link. */
