@@ -54,7 +54,7 @@ export default function DutyImportModal({ chartId, chartName, letterDate, onClos
               title: "Fill it in",
               text: (
                 <>
-                  Under each day write <b>M</b> (morning), <b>A</b> (afternoon) or <b>M/A</b> (both). Put <b>CC</b> (Chief Conductor), <b>SS</b> (Senior Supervisor) or <b>IS</b> (Inspection Squad) in front, for example IS M/A. A <b>V</b> (vacation) cell is read as empty; any other text is other work.
+                  Under each day write <b>M</b> (morning), <b>A</b> (afternoon) or <b>M/A</b> (both). Put <b>CC</b> (Chief Conductor), <b>SS</b> (Senior Supervisor), <b>IS</b> (Inspection Squad) or <b>US</b> (Understudy Supervisor) in front, for example IS M/A. The sheet has a drop-down of the codes in each cell. A <b>V</b> (vacation) cell is read as empty; any other text is other work.
                 </>
               ),
             },

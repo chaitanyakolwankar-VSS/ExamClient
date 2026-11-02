@@ -38,16 +38,17 @@ const PILL = {
   duty: "bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300",
   lead: "bg-warning-50 text-warning-700 ring-1 ring-inset ring-warning-200 dark:bg-warning-500/15 dark:text-orange-300 dark:ring-warning-500/30",
   squad: "bg-success-50 text-success-700 ring-1 ring-inset ring-success-200 dark:bg-success-500/15 dark:text-success-300 dark:ring-success-500/30",
+  understudy: "bg-blue-light-50 text-blue-light-700 ring-1 ring-inset ring-blue-light-200 dark:bg-blue-light-500/15 dark:text-blue-light-300 dark:ring-blue-light-500/30",
   other: "bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-gray-300",
 };
 
 /** The keys that set a duty's role, matched against the role names. */
-const ROLE_KEYS: Record<string, RegExp> = { c: /chief/i, s: /senior/i, i: /inspection/i, j: /junior/i };
+const ROLE_KEYS: Record<string, RegExp> = { c: /chief/i, s: /senior/i, i: /inspection/i, j: /junior/i, u: /understudy/i };
 
-const pillClass = (c: Cell, roles: string[]) => {
+const pillClass = (c: Cell) => {
   if (c.kind === "other") return PILL.other;
-  const prefix = rolePrefix(c.role, roles);
-  return prefix === "IS" ? PILL.squad : prefix ? PILL.lead : PILL.duty;
+  const prefix = rolePrefix(c.role);
+  return prefix === "IS" ? PILL.squad : prefix === "US" ? PILL.understudy : prefix ? PILL.lead : PILL.duty;
 };
 
 const NAME_COL = "w-60 min-w-60 max-w-60";
@@ -62,7 +63,6 @@ interface RowProps {
   person: Staff;
   row: Record<string, Cell> | undefined;
   days: DutyDay[];
-  roles: string[];
   /** The date of this row's active cell, when the active cell is in this row. */
   activeDate: string | null;
   /** True for the row that holds the tab stop when no cell is active yet. */
@@ -70,7 +70,7 @@ interface RowProps {
 }
 
 /** One person's line: only repainted when their own cells or the active cell change. */
-const GridRow = memo(function GridRow({ person, row, days, roles, activeDate, entry }: RowProps) {
+const GridRow = memo(function GridRow({ person, row, days, activeDate, entry }: RowProps) {
   let sessions = 0;
   for (const c of Object.values(row ?? {})) sessions += sessionCount(c);
   return (
@@ -98,7 +98,7 @@ const GridRow = memo(function GridRow({ person, row, days, roles, activeDate, en
               active ? "bg-brand-50/70 ring-2 ring-inset ring-brand-500 dark:bg-brand-500/10" : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"
             }`}
           >
-            {c && <span className={`inline-block max-w-full whitespace-nowrap rounded px-1 py-0.5 text-[11px] font-semibold leading-none ${pillClass(c, roles)}`}>{cellCode(c, roles)}</span>}
+            {c && <span className={`inline-block max-w-full whitespace-nowrap rounded px-1 py-0.5 text-[11px] font-semibold leading-none ${pillClass(c)}`}>{cellCode(c)}</span>}
           </td>
         );
       })}
@@ -318,7 +318,7 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
           </thead>
           <tbody>
             {groups.map((g) => (
-              <GroupRows key={g.title} title={g.title} people={g.people} days={days} cells={cells} roles={roles} active={active} firstId={rowIds[0]} />
+              <GroupRows key={g.title} title={g.title} people={g.people} days={days} cells={cells} active={active} firstId={rowIds[0]} />
             ))}
           </tbody>
           <tfoot>
@@ -369,13 +369,12 @@ interface GroupProps {
   people: Staff[];
   days: DutyDay[];
   cells: Cells;
-  roles: string[];
   active: { staffId: string; date: string } | null;
   firstId: string | undefined;
 }
 
 /** A group title line and the people under it. */
-function GroupRows({ title, people, days, cells, roles, active, firstId }: GroupProps) {
+function GroupRows({ title, people, days, cells, active, firstId }: GroupProps) {
   return (
     <>
       <tr>
@@ -384,7 +383,7 @@ function GroupRows({ title, people, days, cells, roles, active, firstId }: Group
         </td>
       </tr>
       {people.map((p) => (
-        <GridRow key={p.staffId} person={p} row={cells[p.staffId]} days={days} roles={roles} activeDate={active?.staffId === p.staffId ? active.date : null} entry={!active && p.staffId === firstId} />
+        <GridRow key={p.staffId} person={p} row={cells[p.staffId]} days={days} activeDate={active?.staffId === p.staffId ? active.date : null} entry={!active && p.staffId === firstId} />
       ))}
     </>
   );
