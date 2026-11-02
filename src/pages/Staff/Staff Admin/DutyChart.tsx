@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Swal from "sweetalert2";
-import { saveAs } from "file-saver";
 import { AlertTriangle, Pencil, Plus, Save } from "lucide-react";
 import PageMeta from "../../../components/common/PageMeta";
 import Select from "../../../components/form/Select";
@@ -80,7 +79,6 @@ export default function DutyChart() {
   const [baseline, setBaseline] = useState("");
   const [letterDate, setLetterDate] = useState(today);
   const [saving, setSaving] = useState(false);
-  const [downloading, setDownloading] = useState(false);
   const [notice, setNotice] = useState("");
   const [modal, setModal] = useState<"new" | "edit" | "import" | "staff" | null>(null);
 
@@ -233,8 +231,22 @@ export default function DutyChart() {
     setModal("new");
   };
 
-  const openImport = async () => {
-    if (dirty && !(await confirmLeave("Importing replaces the people and duties with the file, so what you entered here is lost."))) return;
+  /** The Excel window (download the chart, upload a filled-in sheet). Both work on the saved chart, so unsaved changes are saved or dropped first. */
+  const openExcel = async () => {
+    if (dirty) {
+      const answer = await Swal.fire({
+        icon: "question",
+        title: "Save your changes first?",
+        text: "The Excel sheet is made from the saved chart, and an upload replaces the people and duties.",
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: "Save",
+        denyButtonText: "Discard changes",
+      });
+      if (answer.isDismissed) return;
+      if (answer.isConfirmed && !(await save())) return;
+      if (answer.isDenied && detail) setDoc(docOf(detail));
+    }
     setModal("import");
   };
 
@@ -327,22 +339,6 @@ export default function DutyChart() {
     if (await save()) setStep(4);
   };
 
-  const downloadExcel = async () => {
-    if (!detail) return;
-    if (dirty) {
-      const ok = await Swal.fire({ icon: "question", title: "Download the saved sheet?", text: "The sheet has the last saved people and duties. What you changed since is not in it.", showCancelButton: true, confirmButtonText: "Download" });
-      if (!ok.isConfirmed) return;
-    }
-    setDownloading(true);
-    try {
-      const { blob, fileName } = await DutyChartService.excel(detail.chart.id);
-      saveAs(blob, fileName);
-    } catch (err) {
-      Swal.fire("Supervision letters", apiReason(err, "The Excel sheet could not be made."), "error");
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   // ---- the exam period dialogs ----
   const onChartSaved = (d: DutyChartDetail, created: boolean) => {
@@ -395,7 +391,8 @@ export default function DutyChart() {
   // A step opens once the one before it is done. Step 4 also opens when there are changes to save, or letters to cancel.
   const hasDays = !!detail && days.length > 0;
   const savedLetters = detail?.letters.length ?? 0;
-  const reach = [true, hasDays, hasDays && onChart.length > 0, hasDays && (dirty || savedLetters > 0 || (onChart.length > 0 && duties > 0))];
+  // Mark duties opens with nobody chosen too: its Excel sheet can bring the people in.
+  const reach = [true, hasDays, hasDays, hasDays && (dirty || savedLetters > 0 || (onChart.length > 0 && duties > 0))];
   let current = step;
   while (current > 1 && !reach[current - 1]) current--;
 
@@ -480,9 +477,8 @@ export default function DutyChart() {
             availableNonTeaching={availableNonTeaching}
             onAddStaff={() => setModal("staff")}
             onAddGroup={addGroup}
-            onImport={openImport}
             onRemove={removeMember}
-            footer={<StepFooter onBack={back(1)} onNext={() => go(3)} nextLabel="Next: Mark duties" nextDisabled={!reach[2]} nextTitle={reach[2] ? undefined : "Add at least one person first"} />}
+            footer={<StepFooter onBack={back(1)} onNext={() => go(3)} nextLabel="Next: Mark duties" />}
           />
         )}
 
@@ -499,9 +495,7 @@ export default function DutyChart() {
             perSlot={perSlot}
             duties={duties}
             note={detail.chart.note}
-            downloading={downloading}
-            onDownload={downloadExcel}
-            onImport={openImport}
+            onExcel={openExcel}
             onDaysSaved={(d) => onChartSaved(d, false)}
             footer={
               <StepFooter

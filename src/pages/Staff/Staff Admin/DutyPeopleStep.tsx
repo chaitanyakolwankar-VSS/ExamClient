@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { FileSpreadsheet, UserPlus, X } from "lucide-react";
+import { UserPlus, X } from "lucide-react";
 import Button from "../../../components/ui/button/Button";
 import type { Staff } from "../../../services/StaffService";
 import { isTeaching } from "./dutyModel";
@@ -21,7 +21,6 @@ interface Props {
   availableNonTeaching: number;
   onAddStaff: () => void;
   onAddGroup: (teaching: boolean) => void;
-  onImport: () => void;
   onRemove: (member: Member) => void;
   footer: ReactNode;
 }
@@ -67,7 +66,7 @@ function Group({ title, people, tone, onRemove }: { title: string; people: Membe
 }
 
 /** Step 2: the people who are on duty in this exam period. Starts empty; add them one by one, by group, or from an Excel sheet. */
-export default function DutyPeopleStep({ members, availableTeaching, availableNonTeaching, onAddStaff, onAddGroup, onImport, onRemove, footer }: Props) {
+export default function DutyPeopleStep({ members, availableTeaching, availableNonTeaching, onAddStaff, onAddGroup, onRemove, footer }: Props) {
   const teaching = members.filter((m) => m.person && isTeaching(m.person));
   const nonTeaching = members.filter((m) => m.person && !isTeaching(m.person));
   const left = members.filter((m) => !m.person);
@@ -84,14 +83,10 @@ export default function DutyPeopleStep({ members, availableTeaching, availableNo
         <Button size="sm" variant="outline" onClick={() => onAddGroup(false)} disabled={availableNonTeaching === 0} title="Add every non-teaching member of staff who is not on the list yet">
           Add all non-teaching staff
         </Button>
-        <span className="text-sm text-gray-400 dark:text-gray-500">or</span>
-        <Button size="sm" variant="outline" onClick={onImport} startIcon={<FileSpreadsheet className="size-4" />} title="Upload an Excel sheet; its rows become the people and their duties">
-          Import Excel
-        </Button>
       </div>
 
       {members.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-gray-300 px-4 py-5 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">Nobody is on this exam period yet. Use Add staff, add a whole group, or import an Excel sheet.</p>
+        <p className="rounded-xl border border-dashed border-gray-300 px-4 py-5 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">Nobody is on this exam period yet. Use Add staff or add a whole group.</p>
       ) : (
         <div className="max-h-96 space-y-3 overflow-y-auto pr-1">
           <Group title="Teaching staff" people={teaching} onRemove={onRemove} />

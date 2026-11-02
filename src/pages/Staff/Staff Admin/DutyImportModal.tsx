@@ -36,13 +36,13 @@ const asSheetResult = (r: DutyImportResult): StudentImportResult => ({
   })),
 });
 
-/** Import Excel: download the chart, fill it in, upload; each row is checked first and Save replaces the chart with the file. */
+/** The Excel window: download the chart, fill it in, upload; each row is checked first and Save replaces the chart with the file. */
 export default function DutyImportModal({ chartId, chartName, letterDate, onClose, onImported }: Props) {
   return (
     <Modal isOpen onClose={onClose} className="m-4 max-w-[1000px]">
-      <div role="dialog" aria-modal="true" aria-label="Import people and duties from Excel" className="@container">
+      <div role="dialog" aria-modal="true" aria-label="Excel sheet of the people and duties" className="@container">
         <div className="px-5 pb-0 pt-5 pr-14 sm:px-6 sm:pt-6">
-          <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">Import Excel</h4>
+          <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">Excel sheet</h4>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             For <b className="font-medium text-gray-700 dark:text-gray-300">{chartName}</b>. The people in the file become the people on duty, with the duties written in it; anyone not in the file is taken off. Dates in the sheet that are not days of this exam period are added as days. This is saved at once. New letters are dated {letterDate ? fullDate(letterDate) : "—"}.
           </p>
