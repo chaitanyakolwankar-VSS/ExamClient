@@ -37,10 +37,18 @@ interface Props {
 const PILL = {
   duty: "bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300",
   lead: "bg-warning-50 text-warning-700 ring-1 ring-inset ring-warning-200 dark:bg-warning-500/15 dark:text-orange-300 dark:ring-warning-500/30",
+  squad: "bg-success-50 text-success-700 ring-1 ring-inset ring-success-200 dark:bg-success-500/15 dark:text-success-300 dark:ring-success-500/30",
   other: "bg-gray-100 text-gray-700 dark:bg-white/[0.08] dark:text-gray-300",
 };
 
-const pillClass = (c: Cell, roles: string[]) => (c.kind === "other" ? PILL.other : rolePrefix(c.role, roles) ? PILL.lead : PILL.duty);
+/** The keys that set a duty's role, matched against the role names. */
+const ROLE_KEYS: Record<string, RegExp> = { c: /chief/i, s: /senior/i, i: /inspection/i, j: /junior/i };
+
+const pillClass = (c: Cell, roles: string[]) => {
+  if (c.kind === "other") return PILL.other;
+  const prefix = rolePrefix(c.role, roles);
+  return prefix === "IS" ? PILL.squad : prefix ? PILL.lead : PILL.duty;
+};
 
 const NAME_COL = "w-60 min-w-60 max-w-60";
 const DUTIES_COL = "w-14 min-w-14";
@@ -237,8 +245,8 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
       handled();
       edit((c) => setOther(c, staffId, date, cells[staffId]?.[date]?.note ?? ""));
       open(td);
-    } else if (key === "c" || key === "s" || key === "j") {
-      const role = roles[key === "c" ? 0 : key === "s" ? 1 : 2];
+    } else if (key in ROLE_KEYS) {
+      const role = roles.find((r) => ROLE_KEYS[key].test(r));
       if (role && cells[staffId]?.[date]?.kind === "duty") {
         handled();
         edit((c) => setRole(c, staffId, date, role));

@@ -55,10 +55,13 @@ export function defaultRole(staff: Staff | undefined, roles: string[]): string {
   return roles.find((r) => wanted.test(r)) ?? roles[roles.length - 1] ?? "";
 }
 
-/** "CC" for the first role, "SS" for the second; others have no prefix. */
+/** The codes of the first roles (Chief Conductor, Senior Supervisor, Inspection Squad); the others have no prefix. */
+const ROLE_CODES = ["CC", "SS", "IS"];
+
+/** "CC" for the first role, "SS" for the second, "IS" for the third; others have no prefix. */
 export function rolePrefix(role: string | null, roles: string[]): string {
   const i = role ? roles.indexOf(role) : -1;
-  return i === 0 ? "CC" : i === 1 ? "SS" : "";
+  return ROLE_CODES[i] ?? "";
 }
 
 /** The morning of the first day, as the By date view's choice ("2026-05-11|M"). */
@@ -66,7 +69,7 @@ export const firstSlot = (days: DutyDay[]): string => (days.length > 0 ? `${days
 
 const SESSION_TEXT: Record<DutySession, string> = { M: "M", A: "A", MA: "M/A" };
 
-/** What the cell shows: M, A, M/A (with CC· or SS· before it), or O. */
+/** What the cell shows: M, A, M/A (with CC·, SS· or IS· before it), or O. */
 export function cellCode(c: Cell, roles: string[]): string {
   if (c.kind === "other") return "O";
   const prefix = rolePrefix(c.role, roles);

@@ -45,12 +45,14 @@ const LEGEND = [
   { code: "M/A", text: "Both", tone: "duty" },
   { code: "CC", text: "Chief Conductor", tone: "lead" },
   { code: "SS", text: "Senior Supervisor", tone: "lead" },
+  { code: "IS", text: "Inspection Squad", tone: "squad" },
   { code: "O", text: "Other work", tone: "other" },
 ] as const;
 
 const CHIP = {
   duty: { box: "border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-300", dot: "bg-brand-500" },
   lead: { box: "border-warning-200 bg-warning-50 text-warning-700 dark:border-warning-500/30 dark:bg-warning-500/15 dark:text-orange-300", dot: "bg-warning-500" },
+  squad: { box: "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/15 dark:text-success-300", dot: "bg-success-500" },
   other: { box: "border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-white/[0.08] dark:text-gray-300", dot: "bg-gray-400" },
 };
 
@@ -106,7 +108,7 @@ export default function DutyMarkStep({ chartId, days, members, cells, ctx, edit,
                 {hint ? (
                   <span className="font-medium text-warning-700 dark:text-orange-300">{hint}</span>
                 ) : (
-                  "Click a cell, or use the arrow keys: M, A, B (both), C or S (role), Delete. Enter opens more."
+                  "Click a cell, or use the arrow keys: M, A, B (both), C, S or I (role), Delete. Enter opens more."
                 )}
               </p>
               {note && <p className="border-b border-gray-100 px-4 py-2 text-sm text-gray-600 sm:px-5 dark:border-gray-800 dark:text-gray-400">Note for staff: {note}</p>}
