@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Download, Plus } from "lucide-react";
+import { Download, FileSpreadsheet, Plus } from "lucide-react";
 import Select from "../../../components/form/Select";
 import Checkbox from "../../../components/form/input/Checkbox";
 import Button from "../../../components/ui/button/Button";
@@ -33,6 +33,8 @@ interface Props {
   note: string | null;
   downloading: boolean;
   onDownload: () => void;
+  /** Opens Import Excel: the downloaded sheet, filled in, replaces the people and duties. */
+  onImport: () => void;
   /** After a day was added or its times changed: the chart as it now is. */
   onDaysSaved: (detail: DutyChartDetail) => void;
   footer: ReactNode;
@@ -55,7 +57,7 @@ const CHIP = {
 };
 
 /** Step 3: give the duties. Only the people from step 2 are listed, as a grid (people by days) or one day and session at a time. */
-export default function DutyMarkStep({ chartId, days, members, cells, ctx, edit, undo, canUndo, perSlot, duties, note, downloading, onDownload, onDaysSaved, footer }: Props) {
+export default function DutyMarkStep({ chartId, days, members, cells, ctx, edit, undo, canUndo, perSlot, duties, note, downloading, onDownload, onImport, onDaysSaved, footer }: Props) {
   const [sub, setSub] = useState<Sub>("grid");
   const [search, setSearch] = useState("");
   const [onlyDuty, setOnlyDuty] = useState(false);
@@ -154,8 +156,11 @@ export default function DutyMarkStep({ chartId, days, members, cells, ctx, edit,
           <Button size="sm" variant="outline" onClick={() => setDayBox({ date: "" })} startIcon={<Plus className="size-4" />} title="Add a day to the exam period. To change the times of a day, click its heading in the grid.">
             Add day
           </Button>
-          <Button size="sm" variant="outline" onClick={onDownload} disabled={downloading} startIcon={<Download className="size-4" />} title="The saved chart as an Excel sheet. Fill it in and use Import Excel in step 2 to read it back.">
+          <Button size="sm" variant="outline" onClick={onDownload} disabled={downloading} startIcon={<Download className="size-4" />} title="The saved chart as an Excel sheet. Fill it in and use Import Excel to read it back.">
             {downloading ? "Preparing…" : "Download Excel"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={onImport} startIcon={<FileSpreadsheet className="size-4" />} title="Upload the filled-in Excel sheet; its rows become the people and their duties">
+            Import Excel
           </Button>
         </div>
       </div>

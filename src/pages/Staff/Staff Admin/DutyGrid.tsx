@@ -43,8 +43,12 @@ const PILL = {
 const pillClass = (c: Cell, roles: string[]) => (c.kind === "other" ? PILL.other : rolePrefix(c.role, roles) ? PILL.lead : PILL.duty);
 
 const NAME_COL = "w-60 min-w-60 max-w-60";
-const DAY_COL = "w-[3.25rem] min-w-[3.25rem]";
 const DUTIES_COL = "w-14 min-w-14";
+// The day columns share the card's width: never narrower than DAY_MIN (the grid scrolls sideways instead), never wider than DAY_MAX.
+const NAME_REM = 15;
+const DUTIES_REM = 3.5;
+const DAY_MIN_REM = 3.75;
+const DAY_MAX_REM = 8;
 
 interface RowProps {
   person: Staff;
@@ -82,7 +86,7 @@ const GridRow = memo(function GridRow({ person, row, days, roles, activeDate, en
             tabIndex={active || (entry && activeDate === null && i === 0) ? 0 : -1}
             title={c ? `${person.name}: ${cellWords(c)}` : undefined}
             aria-label={`${person.name}, ${dayLabel(d.date)}: ${c ? cellWords(c) : "no duty"}`}
-            className={`${DAY_COL} cursor-pointer border-b border-gray-100 p-0 text-center align-middle focus:outline-hidden dark:border-gray-800 ${
+            className={`cursor-pointer border-b border-gray-100 p-0 text-center align-middle focus:outline-hidden dark:border-gray-800 ${
               active ? "bg-brand-50/70 ring-2 ring-inset ring-brand-500 dark:bg-brand-500/10" : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"
             }`}
           >
@@ -259,7 +263,22 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
         style={{ scrollPaddingLeft: "15.5rem", scrollPaddingTop: "4.5rem", scrollPaddingBottom: "2.5rem", scrollPaddingRight: "4rem" }}
         className="max-h-[70vh] overflow-auto"
       >
-        <table className="w-max border-separate border-spacing-0 text-sm" aria-label="Duty chart">
+        <table
+          className="table-fixed border-separate border-spacing-0 text-sm"
+          style={{
+            width: "100%",
+            minWidth: `${NAME_REM + DUTIES_REM + days.length * DAY_MIN_REM}rem`,
+            maxWidth: `${NAME_REM + DUTIES_REM + days.length * DAY_MAX_REM}rem`,
+          }}
+          aria-label="Duty chart"
+        >
+          <colgroup>
+            <col style={{ width: `${NAME_REM}rem` }} />
+            {days.map((d) => (
+              <col key={d.date} />
+            ))}
+            <col style={{ width: `${DUTIES_REM}rem` }} />
+          </colgroup>
           <thead>
             <tr>
               <th scope="col" className={`sticky left-0 top-0 z-30 ${NAME_COL} border-b border-r border-gray-200 bg-gray-50 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400`}>
@@ -270,7 +289,7 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
                   key={d.date}
                   scope="col"
                   title={`${d.weekday} ${fullDate(d.date)}\nMorning: ${d.morning ?? "no time set"}\nAfternoon: ${d.afternoon ?? "no time set"}${d.papers ? `\n${d.papers} ${d.papers === 1 ? "paper" : "papers"}` : ""}`}
-                  className={`sticky top-0 z-20 ${DAY_COL} border-b border-gray-200 bg-gray-50 px-0 py-0 text-center font-normal dark:border-gray-800 dark:bg-gray-900`}
+                  className={`sticky top-0 z-20 border-b border-gray-200 bg-gray-50 px-0 py-0 text-center font-normal dark:border-gray-800 dark:bg-gray-900`}
                 >
                   <button
                     type="button"
@@ -305,7 +324,7 @@ export default function DutyGrid({ days, staff, cells, ctx, onlyDuty, edit, undo
                   <td
                     key={d.date}
                     title={`${dayLabel(d.date)}: ${t?.morning ?? 0} in the morning, ${t?.afternoon ?? 0} in the afternoon`}
-                    className={`sticky bottom-0 z-20 ${DAY_COL} border-t border-gray-200 bg-gray-50 py-1.5 text-center text-xs tabular-nums text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400`}
+                    className={`sticky bottom-0 z-20 border-t border-gray-200 bg-gray-50 py-1.5 text-center text-xs tabular-nums text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400`}
                   >
                     {t ? t.morning + t.afternoon : ""}
                   </td>

@@ -174,6 +174,8 @@ export interface StudentHallTicketView {
   hasPrincipalSign: boolean;
   hasControllerSign: boolean;
   hasSeal: boolean;
+  /** Instructions printed on the hall ticket; empty when switched off. */
+  instructions: string[];
   student: {
     name: string;
     centre: string;

@@ -80,8 +80,27 @@ export interface HallTicketCollege{
     /** Stored paths of the Controller of Examinations' signature and the office seal; empty when none. */
     controllerSign?:string;
     seal?:string;
+    /** The instructions printed on the hall ticket; empty when switched off. */
+    instructions?:string[];
 }
- 
+/** The college's hall ticket instructions as the editor needs them. */
+export interface HallTicketInstructions {
+    on: boolean;
+    /** True when the college has its own text (otherwise the default text is used). */
+    custom: boolean;
+    /** The text for the editor, even when switched off. */
+    lines: string[];
+    defaultLines: string[];
+    maxLines: number;
+    maxLineLength: number;
+    maxLength: number;
+}
+export interface HallTicketInstructionsSave {
+    on: boolean;
+    /** One instruction per line; null keeps the default text. */
+    text: string | null;
+}
+
 export const GenerateHallTicketService = {
 async getHallTicketSubjects(params: HallticketSubjectsRequest): Promise<HallticketSubjects[]> {
         const response = await apiClient.get<HallticketSubjects[]>(
@@ -111,6 +130,19 @@ async getHallTicketSubjects(params: HallticketSubjectsRequest): Promise<Halltick
         async getcollegeDataExam(): Promise<HallTicketCollege> {
         const response = await apiClient.get<HallTicketCollege>(
             "/GenerateHallTicket/get-hallticketcollegedata", 
+        );
+        return response.data;
+    },
+    async getInstructions(): Promise<HallTicketInstructions> {
+        const response = await apiClient.get<HallTicketInstructions>(
+            "/GenerateHallTicket/instructions"
+        );
+        return response.data;
+    },
+    async saveInstructions(payload: HallTicketInstructionsSave): Promise<HallTicketInstructions> {
+        const response = await apiClient.put<HallTicketInstructions>(
+            "/GenerateHallTicket/instructions",
+            payload
         );
         return response.data;
     },

@@ -501,6 +501,7 @@ export default function DutyChart() {
             note={detail.chart.note}
             downloading={downloading}
             onDownload={downloadExcel}
+            onImport={openImport}
             onDaysSaved={(d) => onChartSaved(d, false)}
             footer={
               <StepFooter

@@ -10,8 +10,8 @@ import { STUDENT_PICTURE, shrinkImage } from "../../utils/shrinkImage";
 import { Picture } from "./StudentDetailsForm";
 import PictureGuide from "./PictureGuide";
 
-/** An A4 hall ticket at 96 dpi; the preview is scaled down to the screen width. */
-const SHEET_PX = 794;
+/** A hall ticket card (190 mm: the A4 sheet less the 10 mm print margins) at 96 dpi; the preview is scaled down to the screen width. */
+const SHEET_PX = 718;
 
 /** Shows a fixed-width sheet scaled to fit the column (a phone shows the whole sheet, smaller). */
 function FitToWidth({ children }: { children: React.ReactNode }) {
@@ -134,7 +134,7 @@ export default function StudentHallTicket({ home, onEnded }: Props) {
       const [{ toJpeg }, { jsPDF }] = await Promise.all([import("html-to-image"), import("jspdf")]);
       const image = await toJpeg(card, { quality: 0.92, pixelRatio: 2, backgroundColor: "#ffffff", skipFonts: true });
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      // 8 mm margins; a long subject list is scaled down to stay on one page.
+      // 8 mm margins; the card is 190 x 276 mm, so it fills the page (about 193 x 281 mm); a taller card is scaled down to stay on one page.
       const maxW = 194, maxH = 281;
       const ratio = card.offsetHeight / card.offsetWidth;
       const w = Math.min(maxW, maxH / ratio);
@@ -226,6 +226,7 @@ export default function StudentHallTicket({ home, onEnded }: Props) {
     principalSign: images.principal ?? undefined,
     controllerSign: images.controller ?? undefined,
     seal: images.seal ?? undefined,
+    instructions: view.instructions ?? [],
   };
   const student: HallTicketStudent = { ...view.student, photo: images.photo, sign: images.signature };
 
@@ -253,7 +254,7 @@ export default function StudentHallTicket({ home, onEnded }: Props) {
       </div>
 
       <style>{`
-        .ht-print .hallticket-card { width: 210mm; min-height: 297mm; }
+        .ht-print .hallticket-card { width: 190mm; min-height: 276mm; }
         @page { size: A4; margin: 10mm; }
         @media print {
           body * { visibility: hidden; }

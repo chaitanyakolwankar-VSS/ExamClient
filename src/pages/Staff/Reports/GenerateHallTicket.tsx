@@ -19,7 +19,7 @@ import {
 import { GenerateHallTicketService,HallticketSubjects, HallticketSubjectsRequest,SaveTimeTable,StudentHallTicketDataRequest ,StudentHallTicketData,TimeTableAll} from "../../../services/GenerateHallTicketService";
 import DataTable from "../../../components/ui/table/DataTable";
 import Input from "../../../components/form/input/InputField";
-import { Save, Printer, Loader2 } from "lucide-react";
+import { Save, Printer, Loader2, ListChecks } from "lucide-react";
 import Switch from "../../../components/form/switch/Switch";
 import Alert from "../../../components/ui/alert/Alert";
 import Button from "../../../components/ui/button/Button";
@@ -27,6 +27,7 @@ import { appStorage } from "../../../utils/appStorage";
 import type { HallTicketCollegeInfo } from "../../../components/HallTicket/Hallticket";
 import { hallTicketTitle } from "../../../components/HallTicket/title";
 import EmailHallTickets from "./EmailHallTickets";
+import HallTicketInstructionsModal from "./HallTicketInstructionsModal";
 
 export type RenderResult = {
   content?: React.ReactNode;
@@ -98,6 +99,9 @@ export default function GenerateHallTicket() {
   const [loading, setLoading] = useState(false);
 
   const [printingTT, setPrintingTT] = useState(false);
+
+  // The "Hall ticket instructions" window.
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
 
   // Bumped when the timetable is saved: Email hall tickets checks the subjects still without a date again.
   const [savedCount, setSavedCount] = useState(0);
@@ -422,6 +426,7 @@ export default function GenerateHallTicket() {
         principalSign: collegedata.principalSign,
         controllerSign: collegedata.controllerSign,
         seal: collegedata.seal,
+        instructions: collegedata.instructions ?? [],
         title: hallTicketTitle({
           branch: courseOptions.find((c) => c.value === courseId)?.label ?? "",
           pattern,
@@ -461,7 +466,17 @@ export default function GenerateHallTicket() {
         description="Welcome to the Staff Portal"
       />
       
-      <ComponentCard title="Generate HallTicket - Filters">
+      <HallTicketInstructionsModal isOpen={instructionsOpen} onClose={() => setInstructionsOpen(false)} />
+
+      <ComponentCard
+        title="Generate HallTicket - Filters"
+        action={
+          <Button variant="outline" size="sm" onClick={() => setInstructionsOpen(true)} className="-my-2 whitespace-nowrap">
+            <ListChecks className="size-4 mr-2" />
+            Hall ticket instructions
+          </Button>
+        }
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           {/* Course Dropdown */}
           <div className="w-full">
